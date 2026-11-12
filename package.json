@@ -1,0 +1,13 @@
+{
+  "name": "newtab",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test test/sky.test.js && node test/e2e.js",
+    "shots": "node test/shots.js",
+    "zip": "cd extension && zip -qr ../newtab.zip . -x '.*'"
+  },
+  "devDependencies": {
+    "playwright": "^1.50.0"
+  }
+}

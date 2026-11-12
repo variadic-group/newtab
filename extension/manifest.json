@@ -1,0 +1,49 @@
+{
+  "manifest_version": 3,
+  "name": "New Tab",
+  "version": "3.0.0",
+  "description": "Your bookmarks as your new tab: tabs of icon tiles, short links in the address bar, and a sky clock with the forecast.",
+  "chrome_url_overrides": {
+    "newtab": "newtab.html"
+  },
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "omnibox": {
+    "keyword": "claude"
+  },
+  "action": {
+    "default_title": "Save this page to Up next"
+  },
+  "commands": {
+    "_execute_action": {
+      "suggested_key": {
+        "default": "Alt+Shift+S"
+      }
+    }
+  },
+  "permissions": [
+    "bookmarks",
+    "tabs",
+    "tabGroups",
+    "webNavigation",
+    "storage",
+    "geolocation"
+  ],
+  "optional_permissions": [
+    "history"
+  ],
+  "host_permissions": [
+    "https://api.weather.gov/*"
+  ],
+  "optional_host_permissions": [
+    "https://mail.google.com/*"
+  ],
+  "icons": {
+    "16": "icons/icon-16.png",
+    "32": "icons/icon-32.png",
+    "48": "icons/icon-48.png",
+    "128": "icons/icon-128.png"
+  }
+}

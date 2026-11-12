@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>New Tab</title>
+<script src="theme.js"></script>
+<link rel="stylesheet" href="newtab.css">
+</head>
+<body>
+<header class="top">
+  <div class="bar">
+    <span class="mark" aria-hidden="true"><i></i><i></i><i></i></span>
+    <nav id="spaces" class="tabs" role="tablist" aria-label="Spaces"></nav>
+    <div class="right">
+      <nav id="pages" class="tabs" role="tablist" aria-label="Pages"></nav>
+      <button type="button" id="edit" class="btn" aria-pressed="false">Edit</button>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+  <section id="space" class="space" hidden>
+    <div class="glance">
+      <button type="button" id="glance" class="gl-main" aria-label="Time, daylight, weather and radar. Opens Today.">
+        <span class="gl-time"><b id="glTime"></b><span id="glDate" class="cap"></span></span>
+        <span id="glSun" class="gl-sun" hidden>
+          <svg viewBox="0 0 132 54" aria-hidden="true">
+            <path id="glArc" class="gl-arc" d="M8 40 A58 32 0 0 1 124 40"/>
+            <path id="glDone" class="gl-done" d="M8 40 A58 32 0 0 1 124 40" pathLength="1"/>
+            <path id="glNight" class="gl-night" d="M124 40 A58 7 0 0 1 8 40"/>
+            <line class="gl-horizon" x1="0" y1="40" x2="132" y2="40"/>
+            <circle id="glDot" r="5"/>
+          </svg>
+          <span class="gl-lines"><span class="gl-times"><span id="glRise"></span><span id="glSet"></span></span><span id="glLeft" class="cap"></span></span>
+        </span>
+        <span id="glWx" class="gl-wx" hidden>
+          <span id="glGlyph" class="gl-glyph"></span><b id="glTemp"></b>
+          <span class="gl-lines"><span id="glText" class="gl-text"></span><span id="glHiLo" class="cap"></span></span>
+        </span>
+        <span id="glRadar" class="gl-radar" hidden><img id="glRadarImg" alt=""><span class="cap">Radar<br>Today ›</span></span>
+      </button>
+      <div id="ask" class="ask" hidden>
+        <div class="ask-text"><b>Where are you?</b><span class="cap">Daylight, the forecast and the radar show here once this page knows. It stays on this computer.</span></div>
+        <div id="askForm"></div>
+      </div>
+      <a id="glMail" class="gl-chip" href="https://mail.google.com/mail/u/0/#inbox" title="Unread in your Gmail inbox" hidden><span aria-hidden="true">✉️</span><b id="glMailCount"></b><span class="cap">unread</span></a>
+    </div>
+    <div id="collections" class="collections"></div>
+    <aside class="side">
+      <section id="nextPanel" class="panel" aria-labelledby="nextTitle">
+        <h2 id="nextTitle" title="Pages to come back to. Drag to reorder; tick one off when you're done with it.">Up next <span id="nextCount" class="n"></span></h2>
+        <ol id="next" class="rows"></ol>
+        <p id="nextEmpty" class="note">Pages to come back to. Add one with “Up next” on an open tab, or with this extension's button in Chrome's toolbar.</p>
+      </section>
+      <section class="panel" aria-labelledby="tabsTitle">
+        <h2 id="tabsTitle" title="This window's other pages. Drag to reorder, or onto a collection to keep one.">Open tabs <span id="tabCount" class="n"></span>
+          <button type="button" id="saveTabs" class="mini" title="Saves every open tab into a new collection in this space">Save all</button>
+        </h2>
+        <ul id="tabs" class="rows"></ul>
+        <p id="tabsEmpty" class="note">No other pages are open in this window.</p>
+      </section>
+      <section id="filesPanel" class="panel" aria-labelledby="filesTitle" hidden>
+        <h2 id="filesTitle" title="Google files you opened lately in this browser">Recent files</h2>
+        <ul id="files" class="rows"></ul>
+        <p id="filesEmpty" class="note">Google Docs, Sheets and Slides you open will show here.</p>
+      </section>
+      <section class="panel notes" aria-labelledby="notesTitle">
+        <h2 id="notesTitle">Notes <span id="noteState" class="n" role="status"></span></h2>
+        <textarea id="note" rows="5" maxlength="4000" aria-labelledby="notesTitle" placeholder="Jot something down. It saves as you type, on every computer signed in to this Chrome profile."></textarea>
+      </section>
+    </aside>
+  </section>
+
+  <section id="today" class="today" hidden>
+    <article id="todayAsk" class="ask-card" hidden>
+      <h2>Where are you?</h2>
+      <p class="cap">The sun, the moon, the forecast and the radar are drawn for one place. It stays on this computer.</p>
+      <div id="todayAskForm"></div>
+    </article>
+    <div id="todayGrid" class="today-grid">
+      <div class="t-now">
+        <article id="sky" class="sky" aria-label="Time, sun and moon">
+          <header class="sky-head">
+            <div>
+              <div id="bigTime" class="big-time"></div>
+              <div id="bigDate" class="big-date"></div>
+            </div>
+            <div class="sky-now"><b id="phase"></b><span id="nextUp"></span><span id="skyWx"></span></div>
+          </header>
+          <svg class="sky-chart" viewBox="0 0 640 290" aria-hidden="true">
+            <defs>
+              <linearGradient id="skyFill" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="0" y2="196"><stop class="sk-top" offset="0"/><stop class="sk-horizon" offset="1"/></linearGradient>
+              <linearGradient id="dayFill" gradientUnits="userSpaceOnUse" x1="0" y1="26" x2="0" y2="196"><stop class="df-a" offset="0"/><stop class="df-b" offset="1"/></linearGradient>
+              <radialGradient id="glowFill"><stop class="gw-a" offset="0"/><stop class="gw-b" offset="1"/></radialGradient>
+              <clipPath id="above"><rect x="0" y="0" width="640" height="196"/></clipPath>
+              <clipPath id="below"><rect x="0" y="196" width="640" height="94"/></clipPath>
+            </defs>
+            <rect x="0" y="0" width="640" height="197" fill="url(#skyFill)"/>
+            <g id="stars" class="stars"></g>
+            <g id="bands"></g>
+            <path id="dayArea" class="day-area" clip-path="url(#above)"/>
+            <path id="sunPathUp" class="sun-path up" clip-path="url(#above)"/>
+            <path id="sunPathDown" class="sun-path down" clip-path="url(#below)"/>
+            <path id="sunDone" class="sun-done" clip-path="url(#above)"/>
+            <line class="horizon" x1="0" y1="196" x2="640" y2="196"/>
+            <circle id="riseMark" class="mark" r="3.5" cy="196"/>
+            <circle id="setMark" class="mark" r="3.5" cy="196"/>
+            <text id="noonText" class="noon" text-anchor="middle"></text>
+            <g id="moon"><circle class="moon-disc" r="11"/><path id="moonLit" class="moon-lit"/></g>
+            <circle id="sunGlow" class="sun-glow" r="30"/>
+            <circle id="sunDot" class="sun-dot" r="9.5"/>
+          </svg>
+          <footer class="sky-foot">
+            <div><span class="cap">Sunrise</span><b id="rise"></b><span id="riseSub" class="cap"></span></div>
+            <div class="mid"><b id="daylight"></b><span id="moonLine" class="cap"></span></div>
+            <div class="end"><span class="cap">Sunset</span><b id="set"></b><span id="setSub" class="cap"></span></div>
+          </footer>
+        </article>
+        <figure id="radarCard" class="radar" hidden>
+          <figcaption><b>Radar</b><a id="radarLink" href="https://radar.weather.gov/">weather.gov</a></figcaption>
+          <img id="radarImg" alt="Weather radar loop for your area">
+        </figure>
+      </div>
+      <article class="wx" aria-label="Forecast">
+        <div class="wx-main">
+          <header class="wx-head">
+            <h2><button type="button" id="placeBtn" class="place-btn" title="Change the place"><span aria-hidden="true">📍</span> <span id="place">Weather</span></button></h2>
+            <span id="updated" class="cap"></span>
+          </header>
+          <div id="wxNow" class="wx-now"></div>
+          <div id="wxHours" class="wx-hours"></div>
+          <p id="wxNote" class="note" hidden></p>
+        </div>
+        <ol id="wxDays" class="wx-days"></ol>
+      </article>
+    </div>
+  </section>
+
+  <section id="shortcuts" class="shortcuts" hidden>
+    <header class="sc-head">
+      <h1>Shortcuts</h1>
+      <p>Type one in the address bar and press Enter. Every link gets a short name from its own name; click one to change it. Add any other under “Your own”.</p>
+    </header>
+    <div id="scBody" class="sc-body"></div>
+  </section>
+
+  <p id="empty" class="empty" hidden>Nothing on your bookmarks bar yet. Make a folder there for each part of your work and put links in folders inside it: each top folder becomes a tab here, each folder inside it a card. ⌘D (Ctrl+D) bookmarks the page you're on.</p>
+</main>
+
+<footer class="foot">
+  <p id="hint" class="hint"></p>
+  <nav aria-label="Manage">
+    <button type="button" id="goShortcuts" class="mini">All shortcuts</button>
+    <button type="button" class="mini" data-go="chrome://bookmarks/">Bookmark manager</button>
+    <button type="button" class="mini" data-go="chrome://settings/searchEngines">Chrome's search shortcuts</button>
+    <button type="button" id="extrasBtn" class="mini" aria-expanded="false" aria-controls="extras">Extras</button>
+    <button type="button" id="version" class="mini" data-go="chrome://extensions/" title="Opens Chrome's Extensions page, where ↻ loads a newer copy."></button>
+  </nav>
+  <section id="extras" class="extras" aria-label="Extras" hidden>
+    <div id="extrasBody"></div>
+  </section>
+</footer>
+
+<div id="toast" class="toast" role="status" hidden></div>
+<script type="module" src="newtab.js"></script>
+</body>
+</html>
