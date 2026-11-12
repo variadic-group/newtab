@@ -9,6 +9,8 @@ import { barChildren, aliasTable, aliasFor, nextFolder, resolve } from "./shared
 
 const SHOWN = 20;
 let all = [];
+// The pages of this page (Today, Shortcuts, Tools, Settings), given when the box is wired.
+let pages = [];
 // Where a short link typed in the box leads, once that has been worked out.
 let short = null;
 
@@ -28,13 +30,14 @@ async function everything() {
   for (const t of await chrome.tabs.query({ currentWindow: true })) {
     if (/^https?:/.test(t.url || "") && (!me || t.id !== me.id)) out.push({ title: t.title || t.url, url: t.url, where: "Open tab", alias: "", tab: t });
   }
+  for (const p of pages) out.push({ ...p, url: "", alias: "" });
   return out;
 }
 
 // Every word typed has to be somewhere in the link: its name counts most, then its short name,
 // its site, and last the folders it is in.
 function score(item, words) {
-  const title = item.title.toLowerCase(), site = host(item.url), place = item.where.toLowerCase();
+  const title = item.title.toLowerCase(), site = item.url ? host(item.url) : "", place = item.where.toLowerCase();
   const starts = title.split(/[\s\-_/.,:()]+/);
   let total = 0;
   for (const q of words) {
@@ -45,7 +48,10 @@ function score(item, words) {
   return total;
 }
 
-const go = (item) => (item.tab ? chrome.tabs.update(item.tab.id, { active: true }) : chrome.tabs.update({ url: item.url }));
+const go = (item) => {
+  if (item.run) { clearFind(); $("findBox").blur(); return item.run(); }
+  return item.tab ? chrome.tabs.update(item.tab.id, { active: true }) : chrome.tabs.update({ url: item.url });
+};
 
 function draw() {
   const typed = $("findBox").value.trim();
@@ -56,9 +62,9 @@ function draw() {
   const hits = words.length ? all.map((item) => ({ item, s: score(item, words) })).filter((h) => h.s).sort((a, b) => b.s - a.s || a.item.title.localeCompare(b.item.title)).map((h) => h.item) : [];
   $("findList").replaceChildren(...hits.slice(0, SHOWN).map((item) => {
     const a = el("a", "find-row");
-    a.href = item.url;
+    a.href = item.url || "#";
     a.onclick = (e) => { e.preventDefault(); go(item); };
-    a.append(item.tab ? tabIcon(item.tab) : siteIcon(item.url, item.title), el("span", "t", item.title), el("span", "h", item.where));
+    a.append(item.run ? el("span", "sico page", "→") : item.tab ? tabIcon(item.tab) : siteIcon(item.url, item.title), el("span", "t", item.title), el("span", "h", item.where));
     if (item.alias) a.append(el("code", "key fixed", `${item.alias}/`));
     const li = el("li");
     li.append(a);
@@ -84,7 +90,8 @@ export function clearFind() {
   draw();
 }
 
-export function wireFind() {
+export function wireFind(found = []) {
+  pages = found;
   const box = $("findBox");
   // What can be found is read when the box is entered, so it is as the bookmarks are now.
   box.onfocus = async () => { all = await everything(); draw(); };

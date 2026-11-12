@@ -130,7 +130,9 @@ function wordsOf(rest, plain) {
   if (plain) return (rest || "").trim();
   let text = rest || "";
   try { text = decodeURIComponent(text); } catch { /* a stray % is not an encoding: keep the text as typed */ }
-  return text.replace(/[-+_]/g, " ").trim();
+  // Typed with spaces, the words are as typed, so "usb-c cable" keeps its hyphen. With none,
+  // hyphens stand for the spaces an address can't hold.
+  return /\s/.test(text.trim()) ? text.trim() : text.replace(/[-+_]/g, " ").trim();
 }
 
 // The site a link belongs to, for searching it: its host without a leading label that only says
@@ -142,13 +144,61 @@ function siteOf(url) {
   return h;
 }
 
+// Well-known sites whose own search or ask box can be filled from an address. A bookmark on
+// one of these sends the words after its short name there, in place of a web search for the
+// site. The ones with names also work with no bookmark at all (translate/good morning), and
+// like Chrome's pages they are not reserved: a bookmark or a shortcut of yours by that name
+// wins. {origin} is the bookmark's own site, for ones that live on many (amazon.de, fr.wikipedia.org);
+// {lang} is the language this browser is in.
+const lang = () => (chrome.i18n.getUILanguage() || "en").split("-")[0];
+export const SITES = [
+  { names: ["translate"], label: "Google Translate", url: "https://translate.google.com/", host: /^translate\.google\./, search: "https://translate.google.com/?sl=auto&tl={lang}&text=%s&op=translate", example: "translate/buenos días" },
+  { names: ["maps"], label: "Google Maps", url: "https://www.google.com/maps", host: /^maps\.google\./, path: /^\/maps/, search: "https://www.google.com/maps/search/%s", example: "maps/coffee near me" },
+  { names: ["youtube", "yt"], label: "YouTube", url: "https://www.youtube.com/", host: /(^|\.)youtube\.com$/, search: "https://www.youtube.com/results?search_query=%s", example: "yt/how to fold a fitted sheet" },
+  { names: ["wiki"], label: "Wikipedia", url: "https://{lang}.wikipedia.org/", host: /\.wikipedia\.org$/, search: "{origin}/w/index.php?search=%s", example: "wiki/apollo 11" },
+  { names: ["github", "gh"], label: "GitHub", url: "https://github.com/", host: /^github\.com$/, search: "https://github.com/search?q=%s", example: "gh/tetris in rust" },
+  { names: ["chatgpt", "gpt"], label: "ChatGPT", url: "https://chatgpt.com/", host: /^chatgpt\.com$/, search: "https://chatgpt.com/?q=%s", example: "gpt/plan a week of dinners" },
+  { names: ["perplexity", "pplx"], label: "Perplexity", url: "https://www.perplexity.ai/", host: /(^|\.)perplexity\.ai$/, search: "https://www.perplexity.ai/search?q=%s", example: "pplx/latest on fusion power" },
+  { names: ["amazon"], label: "Amazon", url: "https://www.amazon.com/", host: /(^|\.)amazon\.[a-z.]{2,6}$/, search: "{origin}/s?k=%s", example: "amazon/usb-c cable" },
+  { names: ["reddit"], label: "Reddit", url: "https://www.reddit.com/", host: /(^|\.)reddit\.com$/, search: "https://www.reddit.com/search/?q=%s", example: "reddit/best carry-on" },
+  { names: ["imdb"], label: "IMDb", url: "https://www.imdb.com/", host: /(^|\.)imdb\.com$/, search: "https://www.imdb.com/find/?q=%s", example: "imdb/the third man" },
+  { names: ["hn"], label: "Hacker News", url: "https://news.ycombinator.com/", host: /^news\.ycombinator\.com$/, search: "https://hn.algolia.com/?q=%s", example: "hn/sqlite" },
+  { names: ["npm"], label: "npm", url: "https://www.npmjs.com/", host: /(^|\.)npmjs\.com$/, search: "https://www.npmjs.com/search?q=%s", example: "npm/date picker" },
+  { names: ["mdn"], label: "MDN", url: "https://developer.mozilla.org/", host: /^developer\.mozilla\.org$/, search: "https://developer.mozilla.org/search?q=%s", example: "mdn/flexbox gap" },
+  // Known by their site only: no name is given to them here.
+  { names: [], label: "X", host: /^(x|twitter)\.com$/, search: "https://x.com/search?q=%s" },
+  { names: [], label: "LinkedIn", host: /(^|\.)linkedin\.com$/, search: "https://www.linkedin.com/search/results/all/?keywords=%s" },
+  { names: [], label: "Stack Overflow", host: /^stackoverflow\.com$/, search: "https://stackoverflow.com/search?q=%s" },
+  { names: [], label: "Spotify", host: /^open\.spotify\.com$/, search: "https://open.spotify.com/search/%s" },
+  { names: [], label: "Netflix", host: /(^|\.)netflix\.com$/, search: "https://www.netflix.com/search?q=%s" },
+  { names: [], label: "eBay", host: /(^|\.)ebay\.[a-z.]{2,6}$/, search: "{origin}/sch/i.html?_nkw=%s" },
+  { names: [], label: "Etsy", host: /(^|\.)etsy\.com$/, search: "https://www.etsy.com/search?q=%s" },
+  { names: [], label: "PyPI", host: /^pypi\.org$/, search: "https://pypi.org/search/?q=%s" },
+  { names: [], label: "Google Scholar", host: /^scholar\.google\./, search: "{origin}/scholar?q=%s" },
+  { names: [], label: "Google News", host: /^news\.google\./, search: "https://news.google.com/search?q=%s" },
+  { names: [], label: "Google Play", host: /^play\.google\./, search: "https://play.google.com/store/search?q=%s" },
+  { names: [], label: "DuckDuckGo", host: /^duckduckgo\.com$/, search: "https://duckduckgo.com/?q=%s" },
+  { names: [], label: "Bing", host: /(^|\.)bing\.com$/, search: "https://www.bing.com/search?q=%s" },
+];
+const filled = (text, origin) => text.replace("{origin}", origin).replace("{lang}", lang());
+// The well-known site a link is on, if it is on one.
+export function siteFor(url) {
+  const u = new URL(url);
+  return SITES.find((s) => s.host.test(u.hostname) || (s.path && /(^|\.)google\.[a-z.]{2,6}$/.test(u.hostname) && s.path.test(u.pathname))) || null;
+}
+// The ones with names, by name: where each goes with no words, and with them.
+export const KNOWN = Object.fromEntries(SITES.flatMap((s) => s.names.map((n) => [n, s])));
+const known = (s, query) => (query ? filled(s.search, new URL(filled(s.url, "")).origin).replace("%s", encodeURIComponent(query)) : filled(s.url, ""));
+
 // Where a link goes with words after the slash. A built-in app's front door searches the app,
-// whatever you have named it; any other link has no search of its own, so the web is searched
-// for its site.
+// whatever you have named it; a link on a well-known site searches or asks that site; any other
+// link has no search this page knows of, so the web is searched for its site.
 function reach(url, query) {
   if (!query) return url;
   const app = Object.values(BUILTIN).find((b) => b.own.test(url));
-  return app ? app.search.replace("%s", encodeURIComponent(query)) : { search: `${query} site:${siteOf(url)}` };
+  if (app) return app.search.replace("%s", encodeURIComponent(query));
+  const site = siteFor(url);
+  return site ? filled(site.search, new URL(url).origin).replace("%s", encodeURIComponent(query)) : { search: `${query} site:${siteOf(url)}` };
 }
 
 // Where a typed short link goes: an address, or { search } for words to hand to the default
@@ -168,6 +218,7 @@ export async function resolve(name, rest, plain = false) {
   if (table.has(key)) return reach(table.get(key), query);
   const page = CHROME_PAGES[key];
   if (page) return query && page.search ? page.search.replace("%s", encodeURIComponent(query)) : page.url;
+  if (KNOWN[key]) return known(KNOWN[key], query);
   if (plain) return null;
   const hits = [...table.keys()].filter((a) => a.startsWith(key));
   const urls = new Set(hits.map((a) => table.get(a)));

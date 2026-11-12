@@ -41,7 +41,11 @@ This page adds a face to that store and keeps nothing of its own:
   and the tabs open in this window. While something is typed the matches stand in for the
   page, best first, each with where it lives and its short name. Enter opens the first; with
   no match, Enter searches the web; Esc puts the page back. A short link typed there
-  (`claude/what to ask`) goes where it would from the address bar.
+  (`claude/what to ask`) goes where it would from the address bar, and Today, Shortcuts, Tools
+  and Settings are found there by name.
+- **The bar is your links.** The mark at the top left is a menu holding Today, Shortcuts, Tools,
+  and Settings and extras; the rest of the bar is your spaces, the search and the pencil. The
+  weather strip opens Today, and Today and Tools are in the footer too.
 - **Tiles or a list.** Settings shows links as icon tiles or as rows, which fit more in a card
   and show each link's short name beside it.
 - **The pencil** (top right) turns on editing: add a space, a collection, a group or a link;
@@ -55,9 +59,13 @@ This page adds a face to that store and keeps nothing of its own:
 **Type, don't click**
 - **Every bookmark gets a short name** from its own name, the moment it is bookmarked:
   `stripe/`, `github/`. Nothing to set up; click one to change it.
-- **Words after the slash search.** `stripe/refund policy` searches the web for that site with
-  whichever search engine Chrome uses. Shortcuts you add yourself put the words wherever you
-  say, with `%s`: `gpt/`, `yt/`, `gh/`, `maps/` and `wiki/` are one click to add.
+- **Words after the slash search the site itself** where this page knows how: about thirty
+  well-known sites, bookmarked or not, among them `translate/buenos días` (into Google
+  Translate), `maps/coffee near me`, `yt/`, `wiki/`, `gh/`, `gpt/`, `pplx/`, `amazon/`,
+  `reddit/`. A bookmark on one of those sites searches it whatever you named it. Any other
+  (`stripe/refund policy`, `chipotle/`) searches the web for that site, since most sites have
+  no search an address can reach. Shortcuts you add yourself put the words wherever you say,
+  with `%s`.
 - **Google's apps and Claude are always there,** bookmarked or not, and search inside
   themselves: `mail/invoice from the printer`, `cal/dentist`, `drive/contract`,
   `docs/board minutes`, `sheets/budget`, `slides/pitch`, `keep/gift ideas`,
@@ -173,8 +181,8 @@ offers the ways in. Four things make it yours:
 
 Then, when you want them: the **search bar** at the top (or `/`) finds any link in any space,
 and takes short links too; **Today** has the sky, the radar, the next 24 hours, the week and a map of where it is day; **Tools** shows how your connection looks from outside and what to do about it;
-the **pencil** rearranges your links; **Settings and extras** (the gear, or the link at the
-foot of the page) has light and dark, an accent, tiles or a list, and four extras that are
+the **pencil** rearranges your links; **Settings and extras** (in the menu at the top left, or
+the link at the foot of the page) has light and dark, an accent, tiles or a list, and four extras that are
 off until you switch them on.
 
 ## How a new bookmark gets its place, icon and names
@@ -239,7 +247,7 @@ WebRTC route, when you choose to.
   extension redirects. With hyphens, or with `claude` then Tab, nothing is searched at all.
 - **Many spaces** stay on one row. Tabs that don't fit narrow to their emoji, which is one more
   reason to start a folder's name with one; past that the strip scrolls sideways and fades
-  where more is hidden. Today, Shortcuts, Tools and the pencil keep their place.
+  where more is hidden. The menu, the search and the pencil keep their place.
 - **When you travel,** the clock is the computer's, so it follows by itself, and every time on
   the page is on that clock. A place taken from the computer or its network follows you: it is
   looked for again every six hours, and at once when the computer's time zone changes. A place

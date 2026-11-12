@@ -128,7 +128,11 @@ async function render() {
   $("spaces").replaceChildren(...(all.length ? all.map((s) => tabFor(s.id, s.title, s)) : [tabFor(BARE, "🔖 Your links")]), newSpaceTab(!all.length));
   renameNew($("spaces"));
   fitSpaces();
+  // The pages live behind the mark at the top left. While you are on one, the bar says which.
   $("pages").replaceChildren(tabFor(TODAY, "☀️ Today"), tabFor(KEYS, "⌨️ Shortcuts"), tabFor(TOOLS, "🛠️ Tools"));
+  const where = { [TODAY]: "☀️ Today", [KEYS]: "⌨️ Shortcuts", [TOOLS]: "🛠️ Tools" }[current];
+  $("here").hidden = !where;
+  $("here").textContent = where || "";
   $("today").hidden = current !== TODAY;
   $("shortcuts").hidden = current !== KEYS;
   $("tools").hidden = current !== TOOLS;
@@ -153,6 +157,7 @@ function show(id) {
   // Editing belongs to the spaces; leaving them ends it. What was being found is cleared.
   if (isPage(id) && editing()) $("edit").click();
   clearFind();
+  menu(false);
   current = id;
   // A new tab reopens on the last space, never on Today or Shortcuts.
   if (!isPage(id)) chrome.storage.local.set({ space: id });
@@ -662,8 +667,10 @@ const settings = (open) => {
   $("extrasBtn").setAttribute("aria-expanded", String(open));
   if (open) drawExtras();
 };
-$("extrasBtn").onclick = () => settings($("extras").hidden);
+$("extrasBtn").onclick = () => { menu(false); settings($("extras").hidden); };
 $("extrasFoot").onclick = () => settings($("extras").hidden);
+$("footToday").onclick = () => show(TODAY);
+$("footTools").onclick = () => show(TOOLS);
 $("extrasClose").onclick = () => settings(false);
 chrome.permissions.onAdded.addListener(drawExtras);
 chrome.permissions.onRemoved.addListener(drawExtras);
@@ -673,7 +680,11 @@ $("setupBody").append(...setupRows(brought));
 $("emptyWays").append(...setupRows(brought));
 
 // Anything lifted over the page goes away with Esc, or with a press anywhere outside it.
+// The mark at the top left opens the short list of everything that isn't your links.
+function menu(open) { $("menu").hidden = !open; $("menuBtn").setAttribute("aria-expanded", String(open)); }
+$("menuBtn").onclick = () => menu($("menu").hidden);
 const LIFTED = [
+  { open: () => !$("menu").hidden, within: "#menu, #menuBtn", shut: () => menu(false) },
   { open: () => !$("extras").hidden, within: "#extras, #extrasBtn, #extrasFoot", shut: () => settings(false) },
   { open: noteIsBig, within: ".notes", shut: () => bigNote(false) },
 ];
@@ -775,7 +786,13 @@ for (const ev of ["onCreated", "onRemoved", "onUpdated", "onMoved", "onAttached"
 
 setInterval(() => { if (current === TODAY) tickToday(); else if (isPage(current)) tickTheme(); else renderGlance(); }, 10000);
 
-wireFind();
+// The pages can be found by name from the search bar too.
+wireFind([
+  { title: "Today", where: "The sky, the radar and the forecast", run: () => show(TODAY) },
+  { title: "Shortcuts", where: "Every short name", run: () => show(KEYS) },
+  { title: "Tools", where: "Your connection and what it gives away", run: () => show(TOOLS) },
+  { title: "Settings and extras", where: "Light and dark, an accent, a list, extras", run: () => settings(true) },
+]);
 await loadIcons();
 placeOff();
 wireNotes(toast);

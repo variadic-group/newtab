@@ -1,7 +1,7 @@
 // Loads the extension in Playwright's Chromium and exercises every feature against the real
 // chrome.* APIs, with the network stubbed. Run: node test/e2e.js (needs playwright).
 import fs from "node:fs";
-import { launch, seed, grantedCopy, manifest } from "./harness.js";
+import { launch, seed, grantedCopy, manifest, nav } from "./harness.js";
 
 let failed = 0;
 const ok = (name, cond, extra) => { if (!cond) failed++; console.log((cond ? "PASS " : "FAIL ") + name + (extra !== undefined ? "  " + JSON.stringify(extra) : "")); };
@@ -31,14 +31,24 @@ await p.waitForFunction(() => /^\d+°$/.test(document.getElementById("glTemp").t
 ok("the first new tab asks the computer where it is, saves that rounded, and the forecast follows", (await place()).source === "device" && (await place()).lat === 40.71 && net.points.join() === "40.71,-74.01" && !!(await p.$("#ask[hidden]")), { place: await place(), lookups: net.points });
 
 // ---------- layout, the glance, the footer ----------
-ok("a new tab opens on your links, with no guide in the way; tabs: spaces, then Today, Shortcuts and Tools", !(await p.$("#space[hidden]")) && (await p.$$eval("#pages .tab", (x) => x.map((e) => e.textContent))).join() === "☀️ Today,⌨️ Shortcuts,🛠️ Tools", [await p.$$eval("#spaces .tab", (x) => x.map((e) => e.textContent)), await p.$$eval("#pages .tab", (x) => x.map((e) => e.textContent))]);
+const barHas = await p.$$eval(".bar > *, .bar .right > *", (x) => x.filter((e) => e.getClientRects().length && !e.classList.contains("right")).map((e) => e.id || e.className));
+ok("a new tab opens on your links, with no guide in the way; the bar is the menu, your spaces, the search and the pencil, and nothing else", !(await p.$("#space[hidden]")) && barHas.join() === "menuBtn,spaces,finder,edit" && !(await p.isVisible("#menu")), barHas);
+await p.click("#menuBtn");
+const menuHas = await p.$$eval("#menu .tab, #menu .menu-item", (x) => x.filter((e) => e.getClientRects().length).map((e) => e.textContent.trim()));
+await p.keyboard.press("Escape"); const menuEsc = !(await p.isVisible("#menu"));
+await p.click("#menuBtn"); await p.mouse.click(700, 500); const menuPress = !(await p.isVisible("#menu"));
+ok("the mark at the top left is a menu of everything that isn't your links: Today, Shortcuts, Tools, and Settings and extras; Esc or a press elsewhere puts it away", menuHas.join() === "☀️ Today,⌨️ Shortcuts,🛠️ Tools,Settings and extras" && (await p.getAttribute("#menuBtn", "aria-expanded")) === "false" && menuEsc && menuPress, menuHas);
+await nav(p, "Shortcuts"); await p.waitForSelector("#scBody .sc-card");
+const onPage = { here: await text(p, "#here"), shut: !(await p.isVisible("#menu")), page: await p.isVisible("#shortcuts"), pencil: await p.isVisible("#edit") };
+await p.click('#spaces .tab:has-text("Work")'); await p.waitForSelector(".card");
+ok("picking one closes the menu and the bar says where you are, beside the spaces; back on a space it says nothing", onPage.here === "⌨️ Shortcuts" && onPage.shut && onPage.page && !onPage.pencil && !(await p.isVisible("#here")) && /Today/.test(await p.getAttribute("#glance", "title")), onPage);
 ok("the glance shows the time, the sun and the weather now", /\d/.test(await text(p, "#glTime")) && /↑ \d/.test(await text(p, "#glRise")) && /↓ \d/.test(await text(p, "#glSet")) && / in \d/.test(await text(p, "#glLeft")) && /^\d+°$/.test(await text(p, "#glTemp")) && /^\d+° high, \d+° low/.test(await text(p, "#glHiLo")), { time: await text(p, "#glTime"), sun: await text(p, "#glLeft"), now: [await text(p, "#glTemp"), await text(p, "#glText"), await text(p, "#glHiLo")] });
 ok("the time and date are a link to your calendar: your own Calendar bookmark", (await p.getAttribute("#glCal", "href")) === "https://calendar.google.com/calendar/u/0/r" && (await p.evaluate(() => document.getElementById("glCal").contains(document.getElementById("glTime")) && !document.getElementById("glance").contains(document.getElementById("glTime")))));
 ok("the glance has a radar still, not the loop", /_0\.gif/.test(await p.$eval("#glRadarImg", (i) => i.src)) && !(await p.$("#glRadar[hidden]")));
-ok("the footer says how to type a short link and how to search with one, leads to them all, and carries the version; Settings and extras is a gear at the top right and a link in the footer", /mail\/.*claude\/.*short name.*mail\/invoice/.test(await text(p, "#hint")) && !!(await p.$("#hint #goShortcuts")) && (await p.getAttribute(".right #extrasBtn", "aria-label")) === "Settings and extras" && (await text(p, ".foot #extrasFoot")) === "Settings and extras" && (await text(p, "#version")) === "v" + manifest.version, await text(p, "#hint"));
+ok("the footer says how to type a short link and how to search with one, leads to them all, and carries the version; Today, Tools and Settings and extras are links in the footer too", /mail\/.*claude\/.*short name.*mail\/invoice/.test(await text(p, "#hint")) && !!(await p.$("#hint #goShortcuts")) && (await text(p, "#menu #extrasBtn")) === "Settings and extras" && (await p.$$eval(".foot .foot-nav .mini", (x) => x.map((b) => b.textContent))).join() === "Today,Tools,Settings and extras" && (await text(p, "#version")) === "v" + manifest.version, await text(p, "#hint"));
 ok("the strip is one line: your clock, the sun's arc with sunrise, sunset and the moon's phase, the weather, the radar", (await p.$$eval(".gl-times > span", (x) => x.map((s) => s.id))).join() === "glRise,glSet,glMoon" && /lit$/.test(await p.getAttribute("#glMoon", "title")) && (await text(p, "#glMoon")).length > 0 && !(await p.$("#glZones")) && !(await p.$("#glPlace")) && (await p.$eval(".gl-main", (m) => { const tops = [...m.querySelectorAll("#glCal, #glSun, #glWx, #glRadar")].map((e) => Math.round(e.getBoundingClientRect().top + e.getBoundingClientRect().height / 2)); return Math.max(...tops) - Math.min(...tops) < 12; })));
-await p.click("#extrasBtn");
-await p.selectOption("#themePick", "dark");
+await p.click("#extrasFoot");
+await p.selectOption("#themePick", "dark"); await p.waitForFunction(() => document.documentElement.dataset.theme === "dark", null, { timeout: 3000 }).catch(() => {});
 const forcedDark = await p.evaluate(() => document.documentElement.dataset.theme);
 const repaint = await open(); const early = await repaint.evaluate(() => document.documentElement.dataset.theme); await repaint.close(); await p.bringToFront();
 await p.selectOption("#themePick", "light");
@@ -53,7 +63,7 @@ const sheet = await p.evaluate(() => { const s = document.getElementById("extras
 await p.keyboard.press("Escape"); const byEsc = await p.$eval("#extras", (s) => s.hidden);
 await p.click("#extrasFoot"); const lit = await p.getAttribute("#extrasBtn", "aria-expanded"); await p.mouse.click(40, 500); const byPress = await p.$eval("#extras", (s) => s.hidden);
 ok("Settings is one sheet over the page, in groups, and Esc or a press outside it puts it away", sheet.fixed === "fixed" && sheet.groups.join() === "Look,Bring in your links,Extras, off until you switch them on,Kept in Chrome" && byEsc && lit === "true" && byPress, sheet);
-await p.click("#extrasBtn");
+await p.click("#extrasFoot");
 ok("Edit is a pencil with a name for screen readers; the bookmark manager shows only while editing", (await p.getAttribute("#edit", "aria-label")) === "Edit bookmarks" && !!(await p.$("#edit svg")) && !(await p.isVisible('[data-go="chrome://bookmarks/"]')));
 await p.mouse.move(700, 4);
 ok("\"Open all\" waits for the pointer, and cards carry no count", (await p.$eval(".card .act", (e) => getComputedStyle(e).opacity)) === "0" && !(await p.$(".card-head .n")) && !(await p.$(".panel .sub")));
@@ -178,8 +188,8 @@ const groups = await sw.evaluate(async () => { const g = await chrome.tabGroups.
 ok("Open all makes one named tab group", groups.titles.join() === "✉️ Workspace" && groups.grouped === (await titles("✉️ Workspace")).length, groups);
 
 // ---------- shortcuts page ----------
-await p.bringToFront(); await p.click('#pages .tab:has-text("Shortcuts")'); await p.waitForSelector(".sc-card");
-ok("Shortcuts carries its own controls, with no pencil and no box to try one in: names are clicked to change, and your own are added right there", !(await p.isVisible("#edit")) && (await p.isVisible(".sc-add")) && (await p.isVisible(".sc-suggest")) && !(await p.$("#tryBar")) && (await p.$eval("#scBody button.key", (b) => getComputedStyle(b).pointerEvents)) !== "none");
+await p.bringToFront(); await nav(p, "Shortcuts"); await p.waitForSelector("#scBody .sc-card");
+ok("Shortcuts carries its own controls, with no pencil and no box to try one in: names are clicked to change, and your own are added right there", !(await p.isVisible("#edit")) && (await p.isVisible(".sc-add")) && (await p.isVisible('.sc-card:has(h2:text-is("Well-known places"))')) && !(await p.$(".sc-suggest")) && !(await p.$("#tryBar")) && (await p.$eval("#scBody button.key", (b) => getComputedStyle(b).pointerEvents)) !== "none");
 const keys = () => p.$$eval("#scBody .key", (x) => x.map((e) => e.textContent));
 ok("Always there lists Google's apps and Claude, bookmarked or not, and no plain web search", (await p.$$eval(".key.fixed", (x) => x.map((e) => e.textContent))).join() === "mail/,cal/,drive/,docs/,sheets/,slides/,keep/,claude/");
 const always = (name) => p.$eval(`.sc-row:has(.key:text-is("${name}/")) .sc-what`, (a) => `${a.textContent}|${a.getAttribute("href")}`);
@@ -201,13 +211,18 @@ ok("a short name can be changed on the Shortcuts page", true);
 await p.fill('.sc-add [aria-label="Shortcut name"]', "HN"); await p.fill('.sc-add [aria-label="Address"]', "hn.algolia.com/?q=%s"); await p.click(".sc-add button");
 await p.waitForFunction(() => [...document.querySelectorAll(".key.fixed")].some((k) => k.textContent === "hn/"));
 ok("a shortcut of your own can be added on the Shortcuts page", (await sw.evaluate(async () => (await chrome.storage.sync.get("links")).links.hn)) === "https://hn.algolia.com/?q=%s");
-await p.click('.chip:has-text("gpt/")'); await p.waitForFunction(() => [...document.querySelectorAll(".key.fixed")].some((k) => k.textContent === "gpt/"));
-ok("a suggested shortcut is one click, and leaves the suggestions", !(await p.$('.chip:has-text("gpt/")')) && !!(await p.$('.chip:has-text("yt/")')));
+const knownKeys = await p.$$eval(".key.known", (x) => x.map((e) => e.textContent));
+ok("well-known places are listed by name with what a search in each looks like, and need nothing added; a name a bookmark or a shortcut of yours already has is left to it", ["translate/", "maps/", "yt/", "wiki/", "gh/", "gpt/", "amazon/"].every((k) => knownKeys.includes(k)) && !knownKeys.includes("github/") && !knownKeys.includes("hn/") && /translate\/buenos días/.test(await text(p, '.sc-row:has(.key:text-is("translate/")) .sc-note')) && (await p.$$("#scBody .sc-suggest, #scBody .chip")).length === 0, knownKeys);
+ok("a bookmark on a site this page knows how to search says so; any other doesn't", (await p.$$eval(".sc-row:has(.sc-in) .t", (x) => x.map((e) => e.textContent))).includes("GitHub") && (await p.$$eval(".sc-row:has(.sc-in) .t", (x) => x.map((e) => e.textContent))).includes("Repository") && !(await p.$('.sc-row:has(.t:text-is("Stripe")) .sc-in')), await p.$$eval(".sc-row:has(.sc-in) .t", (x) => x.map((e) => e.textContent)));
 
 ok("hn/rust-lang → your own shortcut, with the words filled in", (await go("http://hn/rust-lang")) === "https://hn.algolia.com/?q=rust%20lang");
-ok("gpt/hello-there → the suggested one", (await go("http://gpt/hello-there")) === "https://chatgpt.com/?q=hello%20there");
+ok("gpt/hello-there → ChatGPT with the question, with nothing added", (await go("http://gpt/hello-there")) === "https://chatgpt.com/?q=hello%20there");
+ok("translate/ buenos dias (typed with spaces, so searched) → Google Translate with the words in it, into this browser's language", (await go("https://www.google.com/search?q=translate%2F+buenos+dias")) === "https://translate.google.com/?sl=auto&tl=en&text=buenos%20dias&op=translate", await go("https://www.google.com/search?q=translate%2F+buenos+dias"));
+ok("yt/ opens YouTube, wiki/apollo-11 searches Wikipedia in this browser's language, and amazon/usb-c cable keeps its hyphen", (await go("http://yt/")) === "https://www.youtube.com/" && (await go("http://wiki/apollo-11")) === "https://en.wikipedia.org/w/index.php?search=apollo%2011" && (await go("https://www.google.com/search?q=amazon%2Fusb-c+cable")) === "https://www.amazon.com/s?k=usb-c%20cable", [await go("http://yt/"), await go("http://wiki/apollo-11"), await go("https://www.google.com/search?q=amazon%2Fusb-c+cable")]);
+ok("words after a bookmark on a well-known site search that site, whatever the bookmark is called", (await go("http://github/tetris-in-rust")) === "https://github.com/search?q=tetris%20in%20rust" && (await go("http://repository/open-issues")) === "https://github.com/search?q=open%20issues", [await go("http://github/tetris-in-rust"), await go("http://repository/open-issues")]);
 await p.click('.sc-row:has-text("hn/") .mini'); await p.waitForFunction(() => ![...document.querySelectorAll(".key.fixed")].some((k) => k.textContent === "hn/"));
-ok("and removed again", !(await keys()).includes("hn/") && (await go("http://hn/")) === "http://hn/");
+await p.waitForFunction(() => [...document.querySelectorAll(".key.known")].some((k) => k.textContent === "hn/"));
+ok("and removed again, which hands hn/ back to the well-known place of that name", (await go("http://hn/")) === "https://news.ycombinator.com/" && (await go("http://hn/sqlite")) === "https://hn.algolia.com/?q=sqlite");
 ok("pay/ → Stripe (the name just set)", (await go("http://pay/")).startsWith("https://dashboard.stripe.com"));
 ok("mail/ → Gmail", (await go("http://mail/")).startsWith("https://mail.google.com"));
 ok("cal/ opens your Calendar bookmark's own address, and calendar/ still works", (await go("http://cal/")) === "https://calendar.google.com/calendar/u/0/r" && (await go("http://calendar/")) === "https://calendar.google.com/calendar/u/0/r");
@@ -245,22 +260,35 @@ const shortSaid = await text(p, "#findSay");
 await p.keyboard.press("Escape");
 const sq = await open(); await sq.waitForSelector(".card"); await sq.fill("#findBox", "claude/what to ask"); await sq.waitForFunction(() => /short link/.test(document.getElementById("findSay").textContent)); await sq.keyboard.press("Enter"); await sq.waitForURL(/claude\.ai/, { timeout: 5000 }).catch(() => {});
 ok("a short link typed in the box goes where it would from the address bar, words and all", shortSaid === "A short link. Enter opens claude.ai with “what to ask”." && /^https:\/\/claude\.ai\/new\?q=what%20to%20ask$/.test(sq.url()), [shortSaid, sq.url()]); await sq.close(); await p.bringToFront();
+await p.fill("#findBox", "translate/ buenos dias"); await p.waitForFunction(() => /short link/.test(document.getElementById("findSay").textContent), null, { timeout: 4000 }).catch(() => {});
+const knownSaid = await text(p, "#findSay");
+await p.fill("#findBox", "chipotle/ burrito"); await p.waitForTimeout(300);
+const unknownSaid = await text(p, "#findSay");
+ok("a well-known name works there with nothing bookmarked, even with a space after the slash; a name nobody has is searched on the web as typed", knownSaid === "A short link. Enter opens translate.google.com with “buenos dias”." && unknownSaid === "Nothing you keep matches “chipotle/ burrito”. Enter searches the web for it.", [knownSaid, unknownSaid]);
+await p.fill("#findBox", "shortc"); await p.waitForFunction(() => document.querySelectorAll("#findList li").length > 0);
+const pageRow = (await rowsFound())[0];
+await p.keyboard.press("Enter"); await p.waitForSelector("#shortcuts:not([hidden])");
+const wentTo = { here: await text(p, "#here"), box: await p.inputValue("#findBox") };
+await p.fill("#findBox", "settings"); await p.waitForFunction(() => document.querySelectorAll("#findList li").length > 0); await p.keyboard.press("Enter");
+const sheetUp = await p.isVisible("#extras"); await p.keyboard.press("Escape");
+await p.click('#spaces .tab:has-text("Work")'); await p.waitForSelector(".card");
+ok("the pages are found from the search bar too: Today, Shortcuts, Tools and Settings by name", /^Shortcuts\|Every short name/.test(pageRow) && wentTo.here === "⌨️ Shortcuts" && wentTo.box === "" && sheetUp, [pageRow, wentTo, sheetUp]);
 await p.focus("#findBox"); await p.keyboard.press("Escape");
 ok("Esc clears it and the page is back", (await p.inputValue("#findBox")) === "" && (await p.$eval("#find", (s) => s.hidden)) && !(await p.evaluate(() => document.body.classList.contains("finding"))) && (await p.isVisible(".card")));
-await p.fill("#findBox", "bank"); await p.click('#pages .tab:has-text("Shortcuts")'); const leftFind = await p.inputValue("#findBox"); await p.click('#spaces .tab:has-text("Work")'); await p.waitForSelector(".card");
+await p.fill("#findBox", "bank"); await nav(p, "Shortcuts"); const leftFind = await p.inputValue("#findBox"); await p.click('#spaces .tab:has-text("Work")'); await p.waitForSelector(".card");
 ok("going to another page clears it too", leftFind === "");
 const fq = await open(); await fq.waitForSelector(".card"); await fq.fill("#findBox", "bank"); await fq.waitForFunction(() => document.querySelectorAll("#findList li").length > 0); await fq.keyboard.press("Enter");
 await fq.waitForURL(/examplebank/, { timeout: 5000 }).catch(() => {});
 ok("Enter opens the first match", /^https:\/\/app\.examplebank\.com\//.test(fq.url()), fq.url()); await fq.close(); await p.bringToFront();
-await p.click("#extrasBtn"); await p.selectOption("#viewPick", "list"); await p.keyboard.press("Escape");
+await p.click("#extrasFoot"); await p.selectOption("#viewPick", "list"); await p.keyboard.press("Escape");
 const asList = await p.evaluate(() => { const t = document.querySelector(".card .tile:not(.add)"), k = t.querySelector(".key"), i = t.querySelector(".sico").getBoundingClientRect(), n = t.querySelector(".name").getBoundingClientRect(); return { view: document.documentElement.dataset.view, across: i.right <= n.left && Math.abs((i.top + i.bottom) / 2 - (n.top + n.bottom) / 2) < 6, key: getComputedStyle(k).display !== "none" && /^[a-z0-9]+\/$/.test(k.textContent) }; });
 const listed = await open(); const viewEarly = await listed.evaluate(() => document.documentElement.dataset.view); await listed.close(); await p.bringToFront();
-await p.click("#extrasBtn"); await p.selectOption("#viewPick", "tiles"); await p.keyboard.press("Escape");
+await p.click("#extrasFoot"); await p.selectOption("#viewPick", "tiles"); await p.keyboard.press("Escape");
 ok("Settings can show links as a list, a row each with its short name beside it, from a new tab's first paint; and back", asList.view === "list" && asList.across && asList.key && viewEarly === "list" && (await p.evaluate(() => document.documentElement.dataset.view)) === undefined, asList);
 
 // ---------- today ----------
 await p.bringToFront();
-let t0 = Date.now(); await p.click('#pages .tab:has-text("Today")'); await p.waitForSelector(".wx-temp", { timeout: 5000 });
+let t0 = Date.now(); await nav(p, "Today"); await p.waitForSelector(".wx-temp", { timeout: 5000 });
 ok("the forecast is on screen within a second and a half", Date.now() - t0 < 1500, { ms: Date.now() - t0 });
 ok("a place taken from the computer is named by the forecast", (await text(p, "#place")) === "New York, NY");
 ok("clock, sunrise, sunset and day length are drawn", /\d/.test(await text(p, "#bigTime")) && /\d/.test(await text(p, "#rise")) && /\d/.test(await text(p, "#set")) && /daylight/.test(await text(p, "#daylight")), { time: await text(p, "#bigTime"), rise: await text(p, "#rise"), set: await text(p, "#set") });
@@ -316,7 +344,7 @@ const stripSays = { why: await text(p, "#glWhy"), weather: await p.isVisible("#g
 ok("set to somewhere this computer's clock isn't, the page says so across the top of every page with the press that mends it, and the strip says why it has no weather in place of going blank", offPlace.shown && offPlace.said === "This page is set to Paris, Île-de-France, France, which isn't where this computer's clock is. The sky is drawn for there, and the forecast and radar only cover the United States." && offPlace.toast && stripSays.why === "No forecast or radar here: they come from the National Weather Service, which covers the United States." && !stripSays.weather && !stripSays.radar && stripSays.notice && (await text(p, "#placeOffFix")) === "Use this computer's location", [offPlace, stripSays]);
 await p.click("#placeOffKeep"); await p.waitForFunction(() => document.getElementById("placeOff").hidden, null, { timeout: 4000 }).catch(() => {});
 ok("Keep it puts the notice away for that place", !(await p.isVisible("#placeOff")) && (await place()).kept === true && (await place()).name.startsWith("Paris"));
-await p.click('#pages .tab:has-text("Today")');
+await nav(p, "Today");
 ok("outside the United States it says there is no forecast, and the sky still works", /National Weather Service covers the United States/.test(await text(p, "#wxNote")) && !(await p.$(".wx-temp")) && (await text(p, "#place")) === "Paris, Île-de-France, France" && /\d/.test(await text(p, "#rise")) && !!(await text(p, "#phase")), await text(p, "#wxNote"));
 await search("nowhere");
 await p.waitForFunction(() => /Nothing found/.test(document.querySelector("#todayAskForm .note").textContent), null, { timeout: 5000 }).catch(() => {});
@@ -326,7 +354,7 @@ await p.waitForFunction(() => document.getElementById("place").textContent === "
 ok("and back to this computer's location", (await place()).source === "device" && (await text(p, "#place")) === "New York, NY" && !!(await p.$("#todayAsk[hidden]")));
 
 // the sky at fixed moments in New York: solar noon, after sunset, the small hours, a full moon
-const sky = async (at) => { const q = await open({ at }); await q.waitForSelector(".card"); await q.click('#pages .tab:has-text("Today")'); await q.waitForFunction(() => document.getElementById("phase").textContent); return q; };
+const sky = async (at) => { const q = await open({ at }); await q.waitForSelector(".card"); await nav(q, "Today"); await q.waitForFunction(() => document.getElementById("phase").textContent); return q; };
 const look = (q) => q.evaluate(() => ({ theme: document.documentElement.dataset.theme, phase: document.getElementById("phase").textContent, next: document.getElementById("nextUp").textContent, x: +document.getElementById("sunDot").getAttribute("cx"), y: +document.getElementById("sunDot").getAttribute("cy"), stars: document.getElementById("stars").style.opacity, ink: document.getElementById("sky").style.getPropertyValue("--sky-ink"), moon: document.getElementById("moon").style.display !== "none", lit: document.getElementById("moonLit").getAttribute("d"), turn: document.getElementById("moonLit").getAttribute("transform"), line: document.getElementById("moonLine").textContent }));
 let q = await sky("2024-06-21T16:58:00Z");
 let s = await look(q);
@@ -360,7 +388,7 @@ net.holdPage = false; await q.close(); await bare.close();
 // ---------- tools ----------
 await p.bringToFront();
 ok("nothing on the launcher itself has asked the Tools services anything", net.tools.length === 0, net.tools);
-await p.click('#pages .tab:has-text("Tools")'); await p.waitForSelector(".ways .way", { timeout: 30000 });
+await nav(p, "Tools"); await p.waitForSelector(".ways .way", { timeout: 30000 });
 const tool = (name) => `.tool:has(h2:has-text("${name}"))`;
 const hero = async (q = p) => ({ line: await text(q, "#heroLine"), sub: await text(q, ".hero-sub"), ip: await text(q, ".hero-ip code"), map: await q.getAttribute(".world svg", "aria-label"), route: await q.$$eval(".world .route", (x) => x.map((r) => r.getAttribute("d").slice(0, 1)).join()), pins: await q.$$eval(".world .pin", (x) => x.map((g) => `${g.getAttribute("class")}:${g.querySelector("text").textContent}`)), ways: await q.$$eval(".way", (x) => x.map((w) => `${w.className.replace("way ", "")}|${w.querySelector(".way-name").textContent}|${w.querySelector(".way-say b").textContent}|${w.querySelector(".mk").textContent}`)), why: await q.$$eval(".way", (x) => x.map((w) => [...w.querySelectorAll(".way-why, .resolvers li")].map((e) => e.textContent).join(" "))) });
 let seen = await hero();
@@ -372,8 +400,9 @@ ok("under them a plain list says what each kind of tool would change and what it
 const todo = await p.$$eval(".way .way-do", (x) => x.map((e) => e.textContent));
 const fixes = seen.ways.filter((w) => /^(bad|warn)\|/.test(w)).length;
 ok("over them one line counts what needs fixing, and every answer ends with what to do, even when that is nothing", (await text(p, "#heroDo")) === `${seen.ways.some((w) => w.startsWith("bad")) ? "✕" : "!"}${fixes} thing${fixes === 1 ? "" : "s"} to fix. ${fixes === 1 ? "It is" : "They are"} marked below, with what to do.` && todo.length === 4 && todo[0] === "Nothing to do." && /^It only matters if you want to pass for being there\./.test(todo[1]) && /Use secure DNS/.test(todo[3]) && /server where that site is/.test(seen.why[3]) && /connect two computers directly/.test(seen.why[2]), [await text(p, "#heroDo"), todo]);
+ok("each answer says why it matters, and a short note under them says what a leak is: your address, your lookups, your clock and language", /Any site can ask, not only one you are on a call with\./.test(seen.why[2]) && /where you bank, what you read/.test(seen.why[3]) && /Some take that as the sign of a VPN/.test(seen.why[1]) && /asks for pages in .*English.*one more hint that you are not from Sweden\./.test(seen.why[1]) && (await text(p, ".leaks summary")) === "What a leak is, and why it matters" && (await p.$$eval(".leaks-list b", (x) => x.map((b) => b.textContent))).join() === "Your address.,Your lookups.,Your clock and language." && /^Nothing marked above means none of the three is happening now\.|^With no VPN/.test(await p.$eval(".leaks p:last-of-type", (e) => e.textContent)) && (await p.$$("#tools .leaks a")).length === 0, [seen.why, await p.$eval(".leaks", (e) => e.textContent)]);
 ok("a sign is kept for what matters and can be acted on: the clock is a plain fact, and what is going around the VPN comes with the thing to do about it", (await p.$$eval(".way .act", (x) => x.map((b) => `${b.closest(".way").querySelector(".way-name").textContent}:${b.textContent}:${b.dataset.go || ""}`))).join() === (seen.ways[2].startsWith("bad") || /local network is visible/.test(seen.why[2]) ? "Video calls (WebRTC):Limit WebRTC to your browsing's route:," : "") + "Name lookups (DNS):Choose your DNS in Chrome:chrome://settings/security", await p.$$eval(".way .act", (x) => x.map((b) => b.textContent)));
-ok("each says what it means: the network's number, the two clocks, and whose servers answer your lookups and where", /AS64500/.test(seen.why[0]) && /No IPv6 address on this network\./.test(seen.why[0]) && /Your clock says America\/New_York; your address says Europe\/Stockholm\. A site can tell you are not where your address is\./.test(seen.why[1]) && /Example DNS Inc\., 3 servers/.test(seen.why[3]) && /Not in Sweden where your traffic comes out\. On a VPN, that means lookups are going around it\./.test(seen.why[3]), seen.why);
+ok("each says what it means: the network's number, the two clocks, and whose servers answer your lookups and where", /AS64500/.test(seen.why[0]) && /No IPv6 address on this network\./.test(seen.why[0]) && /Your clock says America\/New_York; your address says Europe\/Stockholm\. A site can tell you are not where your address is\./.test(seen.why[1]) && /Example DNS Inc\., 3 servers/.test(seen.why[3]) && /Not in Sweden where your traffic comes out\. On a VPN, that means lookups are going around it, so someone other than the VPN still gets that list\./.test(seen.why[3]), seen.why);
 net.exitNear = true; net.dnsHome = true;
 await p.click('.hero-say .btn:has-text("Check again")'); await p.waitForFunction(() => /New York/.test(document.getElementById("heroLine").textContent) && document.querySelectorAll(".way").length === 4 && !document.querySelector(".hero-say .btn").disabled, null, { timeout: 30000 });
 seen = await hero();
@@ -396,9 +425,10 @@ seen = await hero();
 ok("a place typed for somewhere this computer's clock isn't is not taken for where you are: nothing is measured from it, no VPN is inferred, and this computer's location is offered", seen.sub === "This page is set to Paris, Île-de-France, France, which isn't where this computer's clock is, so how far that is from you isn't judged." && seen.route === "" && seen.ways.every((w) => w.startsWith("plain|")) && (await p.isVisible('.hero-say .act:has-text("Use this computer")')), seen);
 await sw.evaluate((was) => chrome.storage.local.set({ place: was }), realPlace);
 ok("Chrome's privacy switches wait for the permission to read them", (await text(p, `${tool("privacy switches")} .btn`)) === "Show them" && !(await p.$(".switches")) && manifest.optional_permissions.includes("privacy"));
-await p.click('#pages .tab:has-text("Today")'); await p.click('#pages .tab:has-text("Tools")');
+await p.click("#footToday"); const footToday = await text(p, "#here"); await p.click("#footTools"); const footTools = await text(p, "#here");
+ok("Today and Tools are in the footer of every page too", footToday === "☀️ Today" && footTools === "🛠️ Tools", { footToday, footTools });
 ok("what was found stays while the tab is open", /New York/.test(await text(p, "#heroLine")) && /^Delay/.test(await text(p, `${tool("Speed")} .sc-note`)) && (await text(p, "#fpId")) === fp);
-const p2 = await open(); await p2.waitForSelector(".card"); await p2.click('#pages .tab:has-text("Tools")'); await p2.waitForSelector("#fpId");
+const p2 = await open(); await p2.waitForSelector(".card"); await nav(p2, "Tools"); await p2.waitForSelector("#fpId");
 ok("the mark is the same in another tab", (await text(p2, "#fpId")) === fp);
 await p2.waitForSelector(".ways .way", { timeout: 30000 }); await p2.close(); await p.bringToFront();
 
@@ -411,13 +441,13 @@ ok("the glance still draws with the service down", /^\d+°$/.test(await text(q, 
 t0 = Date.now(); await q.click("#glance"); await q.waitForSelector(".wx-temp", { timeout: 3000 });
 ok("the glance opens Today, drawn from the saved forecast with the service down", Date.now() - t0 < 800 && !!(await q.$("#wxNote[hidden]")), { ms: Date.now() - t0 });
 await sw.evaluate(async () => { const { wx } = await chrome.storage.local.get("wx"); wx.at -= 3600e3; await chrome.storage.local.set({ wx }); });
-await q.close(); q = await open(); await q.click('#pages .tab:has-text("Today")'); await q.waitForSelector("#wxNote:not([hidden])", { timeout: 5000 });
+await q.close(); q = await open(); await nav(q, "Today"); await q.waitForSelector("#wxNote:not([hidden])", { timeout: 5000 });
 ok("an old forecast stays up with a note when it can't refresh", !!(await q.$(".wx-temp")), await text(q, "#wxNote"));
 
 // ---------- extras are off until asked for ----------
 await q.click('#spaces .tab:has-text("Work")'); await q.waitForSelector(".card");
 ok("the extras ship switched off, as optional permissions", !!(await q.$("#glMail[hidden]")) && !!(await q.$("#filesPanel[hidden]")) && !!(await q.$("#closedPanel[hidden]")) && !!(await q.$("#often[hidden]")) && manifest.optional_permissions.join() === "history,privacy,sessions,topSites" && manifest.optional_host_permissions.join() === "https://mail.google.com/*" && !manifest.permissions.includes("history"));
-await q.click("#extrasBtn"); await q.waitForSelector("#extrasBody .extra");
+await q.click("#extrasFoot"); await q.waitForSelector("#extrasBody .extra");
 ok("Settings lists the extras, all off", (await q.$$eval("#extrasBody .extra .btn", (x) => x.map((e) => `${e.getAttribute("aria-label")}:${e.textContent}`))).join() === "Unread mail:Off,Recent files:Off,Closed tabs and other devices:Off,Most visited:Off");
 
 // ---------- a busy tab ----------
@@ -432,11 +462,11 @@ ok("and its × closes it while it is busy", tk.isClosed() && (await q.$$("#tabs 
 await q.click("#tabs li:nth-child(1) .row", { button: "middle" }); await q.waitForFunction((n) => document.querySelectorAll("#tabs li").length === n, before - 1);
 ok("a middle click on a row closes that tab", (await q.$$("#tabs li")).length === before - 1);
 
-await q.click("#goShortcuts"); await q.waitForSelector(".sc-card");
+await q.click("#goShortcuts"); await q.waitForSelector("#scBody .sc-card");
 ok("\"All shortcuts\" in the footer opens the Shortcuts page", (await q.getAttribute('#pages .tab:has-text("Shortcuts")', "aria-selected")) === "true");
 await q.click('#spaces .tab:has-text("Work")'); await q.waitForSelector(".card"); await q.click("#edit");
 ok("while editing, the pencil is a tick and the bookmark manager is offered", (await q.getAttribute("#edit", "aria-pressed")) === "true" && (await q.isVisible('[data-go="chrome://bookmarks/"]')));
-await q.click('#pages .tab:has-text("Today")');
+await nav(q, "Today");
 ok("leaving for Today ends editing", (await q.evaluate(() => document.body.classList.contains("editing"))) === false);
 await q.click('#spaces .tab:has-text("Work")'); await q.waitForSelector(".card"); await q.click("#edit");
 await q.click('[data-go="chrome://bookmarks/"]'); await q.waitForURL(/^chrome:\/\/bookmarks/, { timeout: 5000 }).catch(() => {});
@@ -467,7 +497,7 @@ await e.waitForFunction(() => chrome.tabs.query({ url: "https://example.com/clos
 ok("a click reopens it", (await g.sw.evaluate(async () => (await chrome.tabs.query({ url: "https://example.com/closed-page" })).length)) === 1);
 await e.bringToFront();
 ok("with its permission, Most visited draws without complaint (a new profile has none yet)", (await e.$$eval("#often .pin", (x) => x.length)) >= 0 && (await g.sw.evaluate(async () => Array.isArray(await chrome.topSites.get()))));
-await e.click('#pages .tab:has-text("Tools")'); await e.waitForSelector(".switches");
+await nav(e, "Tools"); await e.waitForSelector(".switches");
 const sw0 = await e.evaluate(() => ({ tally: document.querySelector(".sw-tally").textContent, bars: document.querySelectorAll(".score i").length, good: document.querySelectorAll(".score i.on").length, groups: [...document.querySelectorAll(".sw-group")].map((g) => `${g.querySelector("h3").textContent}:${[...g.querySelectorAll(".sw")].map((s) => s.className.replace("sw ", "")).join("")}`), names: [...document.querySelectorAll(".sw .sw-say b")].map((b) => b.textContent), states: [...document.querySelectorAll(".sw .state")].map((s) => s.textContent), signs: [...document.querySelectorAll(".sw.warn .mk")].map((m) => m.textContent).join(""), go: [...document.querySelectorAll(".sw [data-go]")].map((b) => b.dataset.go), route: document.getElementById("rtcRoute").value, locked: document.getElementById("rtcRoute").disabled }));
 ok("with its permission, Chrome's privacy switches are read and scored: what is worth a look first, then what is already private, then the trades that are yours to make, which get no verdict", /^\d of 8 set the private way$/.test(sw0.tally) && sw0.bars === 8 && sw0.good === +sw0.tally.split(" ")[0] && /^Worth a look:(bad)*(warn)+$/.test(sw0.groups[0]) && /^Already private:(good)+$/.test(sw0.groups[1]) && /^Your call:(plain)+$/.test(sw0.groups[2]) && /^!+$/.test(sw0.signs) && sw0.names.length === 9 && /^Your call:plain$/.test(sw0.groups[2]) && ["Third-party cookies", "Safe Browsing", "Preload pages"].every((s) => sw0.names.includes(s)) && sw0.states.length === sw0.names.length && sw0.go.includes("chrome://settings/cookies") && sw0.route === "default" && !sw0.locked, sw0);
 await e.selectOption("#rtcRoute", "default_public_interface_only");
@@ -482,7 +512,7 @@ const fixed = await g.sw.evaluate(() => chrome.privacy.network.webRTCIPHandlingP
 await g.sw.evaluate(() => chrome.privacy.network.webRTCIPHandlingPolicy.clear({}));
 ok("the thing to do beside the WebRTC answer does it: Chrome's route is narrowed, and the switch below shows it", !fix || (fixed.value === "default_public_interface_only" && fixed.levelOfControl === "controlled_by_this_extension"), fixed);
 await e.click('#spaces .tab:has-text("Work")'); await e.waitForSelector(".card");
-await e.click("#extrasBtn"); await e.waitForSelector("#extrasBody .extra");
+await e.click("#extrasFoot"); await e.waitForSelector("#extrasBody .extra");
 ok("their switches read On", (await e.$$eval("#extrasBody .extra .btn", (x) => x.map((b) => b.textContent))).join() === "On,On,On,On");
 ok("no page errors with the extras on", g.errs.length === 0, g.errs);
 await g.ctx.close();
@@ -500,7 +530,7 @@ await f.waitForFunction(() => /network's city/.test(document.getElementById("toa
 await f.waitForSelector("#empty:not([hidden])");
 ok("with nothing on the bookmarks bar the links area says so and offers three ways to bring links in, under the same strip as ever and beside Up next and Notes; there is no separate guide", (await f.isVisible("#empty")) && (await text(f, "#emptyTitle")) === "Bring in your links" && (await f.$$eval("#emptyWays .extra b", (x) => x.map((b) => b.textContent))).join() === "A starter set,A bookmarks file,Have an assistant write the file" && (await f.isVisible(".glance")) && (await f.isVisible("#nextPanel")) && !!(await f.$("#today[hidden]")) && (await f.$$eval("#spaces .tab", (x) => x.map((b) => b.textContent))).join() === "🔖 Your links,+ New space" && !(await f.isVisible("#edit")) && !(await f.$("#start")) && (await f.$$eval("#pages .tab", (x) => x.length)) === 3);
 ok("when the computer won't say where it is, the first new tab uses the network's city, rounded, and says so", (await local("place")).source === "network" && (await local("place")).name === "San Francisco, California" && (await local("place")).lat === 37.77 && (await local("place")).lon === -122.42 && /^The sky and forecast are for your network's city: San Francisco, California\./.test(await text(f, "#toast")) && n.net.estimates === 1, { place: await local("place"), toast: await text(f, "#toast") });
-await f.click('#pages .tab:has-text("Today")');
+await nav(f, "Today");
 await f.waitForFunction(() => /approximate/.test(document.getElementById("place").textContent) && document.querySelector(".wx-temp"), null, { timeout: 8000 }).catch(() => {});
 ok("Today marks the place approximate and the forecast is for it", (await text(f, "#place")) === "San Francisco, California (approximate)" && n.net.points.join() === "37.77,-122.42" && /Estimated from your network/.test(await f.getAttribute("#placeBtn", "title")), [await text(f, "#place"), n.net.points]);
 await f.click("#toast button"); await f.waitForSelector("#todayAsk:not([hidden])");
@@ -542,7 +572,7 @@ const shape = async () => { const walk = (n) => (n.url ? n.title : `${n.title}[$
 const said1 = await bring(FILE);
 await f.waitForSelector(".card");
 ok("a bookmarks file's folders become spaces and collections; only web links are taken, loose ones are gathered, and the page opens on the first space", (await shape()) === "💼 Work[Mail,Docs[Wiki]] 🏡 Home[Bank] 📥 Imported[Loose]" && said1 === "Added 4 links in 4 new folders.Undo" && (await f.getAttribute('#spaces .tab:has-text("Work")', "aria-selected")) === "true" && !(await f.isVisible("#empty")), [await shape(), said1]);
-await f.click("#extrasBtn"); await f.setInputFiles("#setupBody .setup-file", { name: "bookmarks.html", mimeType: "text/html", buffer: Buffer.from(FILE) });
+await f.click("#extrasFoot"); await f.setInputFiles("#setupBody .setup-file", { name: "bookmarks.html", mimeType: "text/html", buffer: Buffer.from(FILE) });
 await f.waitForFunction(() => /Nothing new/.test(document.getElementById("toast").textContent), null, { timeout: 8000 }).catch(() => {});
 const said2 = await text(f, "#toast");
 await f.setInputFiles("#setupBody .setup-file", { name: "notes.html", mimeType: "text/html", buffer: Buffer.from("<p>hello</p>") });
@@ -650,14 +680,14 @@ const wide = await n.open(); await wide.waitForSelector(".card"); await wide.wai
 const topBar = (q) => q.evaluate(() => {
   const s = document.getElementById("spaces"), box = (e) => e.getBoundingClientRect();
   const on = s.querySelector('[aria-selected="true"]'), plus = s.querySelector(".add-space");
-  return { rows: Math.round(box(document.querySelector(".bar")).height), scrolls: s.scrollWidth > s.clientWidth + 1, faded: s.className.replace("tabs", "").trim(), tight: s.querySelectorAll(".tab.tight").length, pencilIn: box(document.getElementById("edit")).right <= innerWidth, pagesIn: box(document.getElementById("pages")).left >= box(s).right - 1, onIn: !!on && box(on).left >= box(s).left - 1 && box(on).right <= box(s).right + 1, on: on && on.textContent, clear: !plus || !on || getComputedStyle(plus).display === "none" || box(on).right <= box(plus).left + 1, plusIn: !!plus && box(plus).right <= box(s).right + 1 && box(plus).left >= box(s).left };
+  return { rows: Math.round(box(document.querySelector(".bar")).height), scrolls: s.scrollWidth > s.clientWidth + 1, faded: s.className.replace("tabs", "").trim(), tight: s.querySelectorAll(".tab.tight").length, pencilIn: box(document.getElementById("edit")).right <= innerWidth, findIn: box(document.querySelector(".finder")).left >= box(s).right - 1 && box(document.querySelector(".finder")).right <= innerWidth, menuIn: box(document.getElementById("menuBtn")).right <= box(s).left, onIn: !!on && box(on).left >= box(s).left - 1 && box(on).right <= box(s).right + 1, on: on && on.textContent, clear: !plus || !on || getComputedStyle(plus).display === "none" || box(on).right <= box(plus).left + 1, plusIn: !!plus && box(plus).right <= box(s).right + 1 && box(plus).left >= box(s).left };
 });
 let b1 = await topBar(wide);
-ok("fourteen spaces stay on one row: the ones that don't fit narrow to their emoji, and Today, Shortcuts, Tools and the pencil keep their place", b1.rows < 64 && b1.tight >= 8 && b1.pencilIn && b1.pagesIn && b1.onIn && (await wide.getAttribute('#spaces .tab:has-text("Travel")', "title")) === "✈️ Travel", b1);
+ok("fourteen spaces stay on one row: the ones that don't fit narrow to their emoji, and the menu, the search and the pencil keep their place", b1.rows < 64 && b1.tight >= 8 && b1.pencilIn && b1.findIn && b1.menuIn && b1.onIn && (await wide.getAttribute('#spaces .tab:has-text("Travel")', "title")) === "✈️ Travel", b1);
 await wide.setViewportSize({ width: 700, height: 800 }); await wide.waitForTimeout(300);
 await wide.click('#spaces .tab:has-text("Platform")', { force: true }).catch(() => {}); await wide.waitForTimeout(500);
 b1 = await topBar(wide);
-ok("in a narrow window the strip scrolls instead, fades where more is hidden, and brings the space you are in into view", b1.rows < 64 && b1.scrolls && b1.faded.includes("more-left") && b1.on === "🧰 Platform" && b1.onIn && b1.pencilIn && b1.pagesIn && (await wide.$eval("#pages .tab .l", (e) => getComputedStyle(e).display)) === "none", b1);
+ok("in a narrow window the strip scrolls instead, fades where more is hidden, and brings the space you are in into view", b1.rows < 64 && b1.scrolls && b1.faded.includes("more-left") && b1.on === "🧰 Platform" && b1.onIn && b1.pencilIn && b1.findIn && b1.menuIn, b1);
 await wide.click("#edit"); await wide.waitForTimeout(400);
 b1 = await topBar(wide);
 ok("in Edit the + stays in reach at the end of the strip without covering the tab you are in", b1.plusIn && b1.clear && b1.onIn, b1);

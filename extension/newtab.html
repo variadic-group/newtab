@@ -10,10 +10,10 @@
 <body>
 <header class="top">
   <div class="bar">
-    <span class="mark" aria-hidden="true"><i></i><i></i><i></i></span>
+    <button type="button" id="menuBtn" class="mark" aria-haspopup="true" aria-expanded="false" aria-controls="menu" aria-label="Menu: Today, Shortcuts, Tools, Settings" title="Today, Shortcuts, Tools, Settings"><i></i><i></i><i></i></button>
+    <span id="here" class="here" hidden></span>
     <nav id="spaces" class="tabs" role="tablist" aria-label="Spaces"></nav>
     <div class="right">
-      <nav id="pages" class="tabs" role="tablist" aria-label="Pages"></nav>
       <label class="finder" title="Find a link in any space ( / )">
         <svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="8.8" cy="8.8" r="5.3"/><path d="M12.8 12.8l4 4"/></svg>
         <input id="findBox" type="text" autocomplete="off" spellcheck="false" placeholder="Find a link" aria-label="Find a link, in any space" aria-controls="findList">
@@ -23,10 +23,11 @@
         <svg class="when-off" viewBox="0 0 20 20" aria-hidden="true"><path d="M3.2 16.8l.9-3.9L14.3 2.7a1.6 1.6 0 0 1 2.2 0l.8.8a1.6 1.6 0 0 1 0 2.2L7.1 15.9z"/><path d="M12.4 4.6l3 3"/></svg>
         <svg class="when-on" viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10.6l4 4 8-9.2"/></svg>
       </button>
-      <button type="button" id="extrasBtn" class="icon-btn" aria-expanded="false" aria-controls="extras" aria-label="Settings and extras" title="Settings and extras">
-        <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M8.6 2.5h2.8l.4 2a5.6 5.6 0 0 1 1.5.9l1.9-.7 1.4 2.4-1.5 1.3a5.7 5.7 0 0 1 0 1.8l1.5 1.3-1.4 2.4-1.9-.7a5.6 5.6 0 0 1-1.5.9l-.4 2H8.6l-.4-2a5.6 5.6 0 0 1-1.5-.9l-1.9.7-1.4-2.4 1.5-1.3a5.7 5.7 0 0 1 0-1.8L3.4 7.1l1.4-2.4 1.9.7a5.6 5.6 0 0 1 1.5-.9z"/><circle cx="10" cy="10" r="2.3"/></svg>
-      </button>
     </div>
+  </div>
+  <div id="menu" class="menu" hidden>
+    <nav id="pages" class="menu-list" role="tablist" aria-label="Pages"></nav>
+    <button type="button" id="extrasBtn" class="menu-item" aria-expanded="false" aria-controls="extras"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M8.6 2.5h2.8l.4 2a5.6 5.6 0 0 1 1.5.9l1.9-.7 1.4 2.4-1.5 1.3a5.7 5.7 0 0 1 0 1.8l1.5 1.3-1.4 2.4-1.9-.7a5.6 5.6 0 0 1-1.5.9l-.4 2H8.6l-.4-2a5.6 5.6 0 0 1-1.5-.9l-1.9.7-1.4-2.4 1.5-1.3a5.7 5.7 0 0 1 0-1.8L3.4 7.1l1.4-2.4 1.9.7a5.6 5.6 0 0 1 1.5-.9z"/><circle cx="10" cy="10" r="2.3"/></svg><span>Settings and extras</span></button>
   </div>
 </header>
 
@@ -44,7 +45,7 @@
     <div class="glance">
       <div class="gl-main">
         <a id="glCal" class="gl-time" href="https://calendar.google.com/" title="Opens your calendar"><b id="glTime"></b><span id="glDate" class="cap"></span></a>
-        <button type="button" id="glance" class="gl-rest" aria-label="Daylight, weather and radar. Opens Today.">
+        <button type="button" id="glance" class="gl-rest" aria-label="Daylight, weather and radar. Opens Today." title="Open Today: the sky, the radar and the forecast">
         <span id="glSun" class="gl-sun" hidden>
           <svg viewBox="0 0 132 54" aria-hidden="true">
             <path id="glArc" class="gl-arc" d="M8 40 A58 32 0 0 1 124 40"/>
@@ -207,7 +208,11 @@
 
 <footer class="foot">
   <p id="hint" class="hint"></p>
-  <button type="button" id="extrasFoot" class="mini">Settings and extras</button>
+  <nav class="foot-nav" aria-label="Pages">
+    <button type="button" id="footToday" class="mini">Today</button>
+    <button type="button" id="footTools" class="mini">Tools</button>
+    <button type="button" id="extrasFoot" class="mini">Settings and extras</button>
+  </nav>
   <span id="version" class="cap"></span>
 </footer>
 

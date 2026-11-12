@@ -11,6 +11,12 @@ export const root = path.join(import.meta.dirname, "..");
 export const shipped = path.join(root, "extension");
 export const manifest = JSON.parse(fs.readFileSync(path.join(shipped, "manifest.json"), "utf8"));
 
+// Today, Shortcuts and Tools are behind the mark at the top left: open it, then pick.
+export async function nav(page, name) {
+  if (await page.$eval("#menu", (m) => m.hidden)) await page.click("#menuBtn");
+  await page.click(`#pages .tab:has-text("${name}")`);
+}
+
 // Chrome's permission prompt can't be answered from a test, so the extras are tested on a copy
 // of the extension that holds their two permissions from the start.
 export function grantedCopy() {

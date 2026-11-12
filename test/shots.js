@@ -1,7 +1,7 @@
 // Screenshots of every view at 1280×800, the size the Chrome Web Store asks for, with sample
 // bookmarks, a stubbed forecast and a stand-in radar frame. Run: node test/shots.js [folder]
 process.env.TZ = "America/New_York";
-const { launch, seed, root } = await import("./harness.js");
+const { launch, seed, root, nav } = await import("./harness.js");
 const fs = await import("node:fs");
 const path = await import("node:path");
 
@@ -27,7 +27,7 @@ const view = async (at, tab) => {
   const page = await open({ at });
   await page.waitForSelector(".card");
   if (await sw.evaluate(async () => !!(await chrome.storage.local.get("place")).place)) await page.waitForFunction(() => /°/.test(document.getElementById("glTemp").textContent) && !document.getElementById("glRadar").hidden, null, { timeout: 8000 });
-  if (tab) { await page.click(`#pages .tab:has-text("${tab}")`); await page.waitForTimeout(tab === "Today" ? 900 : 300); }
+  if (tab) { await nav(page, tab); await page.waitForTimeout(tab === "Today" ? 900 : 300); }
   return page;
 };
 

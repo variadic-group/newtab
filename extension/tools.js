@@ -207,6 +207,15 @@ function act(label, run, go) {
   return b;
 }
 
+// The language the browser asks for pages in goes to every site. Carried to another country, it
+// is one more thing that doesn't fit the address.
+function spoken(at, away) {
+  let region = "";
+  try { region = new Intl.Locale(navigator.language).region || ""; } catch { return ""; } // not a locale Chrome can read: say nothing
+  if (!away || !region || !at.code || region === at.code.toUpperCase()) return "";
+  return `Your browser also asks for pages in ${tongue(navigator.language)}, one more hint that you are not from ${at.country || "there"}.`;
+}
+
 // A sign is kept for what matters and can be acted on. Red is your real address getting out.
 // Amber is something going around a VPN that you can change. Green is a VPN doing what it is
 // for. With nothing carrying you elsewhere (`away` false) these are plain facts, not verdicts,
@@ -216,7 +225,7 @@ function answers({ v4, v6, at, rtc, dns }, away, limitWebrtc) {
 
   const network = way("Your provider", "plain", at.isp || "Unknown", [
     away ? "The network your traffic comes out of. Sites see it in place of your own provider, and your own provider sees only that you are connected to it."
-      : "Who carries your traffic. They can see which sites you visit, though not what you do on one whose address starts with https.",
+      : "Who carries your traffic. They can see which sites you visit, though not what you do on one whose address starts with https. Every site you open sees this address, which tells it your provider and roughly your city.",
     [at.as ? `Its number on the internet is AS${at.as}.` : "", v6 ? `You also have an IPv6 address, ${v6.ip}.` : "No IPv6 address on this network."].filter(Boolean).join(" "),
   ]);
 
@@ -225,11 +234,11 @@ function answers({ v4, v6, at, rtc, dns }, away, limitWebrtc) {
   const there = at.zone ? offsetOf(at.zone) : null;
   const clock = there === null ? way("Your clock", "plain", "Can't compare", "The address has no time zone on record.")
     : there === -new Date().getTimezoneOffset() ? way("Your clock", away ? "good" : "plain", "Matches", `Your clock (${mine}) agrees with where your address is.`)
-      : way("Your clock", "plain", "Differs from your address", `Your clock says ${mine}; your address says ${at.zone}. A site can tell you are not where your address is.`,
+      : way("Your clock", "plain", "Differs from your address", [`Your clock says ${mine}; your address says ${at.zone}. A site can tell you are not where your address is. Some take that as the sign of a VPN, and block you or ask for more proof it is you.`, spoken(at, away)].filter(Boolean),
         "It only matters if you want to pass for being there. If you do, set this computer's time zone to match; if not, leave it.");
 
   const calls = "Video calls (WebRTC)";
-  const what = "Calls in the browser connect two computers directly, so the browser will tell a site your address if asked.";
+  const what = "Calls in the browser connect two computers directly, so the browser will tell a site your address if asked. Any site can ask, not only one you are on a call with.";
   let webrtc;
   if (!rtc) webrtc = way(calls, "plain", "Couldn't run", "The check couldn't run in this browser.");
   else {
@@ -238,14 +247,14 @@ function answers({ v4, v6, at, rtc, dns }, away, limitWebrtc) {
     const local = rtc.local.size ? `Your address on the local network is visible to sites: ${[...rtc.local].join(", ")}.` : rtc.hidden ? "Your address on the local network is hidden behind a random name." : "";
     const narrow = "The button narrows it to the route your browsing takes. Chrome will ask first. Calls keep working on most networks.";
     webrtc = !open.length ? way(calls, away ? "good" : "plain", "Shows nothing", [what, "No public address came back: it is blocked or limited here.", local].filter(Boolean), rtc.local.size ? narrow : undefined)
-      : strays.length ? way(calls, "bad", "Shows another address", [what, `Sites can see ${strays.join(" and ")} through it, not the address above. On a VPN, that is your real address getting past it.`, local].filter(Boolean), narrow)
+      : strays.length ? way(calls, "bad", "Shows another address", [what, `Sites can see ${strays.join(" and ")} through it, not the address above. On a VPN, that is your real address getting past it, which undoes what the VPN is for.`, local].filter(Boolean), narrow)
         : way(calls, away ? "good" : "plain", away ? "No leak" : "Same address", [what, "It shows sites the same address as your browsing.", local].filter(Boolean), rtc.local.size ? narrow : undefined);
     // What WebRTC gives away can be narrowed from here: the one Chrome setting with no switch.
     if (strays.length || rtc.local.size) webrtc.append(act("Limit WebRTC to your browsing's route", limitWebrtc));
   }
 
   const names = "Name lookups (DNS)";
-  const asks = "Before it opens a site, your browser asks a server where that site is. Whoever runs the server sees the name of every site you look up.";
+  const asks = "Before it opens a site, your browser asks a server where that site is. Whoever runs the server sees the name of every site you look up: where you bank, what you read, what you are worried about.";
   let lookups;
   if (!dns || !dns.length) lookups = way(names, "plain", "Couldn't see", [asks, "The servers that answer your lookups couldn't be seen this time."]);
   else {
@@ -264,7 +273,7 @@ function answers({ v4, v6, at, rtc, dns }, away, limitWebrtc) {
       list,
       own ? "Yours are answered by the network your traffic comes out of."
         : same ? "Yours are answered where your traffic comes out."
-          : lands.length ? `Not in ${at.country || "the country"} where your traffic comes out. On a VPN, that means lookups are going around it.`
+          : lands.length ? `Not in ${at.country || "the country"} where your traffic comes out. On a VPN, that means lookups are going around it, so someone other than the VPN still gets that list.`
             : "",
     ].filter(Boolean), kind === "warn" ? "Turn on DNS or leak protection in your VPN's own app if it has it. Or pick who answers your lookups yourself, in Chrome, under “Use secure DNS”."
       : away ? undefined : "Nothing needs doing. If you would rather your provider didn't see every name, Chrome can send lookups to a service you pick, encrypted, under “Use secure DNS”.");
@@ -291,6 +300,29 @@ const GAPS = [
     does: "Leaves no history or cookies on this computer when you close it.",
     not: "Your provider, your employer's network and the sites themselves see the same as ever, and your fingerprint is the same." },
 ];
+// What a leak is and why it matters, said once under the answers for someone who has only
+// heard the word. Each kind is one of the answers above.
+const LEAKS = [
+  ["Your address.", "A site asks WebRTC and is given your real one. It then knows your provider and roughly your city, and can tie this visit to the ones you made without the VPN."],
+  ["Your lookups.", "The names of the sites you open still go to your provider, or to someone else outside the VPN, who can keep the list. It is the part of browsing a VPN is most often bought to hide."],
+  ["Your clock and language.", "These don't go around a VPN; the browser simply says them. They tell a site you are not where your address is, which is how streaming services and shops spot a VPN."],
+];
+function leaksPrimer(away) {
+  const box = el("details", "gaps leaks");
+  const list = el("ul", "leaks-list");
+  for (const [name, says] of LEAKS) {
+    const li = el("li");
+    li.append(el("b", null, name), ` ${says}`);
+    list.append(li);
+  }
+  box.append(el("summary", null, "What a leak is, and why it matters"),
+    el("p", null, "A VPN is meant to carry everything this browser sends through its own network, so the sites you visit see the VPN, and your provider sees only that you are connected to it. A leak is anything that goes around it. There are three kinds, and the answers above are the check for each."),
+    list,
+    el("p", null, away ? "Nothing marked above means none of the three is happening now. It is worth checking again after a VPN app updates, or on a new network."
+      : "With no VPN there is nothing to leak: your provider and the sites you visit see all of this anyway. The answers above then say what is visible, not what is wrong."));
+  return box;
+}
+
 function gapsList(away) {
   const box = el("details", "gaps");
   const list = el("div", "gaps-list");
@@ -384,7 +416,7 @@ function heroPanel() {
       const all = answers(found, away, limitWebrtc);
       doing.replaceChildren(verdict(all, away));
       ways.replaceChildren(...all);
-      gaps.replaceChildren(gapsList(away));
+      gaps.replaceChildren(leaksPrimer(away), gapsList(away));
     } catch (err) {
       console.warn("check:", err.message);
       line.textContent = "Couldn't find where you come out.";

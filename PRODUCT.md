@@ -185,13 +185,20 @@ it would do.
 it is only a box. It is not a notes app: no folders, no formatting; `keep/` is one keystroke
 away.
 
+**Get around.** The top bar is the menu, your spaces, the search and the pencil. Today,
+Shortcuts, Tools and Settings sit behind the mark at the top left (4.4.0): they are visited,
+not lived in, and as tabs they crowded the spaces. The weather strip opens Today; Today and
+Tools are in the footer; all four are found from the search bar by name. On one of them the bar
+names it beside the spaces. *Held to:* the links are always editable only through the pencil,
+because a click on a link opens it; dragging works without it.
+
 **Change something.** The pencil, top right, is for the links: on a space it adds, renames,
 moves and removes. Today and Shortcuts carry their own controls where the thing is (the place
 name, a short name, the form under "Your own"), so they need no mode. Putting those behind the
 pencil was tried at 4.0.0 and cut: people looked for the form where it had been.
 
-**Make it yours.** Settings and extras, the gear at the top right and a link at the foot of
-the page, is one sheet: light and dark, one of four
+**Make it yours.** Settings and extras, in the menu behind the mark at the top left and a link
+at the foot of the page, is one sheet: light and dark, one of four
 accents, tiles or a list, the three ways to bring links in, the extras, and the pages of
 Chrome's own settings this page leans on. Esc or a press outside puts it away, as it does the
 expanded note. *Held to:* no

@@ -1,7 +1,7 @@
 // The Shortcuts page: every short link the address bar understands, and where each one goes.
 import { el } from "./dom.js";
 import { siteIcon, host } from "./icons.js";
-import { BUILTIN, CHROME_PAGES, barChildren, leaves, aliasTable, aliasFor, claims, customAliases, customLinks, slug } from "./shared.js";
+import { BUILTIN, CHROME_PAGES, SITES, siteFor, barChildren, leaves, aliasTable, aliasFor, claims, customAliases, customLinks, slug } from "./shared.js";
 
 // Turns a link's short name into a text box; an empty name goes back to the automatic one.
 export function editAlias(pill, link, done) {
@@ -46,18 +46,11 @@ function linkRow(link, table, done) {
   const what = el("a", "sc-what");
   what.href = link.url;
   what.append(siteIcon(link.url, link.title), el("span", "t", link.title || host(link.url)), el("span", "h", host(link.url)));
+  // Where words after the name go: into the site, when this page knows its search box.
+  const inside = Object.values(BUILTIN).some((b) => b.own.test(link.url)) || siteFor(link.url);
+  if (inside) { const s = el("span", "sc-in", "searches inside"); s.title = "Words after the name go to this site's own search or ask box. For other links they search the web for the site."; what.append(s); }
   return row(aliasPill(link, table, done), what);
 }
-
-// Shortcuts worth a click to add. Each address is the site's own search or ask page.
-const SUGGEST = {
-  gpt: ["ChatGPT", "https://chatgpt.com/?q=%s"],
-  pplx: ["Perplexity", "https://www.perplexity.ai/search?q=%s"],
-  yt: ["YouTube", "https://www.youtube.com/results?search_query=%s"],
-  gh: ["GitHub", "https://github.com/search?q=%s"],
-  maps: ["Google Maps", "https://www.google.com/maps/search/%s"],
-  wiki: ["Wikipedia", "https://en.wikipedia.org/w/index.php?search=%s"],
-};
 
 // Your own shortcuts: any name to any address, the way Chrome's site search works.
 async function ownCard(done) {
@@ -96,20 +89,24 @@ async function ownCard(done) {
   chromes.type = "button";
   chromes.dataset.go = "chrome://settings/searchEngines";
   chromes.title = "Chrome keeps its own list of search shortcuts, which an extension can't read or change";
-  const more = Object.entries(SUGGEST).filter(([key]) => !links[key]);
-  if (more.length) {
-    const row = el("div", "sc-suggest");
-    row.append(el("span", "cap", "Add one:"));
-    for (const [key, [label, address]] of more) {
-      const b = el("button", "chip", `${key}/ ${label}`);
-      b.type = "button";
-      b.title = address;
-      b.onclick = async () => { const all = await customLinks(); all[key] = address; await chrome.storage.sync.set({ links: all }); done(); };
-      row.append(b);
-    }
-    card.append(row);
-  }
   card.append(chromes);
+  return card;
+}
+
+// Well-known places that work with no bookmark: the name opens the site, and words after it go
+// to the site's own search or ask box. One you have bookmarked or named yourself is yours.
+function knownCard(table, links) {
+  const card = el("article", "sc-card");
+  card.append(el("h2", null, "Well-known places"), el("p", "sc-note lead", "These work with nothing bookmarked. Words after the name go into the site itself. A bookmark or a shortcut of yours with the same name wins."));
+  for (const site of SITES) {
+    const names = site.names.filter((n) => !table.has(n) && !links[n] && !BUILTIN[n] && !CHROME_PAGES[n]);
+    if (!names.length) continue;
+    const what = el("span", "sc-what");
+    what.append(el("span", "t", site.label));
+    const keys = el("span", "sc-keys");
+    keys.append(...names.map((n) => el("code", "key known", `${n}/`)));
+    card.append(row(keys, what, site.example));
+  }
   return card;
 }
 
@@ -151,7 +148,7 @@ export async function renderShortcuts(root, done) {
     if (carried.has(name)) what.append(el("span", "h", "your bookmark"));
     built.append(row(el("code", "key fixed", `${name}/`), what, b.example));
   }
-  cards.push(built, await chromeCard(table), await ownCard(done));
+  cards.push(built, knownCard(table, await customLinks()), await chromeCard(table), await ownCard(done));
   const listed = (l) => { const name = aliasFor(l, table); return !(BUILTIN[name] && carried.get(name) === l.url); };
 
   for (const space of (await barChildren()).filter((k) => !k.url)) {
