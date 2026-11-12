@@ -4,7 +4,7 @@ import { BUILTIN, claims, barChildren, bookmarkBars, leaves, aliasTable, aliasFo
 import { renderShortcuts, aliasPill } from "./shortcuts.js";
 import { renderToday, tickToday, tickTheme, renderGlance, warmWeather } from "./today.js";
 import { placeForm, getPlace, leftBehind, keepPlace, useDevice, couldBeHere } from "./place.js";
-import { renderExtras, renderMail, renderRecent } from "./extras.js";
+import { renderExtras, renderMail, renderOften } from "./extras.js";
 import { renderTools } from "./tools.js";
 import { loadNotes, wireNotes, bigNote, noteIsBig } from "./notes.js";
 import { setupRows } from "./setup.js";
@@ -13,11 +13,10 @@ import { wireFind, clearFind } from "./find.js";
 const TODAY = "today";
 const KEYS = "shortcuts";
 const TOOLS = "tools";
-const RECENT = "recent";
 // With nothing on the bookmarks bar there is no space to show, so the links area itself says
 // how to bring links in. It is a page only in that it isn't a folder.
 const BARE = "bare";
-const isPage = (id) => id === TODAY || id === KEYS || id === TOOLS || id === RECENT || id === BARE;
+const isPage = (id) => id === TODAY || id === KEYS || id === TOOLS || id === BARE;
 let current = null;
 let pendingRename = null;
 
@@ -104,9 +103,10 @@ function orderTarget(node, accepts, axis, onDrop) {
 // own index and "after T" is one more, whichever folder the item comes from.
 const slot = (target, before) => ({ parentId: target.parentId, index: before ? target.index : target.index + 1 });
 
-// Puts what was dragged at a place in the bookmarks: a bookmark moves, an open tab is saved.
+// Puts what was dragged at a place in the bookmarks: a bookmark moves, an open tab or a site
+// you visit often is saved.
 function place(d, where) {
-  if (d.kind === "tab") return chrome.bookmarks.create({ ...where, title: d.tab.title || d.tab.url, url: d.tab.url });
+  if (d.kind === "tab" || d.kind === "site") return chrome.bookmarks.create({ ...where, title: d.tab.title || d.tab.url, url: d.tab.url });
   if (d.id !== where.parentId) return chrome.bookmarks.move(d.id, where);
 }
 
@@ -129,15 +129,11 @@ async function render() {
   $("spaces").replaceChildren(...(all.length ? all.map((s) => tabFor(s.id, s.title, s)) : [tabFor(BARE, "🔖 Your links")]), newSpaceTab(!all.length));
   renameNew($("spaces"));
   fitSpaces();
-  // The pages live behind the mark at the top left. While you are on one, the bar says which.
-  $("pages").replaceChildren(tabFor(TODAY, "☀️ Today"), tabFor(RECENT, "🕘 Recent"), tabFor(KEYS, "⌨️ Shortcuts"), tabFor(TOOLS, "🛠️ Tools"));
-  const where = { [TODAY]: "☀️ Today", [RECENT]: "🕘 Recent", [KEYS]: "⌨️ Shortcuts", [TOOLS]: "🛠️ Tools" }[current];
-  $("here").hidden = !where;
-  $("here").textContent = where || "";
+  // The pages live behind the mark at the top left.
+  $("pages").replaceChildren(tabFor(TODAY, "☀️ Today"), tabFor(KEYS, "⌨️ Shortcuts"), tabFor(TOOLS, "🛠️ Tools"));
   $("today").hidden = current !== TODAY;
   $("shortcuts").hidden = current !== KEYS;
   $("tools").hidden = current !== TOOLS;
-  $("recent").hidden = current !== RECENT;
   const bare = current === BARE;
   $("space").hidden = isPage(current) && !bare;
   // The pencil is for the links: it shows on a space, and nowhere else.
@@ -147,13 +143,12 @@ async function render() {
   if (current === TODAY) return renderToday();
   if (current === KEYS) return renderShortcuts($("scBody"), render);
   if (current === TOOLS) return renderTools($("toolsBody"));
-  if (current === RECENT) return renderRecent($("recentBody"), render);
   // The time and date open your calendar: your own Calendar bookmark if you keep one.
   $("glCal").href = (await claims()).get("cal") || BUILTIN.cal.url;
   const space = all.find((s) => s.id === current);
   if (space) await renderSpace(space);
   $("saveTabs").hidden = !space || !!space.pinned;
-  await Promise.all([renderGlance(), renderNext(), renderTabs()]);
+  await Promise.all([renderGlance(), renderNext(), renderTabs(), renderOften(await savedUrls(), drags)]);
   // After the links are drawn, so the unread count can sit on the Gmail ones.
   await renderMail();
 }
@@ -195,7 +190,7 @@ function tabFor(id, title, space) {
     b.dataset.id = space.id;
     b.dataset.name = space.node.title;
     b.onclick = () => (editing() && id === current ? startRename(b) : show(id));
-    dropTarget(b, ["link", "next", "folder", "tab"], (d) => place(d, { parentId: space.id }));
+    dropTarget(b, ["link", "next", "folder", "tab", "site"], (d) => place(d, { parentId: space.id }));
     drags(b, { kind: "space", id: space.id });
     orderTarget(b, ["space"], "x", (d, before) => place(d, slot(space.node, before)));
   }
@@ -367,7 +362,7 @@ function cardFor(folder, table, isRoot) {
   add.onclick = () => openAddForm(card, folder.id);
   grid.append(add);
   card.append(head, grid, ...groups.map((g) => groupFor(g, table)));
-  dropTarget(card, ["link", "next", "tab"], (d) => place(d, { parentId: folder.id }));
+  dropTarget(card, ["link", "next", "tab", "site"], (d) => place(d, { parentId: folder.id }));
   return card;
 }
 
@@ -382,7 +377,7 @@ function groupFor(g, table) {
   head.append(h);
   if (!g.links.length) head.append(deleteButton(g.folder));
   sec.append(head, g.links.length ? tilesOf(g.links, table) : el("p", "note", "Empty. Drag a link here."));
-  dropTarget(sec, ["link", "next", "tab"], (d) => place(d, { parentId: g.folder.id }));
+  dropTarget(sec, ["link", "next", "tab", "site"], (d) => place(d, { parentId: g.folder.id }));
   return sec;
 }
 
@@ -414,7 +409,7 @@ function tileFor(link, table) {
   a.append(x);
   drags(a, { kind: "link", id: link.id });
   // Tiles run across a card and a list runs down it, so "before" is the left half or the top one.
-  orderTarget(a, ["link", "next", "tab"], () => (document.documentElement.dataset.view === "list" ? "y" : "x"), (d, before) => place(d, slot(link, before)));
+  orderTarget(a, ["link", "next", "tab", "site"], () => (document.documentElement.dataset.view === "list" ? "y" : "x"), (d, before) => place(d, slot(link, before)));
   a.addEventListener("click", (e) => { if (editing()) e.preventDefault(); });
   return a;
 }
@@ -666,7 +661,7 @@ $("placeBtn").onclick = () => changePlace();
 
 // Settings is a sheet lifted over the page. Extras are switched on and off in it; each is a
 // permission Chrome asks for.
-const drawExtras = () => { renderExtras(drawExtras); if (!isPage(current)) renderMail(); else if (current === RECENT) render(); };
+const drawExtras = () => { renderExtras(drawExtras); if (!isPage(current)) render(); };
 const settings = (open) => {
   $("extras").hidden = !open;
   $("extrasBtn").setAttribute("aria-expanded", String(open));
@@ -777,6 +772,15 @@ chrome.storage.onChanged.addListener((changes, area) => {
 });
 matchMedia("(prefers-color-scheme: dark)").addEventListener("change", redrawSky);
 
+// Every bookmark's address, to leave out of the sites you visit often.
+async function savedUrls() {
+  const out = [];
+  const walk = (nodes) => { for (const n of nodes) { if (n.url) out.push(n.url); if (n.children) walk(n.children); } };
+  walk(await chrome.bookmarks.getTree());
+  return out;
+}
+chrome.storage.onChanged.addListener((changes, area) => { if (area === "sync" && changes.hiddenSites && !isPage(current)) render(); });
+
 // One redraw at most every 150 ms however many tab events arrive, and none in the middle of a drag.
 let tabsQueued = null;
 function retabs() {
@@ -796,7 +800,6 @@ wireFind([
   { title: "Today", where: "The sky, the radar and the forecast", run: () => show(TODAY) },
   { title: "Shortcuts", where: "Every short name", run: () => show(KEYS) },
   { title: "Tools", where: "Your connection and what it gives away", run: () => show(TOOLS) },
-  { title: "Recent", where: "Closed tabs, other devices, Google files, most visited", run: () => show(RECENT) },
   { title: "Settings and extras", where: "Light and dark, an accent, a list, extras", run: () => settings(true) },
 ]);
 await loadIcons();

@@ -4,7 +4,6 @@
 import { $, el } from "./dom.js";
 import { getPlace, placeKey, placeMoved } from "./place.js";
 import { sunPosition, sunTimes, moonPosition, moonPhase, moonTimes, lightPhase, nextLight, nightSpan, skyColors } from "./sky.js";
-import { MAP, dots, spot, daylight, overhead, sunMark, svg as mapSvg } from "./world.js";
 
 const FRESH_MS = 20 * 60e3;
 const DAY_MS = 864e5;
@@ -385,10 +384,9 @@ async function update(place, hadForecast) {
 }
 
 // ---------- one moment, pointed at ----------
-// The sky, the next 24 hours and the map of day and night are one clock. Pointing along any of
-// them picks a moment: the sun's path marks where the sun will be, the hours mark the hour, the
-// map is drawn for it, and the top of the sky says what it will be like then. Taking the pointer
-// away puts everything back to now.
+// The sky and the next 24 hours are one clock. Pointing along either picks a moment: the sun's
+// path marks where the sun will be, the hours mark the hour, and the top of the sky says what it
+// will be like then. Taking the pointer away puts everything back to now.
 let pointed = null, hoursNow = [], skyMidnight = 0, skyWxNow = "";
 
 // Where a moment falls along the hours: a fractional index, or null off the chart. The first
@@ -413,9 +411,12 @@ function sayThen(place) {
   const at = new Date(pointed), now = new Date();
   const days = Math.round((new Date(at).setHours(12, 0, 0, 0) - new Date(now).setHours(12, 0, 0, 0)) / DAY_MS);
   const when = `${fmtTime(at)}${days === 1 ? " tomorrow" : days === -1 ? " yesterday" : ""}`;
-  const next = nextLight(at, place.lat, place.lon);
+  const light = lightPhase(sunPosition(at, place.lat, place.lon).altitude);
+  // In the morning's golden hour the next change named is the evening's; say the one after.
+  let next = nextLight(at, place.lat, place.lon);
+  if (next && next.label === light.toLowerCase()) next = nextLight(new Date(+next.at + 60e3), place.lat, place.lon);
   $("phase").textContent = `At ${when}`;
-  $("nextUp").textContent = `${lightPhase(sunPosition(at, place.lat, place.lon).altitude)}${next ? `, ${next.label} in ${span(next.at - at)}` : ""}`;
+  $("nextUp").textContent = `${light}${next ? `, ${next.label} in ${span(next.at - at)}` : ""}`;
   $("skyWx").textContent = weatherAt(+at);
 }
 function point(place, at) {
@@ -438,7 +439,6 @@ function point(place, at) {
     line.style.display = i === null ? "none" : "";
     if (i !== null) { const x = (24 + (i * (600 - 48)) / (hoursNow.length - 1)).toFixed(1); line.setAttribute("x1", x); line.setAttribute("x2", x); }
   }
-  drawWorld(place);
 }
 // Pointing along a picture: `toTime` turns where the pointer is, as a share of the picture's
 // width, into a moment.
@@ -450,25 +450,12 @@ function pointable(node, place, toTime) {
   node.onpointerleave = () => point(place, null);
 }
 
-function drawWorld(place) {
-  const at = pointed ? new Date(pointed) : new Date();
-  const { lit, dark, sun } = daylight(at);
-  $("worldDay").setAttribute("d", dots(lit));
-  $("worldNight").setAttribute("d", dots(dark));
-  const [x, y] = spot(place);
-  const pin = mapSvg("g", { class: "pin you" });
-  const left = x > 640;
-  pin.append(mapSvg("circle", { class: "dot", cx: x, cy: y, r: 8 }), mapSvg("text", { x: x + (left ? -14 : 14), y: y + 8, "text-anchor": left ? "end" : "start" }, "You"));
-  $("worldPins").replaceChildren(sunMark(sun), pin);
-  $("worldSay").textContent = pointed ? `Day and night at ${fmtTime(at)}` : "Day and night, now";
-  $("worldMap").setAttribute("aria-label", `Daylight is on ${Math.round((lit.length / (lit.length + dark.length)) * 100)}% of the land`);
-}
-
 // The hours chart gets its marker each time it is drawn.
 function followHours(place) {
   const chart = $("wxHours").querySelector("svg");
   if (!chart) return;
-  const mark = mapSvg("line", { class: "hc-then", y1: 14, y2: 104 });
+  const mark = document.createElementNS("http://www.w3.org/2000/svg", "line");
+  for (const [k, v] of Object.entries({ class: "hc-then", y1: 14, y2: 104 })) mark.setAttribute(k, v);
   mark.style.display = "none";
   chart.append(mark);
   const step = (600 - 48) / (hoursNow.length - 1);
@@ -479,15 +466,9 @@ function followHours(place) {
     return from + (i - whole) * (to - from);
   });
 }
-// The sky runs from one solar midnight to the next; the map puts the sun over where you point,
-// at the next moment it is there.
+// The sky runs from one solar midnight to the next.
 function followSky(place) {
   pointable($("sky").querySelector(".sky-chart"), place, (f) => skyMidnight + f * DAY_MS);
-  pointable($("worldMap"), place, (f) => {
-    const lon = f * 360 - 180, now = Date.now();
-    const west = ((((overhead(new Date(now)).lon - lon) % 360) + 360) % 360);
-    return now + (west / 360) * DAY_MS;
-  });
 }
 
 // The place form shows itself while there is no place and goes once there is one. Opened by
@@ -503,7 +484,6 @@ export async function renderToday() {
   if (!place) return;
   drawClock();
   drawSky(place);
-  drawWorld(place);
   followSky(place);
   const cached = await cachedWeather(place);
   // A place the weather service has already said it doesn't cover is said so at once, and not
@@ -526,7 +506,6 @@ export async function tickToday() {
   applyTheme(place);
   drawClock();
   drawSky(place);
-  drawWorld(place);
 }
 
 // ---------- the glance: the same facts as one strip at the top of every space ----------

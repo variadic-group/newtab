@@ -73,7 +73,7 @@ PICK UP WHERE YOU LEFT OFF
 LOOK UP
 • The sun's real path across the day, the three twilights, and the moon in its true phase
 • Sunrise, sunset and the radar for where you are, at the top
-• A map of where it is day right now, with the sun where it is overhead; point at the sky, the hours or the map and all three move to that moment, with the weather and the light then
+• Point along the sky or the hourly forecast to see any moment of the next day: where the sun will be, the light, and the weather then
 • The page turns dark when night falls where you are; or hold it light or dark, and pick an accent
 • Forecast, hourly chart, seven days and radar from the National Weather Service (United States)
 
@@ -86,7 +86,7 @@ CHECK, WHEN YOU WANT TO
 PRIVATE BY CONSTRUCTION
 • No account, no server, no analytics, no ads, no affiliate links
 • Your links stay Chrome bookmarks
-• Four extras are off until you switch them on: an unread count on your Gmail icon, and a Recent page with closed tabs, your other devices' tabs, recent Google files and most visited
+• An unread count on your Gmail icon, and, if you switch it on, the sites you visit most that you haven't saved, ready to drag into a collection
 
 Free and open source.
 ```
@@ -114,11 +114,9 @@ Free and open source.
 | `storage` | Keeps the user's short names, their own shortcuts, their notes, their choice of light, dark, accent and tiles or a list, the place they set and a cache of the forecast and icons. |
 | `geolocation` | On the first new tab and when the user clicks "Use this computer's location", to show sunrise, sunset and the local forecast. Chrome shows no location prompt on a new tab page, so the permission is declared. If the computer refuses, the page falls back to the city of the network connection (marked approximate), and the user can type a place instead. |
 | Host `api.weather.gov` | Fetches the forecast for the user's place from the National Weather Service. |
-| Optional `history` | Only if the user switches on "Recent files": lists the Google Docs, Sheets and Slides they opened lately. Read locally; nothing is sent. |
+| Host `mail.google.com` | While a Gmail link is on the page, reads Gmail's inbox feed with the browser's own sign-in to show the unread count as a badge on it, with the newest five senders and subjects when pointed at. Kept locally, never sent. |
 | Optional `privacy` | Only when the user opens "Chrome's privacy switches" on the Tools tab: reads Chrome's privacy settings to show how each is set. The one it can change is the WebRTC IP handling policy, which has no switch in Chrome's settings, and only when the user picks a value; choosing the default clears it. |
-| Optional `sessions` | Only if the user switches on "Closed tabs and other devices": lists recently closed tabs to reopen, and the tabs open on the user's other signed-in devices. Read locally; nothing is sent. |
-| Optional `topSites` | Only if the user switches on "Most visited": lists the user's most visited sites on the Recent page. Read locally. |
-| Optional host `mail.google.com` | Only if the user switches on "Unread mail": reads the unread count and the newest five unread senders and subjects from Gmail's inbox feed, shown as a badge on Gmail links. Kept locally, never sent. |
+| Optional `topSites` | Only if the user switches on "Sites you visit but haven't saved": shows the most visited sites not already bookmarked, to drag into a collection. Read locally. |
 
 **Remote code:** No. All code is in the package.
 
@@ -127,11 +125,10 @@ Free and open source.
 - *Location:* yes. The place the user sets, rounded to about a kilometre, is sent to the National
   Weather Service to fetch their forecast. When the computer won't give a location, BigDataCloud
   is asked which city the connection's IP address is in. Not sold, not used for anything else.
-- *Web history:* only with the optional "Recent files" switch; read on the device, never sent.
-- *Personal communications:* only with the optional "Unread mail" switch; the count and the
-  newest five senders and subjects, kept on the device, never sent.
-- *User activity / web history:* also with the optional "Closed tabs and other devices" and
-  "Most visited" switches; read on the device, never sent.
+- *Personal communications:* the unread count and the newest five unread senders and subjects
+  from Gmail, read while a Gmail link is on the page; kept on the device, never sent.
+- *User activity / web history:* only with the optional "Sites you visit but haven't saved"
+  switch; Chrome's most visited list, read on the device, never sent.
 - The Tools tab's checks contact ipleak.net and two STUN servers only when the user opens that
   tab, and Cloudflare only when the user runs the speed reading; the answers are shown and not
   stored. Its fingerprint is computed on the device

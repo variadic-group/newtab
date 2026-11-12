@@ -1,40 +1,37 @@
-// Things this page shows only if you turn them on, each behind a permission Chrome asks you for
-// at that moment: your unread mail count, as a badge on your Gmail links; and, on the Recent
-// page, the tabs you closed, the ones open on your other devices, the Google files you opened
-// lately and the sites you visit most. Whether one is on is simply whether its permission is
-// held.
+// Two things beyond your bookmarks. Your unread mail count, always on, shown only as a badge on
+// a Gmail link in the space you are looking at. And, if you switch it on, the sites you visit
+// most that you haven't saved, as a row to drag into a collection.
 import { $, el } from "./dom.js";
 import { siteIcon, host } from "./icons.js";
 
-const EXTRAS = {
-  mail: { ask: { origins: ["https://mail.google.com/*"] }, label: "Unread mail", note: "How many unread messages are in your Gmail inbox, as a badge on your Gmail links, with who they are from when you point at it. Chrome will ask to read mail.google.com." },
-  docs: { ask: { permissions: ["history"] }, label: "Recent files", note: "The Google Docs, Sheets, Slides and Forms you opened lately, from this browser's history, on the Recent page. Chrome will ask to read your history." },
-  closed: { ask: { permissions: ["sessions"] }, label: "Closed tabs and other devices", note: "Tabs you closed lately, to reopen, and the tabs open on your phone and other computers signed in to this Chrome profile, on the Recent page. Chrome will ask to read your history on your signed-in devices." },
-  often: { ask: { permissions: ["topSites"] }, label: "Most visited", note: "The sites you go to most, on the Recent page. Chrome will ask to read your most visited sites." },
-};
-const isOn = (name) => chrome.permissions.contains(EXTRAS[name].ask);
+const OFTEN = { permissions: ["topSites"] };
+const isOften = () => chrome.permissions.contains(OFTEN);
 
-// The switches. Chrome only shows its permission prompt straight from a click, so the request is
-// the first thing the click does.
+// The switch, in Settings. Chrome only shows its permission prompt straight from a click, so the
+// request is the first thing the click does. Sites you put away can be brought back from here.
 export async function renderExtras(done) {
-  const rows = [];
-  for (const [name, x] of Object.entries(EXTRAS)) {
-    const on = await isOn(name);
-    const b = el("button", "btn", on ? "On" : "Off");
-    b.type = "button";
-    b.setAttribute("aria-pressed", String(on));
-    b.setAttribute("aria-label", x.label);
-    b.onclick = async () => {
-      if (on) await chrome.permissions.remove(x.ask); else await chrome.permissions.request(x.ask);
-      done();
-    };
-    const text = el("div");
-    text.append(el("b", null, x.label), el("p", "cap", x.note));
-    const row = el("div", "extra");
-    row.append(text, b);
-    rows.push(row);
+  const on = await isOften();
+  const b = el("button", "btn", on ? "On" : "Off");
+  b.type = "button";
+  b.setAttribute("aria-pressed", String(on));
+  b.setAttribute("aria-label", "Sites you visit but haven't saved");
+  b.onclick = async () => {
+    if (on) await chrome.permissions.remove(OFTEN); else await chrome.permissions.request(OFTEN);
+    done();
+  };
+  const { hiddenSites = [] } = await chrome.storage.sync.get("hiddenSites");
+  const text = el("div");
+  text.append(el("b", null, "Sites you visit but haven't saved"),
+    el("p", "cap", "A row above your collections of the sites you go to most that aren't in your bookmarks. Drag one onto a collection to keep it; × puts one away for good. Chrome will ask to read your most visited sites."));
+  if (hiddenSites.length) {
+    const back = el("button", "mini", `Show the ${hiddenSites.length} you put away`);
+    back.type = "button";
+    back.onclick = async () => { await chrome.storage.sync.remove("hiddenSites"); done(); };
+    text.append(back);
   }
-  $("extrasBody").replaceChildren(...rows);
+  const row = el("div", "extra");
+  row.append(text, b);
+  $("extrasBody").replaceChildren(row);
 }
 
 // ---------- unread mail ----------
@@ -56,143 +53,65 @@ async function unread() {
   return { count: +count.textContent, latest };
 }
 
-// The count sits on every Gmail link on the page, the way an app's icon carries one. Pointing at
-// it says who the newest are from. With no Gmail link in view, the strip at the top carries it.
-function badge(mail) {
-  const say = mail.count
-    ? [`${mail.count} unread in your inbox`, ...(mail.latest || []).map((m) => `${m.from}: ${m.subject}`)].join("\n")
-    : "Nothing unread in your inbox";
-  let shown = 0;
-  for (const a of document.querySelectorAll("#collections a.tile")) {
-    if (!GMAIL.test(a.href)) continue;
+// The count sits on the Gmail links on the page, the way an app's icon carries one; pointing at
+// it says who the newest are from. Nothing unread, no badge.
+function badge(links, mail) {
+  const say = [`${mail.count} unread in your inbox`, ...(mail.latest || []).map((m) => `${m.from}: ${m.subject}`)].join("\n");
+  for (const a of links) {
     const icon = a.querySelector(".sico");
     let b = icon.querySelector(".badge");
-    if (!mail.count) { if (b) b.remove(); shown++; continue; }
+    if (!mail.count) { if (b) b.remove(); continue; }
     if (!b) { b = el("b", "badge"); icon.append(b); }
     b.textContent = mail.count > 99 ? "99+" : String(mail.count);
     b.title = say;
-    shown++;
   }
-  $("glMailCount").textContent = mail.count;
-  $("glMail").title = say;
-  $("glMail").hidden = shown > 0;
 }
 
+// Gmail is asked only when a Gmail link is on screen, and at most every five minutes.
 export async function renderMail() {
-  const clear = () => { document.querySelectorAll("#collections .sico .badge").forEach((b) => b.remove()); $("glMail").hidden = true; };
-  if (!(await isOn("mail"))) return clear();
+  const links = [...document.querySelectorAll("#collections a.tile")].filter((a) => GMAIL.test(a.href));
+  if (!links.length) return;
   const { mail } = await chrome.storage.local.get("mail");
-  if (mail) badge(mail);
+  if (mail) badge(links, mail);
   if (mail && Date.now() - mail.at < MAIL_FRESH_MS) return;
   try {
     const fresh = { ...(await unread()), at: Date.now() };
     await chrome.storage.local.set({ mail: fresh });
-    badge(fresh);
+    badge(links, fresh);
   } catch (err) {
     // The badge keeps the last count it had, or stays away if it never had one.
     console.warn("mail:", err.message);
-    if (!mail) clear();
   }
 }
 
-// ---------- recent files ----------
-const FILE = /^https:\/\/docs\.google\.com\/(document|spreadsheets|presentation|forms)\/d\/([\w-]+)/;
+// ---------- sites you visit but haven't saved ----------
+const web = (u) => /^https?:/.test(u || "");
+const bare = (u) => host(u).replace(/^www\./, "");
 
-async function recentFiles() {
-  const visits = await chrome.history.search({ text: "docs.google.com", startTime: Date.now() - 30 * 864e5, maxResults: 400 });
-  const files = new Map();
-  for (const v of visits.sort((a, b) => b.lastVisitTime - a.lastVisitTime)) {
-    const m = FILE.exec(v.url || "");
-    if (!m || !v.title || files.has(m[2])) continue;
-    files.set(m[2], { url: m[0] + "/edit", title: v.title.replace(/ - Google (Docs|Sheets|Slides|Forms)$/, "") });
-  }
-  return [...files.values()].slice(0, 6);
-}
-
-// ---------- closed tabs and other devices ----------
-const web = (tab) => !!tab && /^https?:/.test(tab.url || "");
-const row = (tab) => {
-  const a = el("a", "row");
-  a.href = tab.url;
-  a.title = tab.url;
-  a.append(siteIcon(tab.url, tab.title), el("span", "t", tab.title || tab.url), el("span", "h", host(tab.url)));
-  const li = el("li");
-  li.append(a);
-  return li;
-};
-
-// ---------- the Recent page ----------
-// Where you were: four cards, each its own extra. One that is off says what it would show and
-// asks for its permission from its own button, since Chrome only asks straight from a click.
-function card(title, sub) {
-  const c = el("article", "sc-card");
-  c.append(el("h2", null, title), el("p", "cap", sub));
-  return c;
-}
-function rowsOf(items, none) {
-  if (!items.length) return el("p", "note", none);
-  const list = el("ul", "rows");
-  list.append(...items);
-  return list;
-}
-async function offer(c, name, redraw) {
-  const b = el("button", "btn", "Show them");
-  b.type = "button";
-  b.onclick = async () => { if (await chrome.permissions.request(EXTRAS[name].ask)) redraw(); };
-  c.append(b);
-  return c;
-}
-
-async function closedCard(redraw) {
-  const c = card("Recently closed", "Tabs and windows you closed, to reopen where they were, with their history.");
-  if (!(await isOn("closed"))) return offer(c, "closed", redraw);
-  const closed = await chrome.sessions.getRecentlyClosed({ maxResults: 25 });
-  const items = closed.map((s) => {
-    const tabs = (s.window ? s.window.tabs : [s.tab]).filter(web);
-    if (!tabs.length) return null;
-    const li = row(s.window && tabs.length > 1 ? { ...tabs[0], title: `Window: ${tabs[0].title || host(tabs[0].url)} and ${tabs.length - 1} more` } : tabs[0]);
-    li.firstChild.onclick = (e) => { e.preventDefault(); chrome.sessions.restore((s.window || s.tab).sessionId); };
-    return li;
-  }).filter(Boolean).slice(0, 12);
-  c.append(rowsOf(items, "Tabs you close will show here, to reopen."));
-  return c;
-}
-async function devicesCard(redraw) {
-  const c = card("On your other devices", "The tabs open on your phone and other computers signed in to this Chrome profile.");
-  if (!(await isOn("closed"))) return offer(c, "closed", redraw);
-  const devices = await chrome.sessions.getDevices({ maxResults: 6 });
-  const parts = devices.flatMap((d) => {
-    const tabs = d.sessions.flatMap((s) => (s.window ? s.window.tabs : [s.tab])).filter(web).slice(0, 8);
-    return tabs.length ? [el("h3", null, d.deviceName), rowsOf(tabs.map(row), "")] : [];
-  });
-  c.append(...(parts.length ? parts : [el("p", "note", "No other device signed in to this profile has a tab open, or Chrome sync is off for open tabs.")]));
-  return c;
-}
-async function filesCard(redraw) {
-  const c = card("Google files", "The Docs, Sheets, Slides and Forms you opened in this browser in the last month.");
-  if (!(await isOn("docs"))) return offer(c, "docs", redraw);
-  const files = await recentFiles();
-  c.append(rowsOf(files.map((f) => {
-    const a = el("a", "row");
-    a.href = f.url;
-    a.append(siteIcon(f.url, f.title), el("span", "t", f.title));
-    const li = el("li");
-    li.append(a);
-    return li;
-  }), "Google Docs, Sheets and Slides you open will show here."));
-  return c;
-}
-async function oftenCard(redraw) {
-  const c = card("Most visited", "The sites you go to most, as Chrome counts them.");
-  if (!(await isOn("often"))) return offer(c, "often", redraw);
-  const sites = (await chrome.topSites.get()).filter(web).slice(0, 12);
-  c.append(rowsOf(sites.map(row), "Chrome hasn't counted any yet."));
-  return c;
-}
-
-let watchingSessions = false;
-export async function renderRecent(box, redraw) {
-  if (!watchingSessions && (await isOn("closed"))) { watchingSessions = true; chrome.sessions.onChanged.addListener(redraw); }
-  const cards = await Promise.all([closedCard(redraw), devicesCard(redraw), filesCard(redraw), oftenCard(redraw)]);
-  box.replaceChildren(...cards);
+// `saved` is every bookmark's URL. A site counts as saved if any bookmark is on the same host.
+export async function renderOften(saved, drags) {
+  const row = $("often");
+  if (!(await isOften())) { row.hidden = true; return; }
+  const { hiddenSites = [] } = await chrome.storage.sync.get("hiddenSites");
+  const have = new Set(saved.filter(web).map(bare));
+  const sites = (await chrome.topSites.get()).filter((s) => web(s.url) && !have.has(bare(s.url)) && !hiddenSites.includes(bare(s.url))).slice(0, 8);
+  row.hidden = !sites.length;
+  const say = el("span", "often-say", "Visited often, not saved");
+  row.replaceChildren(say, ...sites.map((s) => {
+    const a = el("a", "chip-site");
+    a.href = s.url;
+    a.title = `${s.title || s.url}. Drag onto a collection to save it.`;
+    a.append(siteIcon(s.url, s.title), el("span", "t", bare(s.url)));
+    const x = el("button", "x", "×");
+    x.type = "button";
+    x.setAttribute("aria-label", `Don't show ${bare(s.url)} again`);
+    x.title = "Don't show this again (Settings can bring it back)";
+    x.onclick = async (e) => {
+      e.preventDefault(); e.stopPropagation();
+      await chrome.storage.sync.set({ hiddenSites: [...hiddenSites, bare(s.url)] });
+    };
+    a.append(x);
+    drags(a, () => ({ kind: "site", tab: { title: s.title || bare(s.url), url: s.url } }));
+    return a;
+  }));
 }

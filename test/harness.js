@@ -22,7 +22,7 @@ export async function nav(page, name) {
 export function grantedCopy() {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "newtab-granted-"));
   fs.cpSync(shipped, dir, { recursive: true });
-  const m = { ...manifest, permissions: [...manifest.permissions, ...manifest.optional_permissions], host_permissions: [...manifest.host_permissions, ...manifest.optional_host_permissions] };
+  const m = { ...manifest, permissions: [...manifest.permissions, ...manifest.optional_permissions], host_permissions: [...manifest.host_permissions, ...(manifest.optional_host_permissions || [])] };
   fs.writeFileSync(path.join(dir, "manifest.json"), JSON.stringify(m));
   return dir;
 }

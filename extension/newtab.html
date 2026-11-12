@@ -11,7 +11,6 @@
 <header class="top">
   <div class="bar">
     <button type="button" id="menuBtn" class="mark" aria-haspopup="true" aria-expanded="false" aria-controls="menu" aria-label="Menu: Today, Shortcuts, Tools, Settings" title="Today, Shortcuts, Tools, Settings"><i></i><i></i><i></i></button>
-    <span id="here" class="here" hidden></span>
     <nav id="spaces" class="tabs" role="tablist" aria-label="Spaces"></nav>
     <div class="right">
       <label class="finder" title="Find a link in any space ( / )">
@@ -68,8 +67,8 @@
         <div class="ask-text"><b>Where are you?</b><span class="cap">Daylight, the forecast and the radar show here once this page knows. It stays on this computer.</span></div>
         <div id="askForm"></div>
       </div>
-      <a id="glMail" class="gl-chip" href="https://mail.google.com/mail/u/0/#inbox" title="Unread in your Gmail inbox" hidden><span aria-hidden="true">✉️</span><b id="glMailCount"></b><span class="cap">unread</span></a>
     </div>
+    <nav id="often" class="often" aria-label="Sites you visit but haven't saved" hidden></nav>
     <div id="collections" class="collections"></div>
     <article id="empty" class="empty" aria-labelledby="emptyTitle" hidden>
       <h2 id="emptyTitle">Bring in your links</h2>
@@ -122,7 +121,7 @@
             </div>
             <div class="sky-now"><b id="phase"></b><span id="nextUp"></span><span id="skyWx"></span></div>
           </header>
-          <svg class="sky-chart" viewBox="0 0 640 290" aria-hidden="true">
+          <svg class="sky-chart" viewBox="0 0 640 290" aria-hidden="true"><title>Point along the sky or the hours below to see another time</title>
             <defs>
               <linearGradient id="skyFill" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="0" y2="196"><stop class="sk-top" offset="0"/><stop class="sk-horizon" offset="1"/></linearGradient>
               <linearGradient id="dayFill" gradientUnits="userSpaceOnUse" x1="0" y1="26" x2="0" y2="196"><stop class="df-a" offset="0"/><stop class="df-b" offset="1"/></linearGradient>
@@ -168,10 +167,6 @@
           <p id="wxNote" class="note" hidden></p>
         </div>
         <ol id="wxDays" class="wx-days"></ol>
-        <figure id="world" class="daymap">
-          <figcaption><b id="worldSay"></b><span id="worldHint" class="cap">Point at the map, the sky or the hours to see another time.</span></figcaption>
-          <svg id="worldMap" viewBox="0 0 720 276" role="img"><path id="worldNight" class="land night"/><path id="worldDay" class="land day"/><g id="worldPins"></g></svg>
-        </figure>
       </article>
     </div>
   </section>
@@ -182,14 +177,6 @@
       <p>How this connection and this browser look from outside. The check runs when you open this tab; no other part of the page makes these calls.</p>
     </header>
     <div id="toolsBody" class="tl-body"></div>
-  </section>
-
-  <section id="recent" class="shortcuts" hidden>
-    <header class="sc-head">
-      <h1>Recent</h1>
-      <p>Where you were: tabs you closed, tabs open on your other devices, the Google files you opened and the sites you visit most. Each asks Chrome for its permission the first time, from its own card.</p>
-    </header>
-    <div id="recentBody" class="sc-body"></div>
   </section>
 
   <section id="shortcuts" class="shortcuts" hidden>
@@ -240,7 +227,7 @@
   </div>
   <h3>Bring in your links</h3>
   <div id="setupBody"></div>
-  <h3>Extras, off until you switch them on</h3>
+  <h3>Extra, off until you switch it on</h3>
   <div id="extrasBody"></div>
   <h3>Kept in Chrome</h3>
   <div class="in-chrome">

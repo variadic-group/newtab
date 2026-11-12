@@ -53,20 +53,20 @@ A bookmarks file or a settings file you choose is read on your computer and goes
 
 Removing the extension deletes all of it. Your bookmarks stay, including the `⏭️ Next` folder.
 
-## Extras you can switch on
+## Unread mail
+
+Always on. While a Gmail link is on the page, it reads Gmail's inbox feed (`mail.google.com`)
+with your browser's own sign-in, at most every five minutes. The count, and the sender and
+subject of the newest five unread messages (shown when you point at the badge), are kept on
+this computer and sent nowhere.
+
+## What you can switch on
 
 Each is off until you turn it on, and Chrome asks you for the permission at that moment.
 
-- **Unread mail** reads Gmail's inbox feed (`mail.google.com`) using your browser's own
-  sign-in. The count, and the sender and subject of the newest five unread messages (shown when
-  you point at the badge), are kept on this computer and sent nowhere.
-- **Recent files** reads this browser's history for Google Docs, Sheets, Slides and Forms you
-  opened in the last 30 days, to list them. Nothing is sent anywhere.
-- **Closed tabs and other devices** reads Chrome's list of tabs you closed lately and of tabs
-  open on the other devices signed in to this Chrome profile, to list them. Nothing is sent
-  anywhere, and nothing is kept.
-- **Most visited** reads Chrome's list of the sites you visit most, to show eight of them.
-  Their host names go to Google's icon service for their icons, as your bookmarks' do.
+- **Sites you visit but haven't saved** reads Chrome's list of the sites you visit most, to
+  show the ones not in your bookmarks. Their host names go to Google's icon service for their
+  icons, as your bookmarks' do. The ones you put away are kept in your Chrome profile.
 - **Chrome's privacy switches** (asked for on the Tools tab) reads how Chrome's own privacy
   settings are set, to show them. It changes one, the route WebRTC may take, and only when you
   pick a different one; choosing Chrome's default hands the setting back.

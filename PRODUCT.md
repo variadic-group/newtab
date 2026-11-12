@@ -162,13 +162,12 @@ work. *Held to:* one click never removes more than one link or one empty folder.
 sunset and the moon's phase, the temperature, a radar still. Today has the sky and the radar
 beside it at the top, because where the person is, now, is most of what they came for; then
 now, the next 24 hours and the week. That is how it stood at the Tools pass, and it is the
-layout that was put back at 4.2.0. Beside the week sits a map of where it is day, which was
-asked for by name after it had been cut: the land the sun is over is lit, with the sun where it
-is overhead. Since 4.5.0 the sky, the hours and the map are one clock: pointing at any of them
-moves all three to that moment, and the top of the sky reads it out (the time, the light, how
-long until it changes, the weather then from the hourly forecast). No second control is
-needed, and nothing is added to the page to get it. The Tools map lights the same day and
-night, so where your traffic comes out shows whether it is day there. What stays cut: a separate strip to drag the day along (3.8.0,
+layout that was put back at 4.2.0. The sky and the hours are one clock (4.5.0): pointing along
+either moves both to that moment, and the top of the sky reads it out (the time, the light, how
+long until it changes, the weather then from the hourly forecast), so no second control is
+needed. A map of day and night beside the forecast was tried twice (3.8.0, 4.3.0) and cut at
+4.6.0: on a page for one place it said little the sky doesn't. The Tools map keeps day and
+night, where it shows whether it is day where your traffic comes out. What stays cut: a separate strip to drag the day along (3.8.0,
 4.1.0), and cities to add and pick between (3.8.0, 4.0.0). The cities made it unclear which
 place a number was for. The page is for one place, the person's own, and it
 turns dark at dusk there. On a trip, a place taken from the computer follows it (at once when
@@ -221,15 +220,18 @@ what matters and can be acted on. Chrome's privacy switches are counted out of e
 ones with a private way to be set; only saving passwords is left as the person's call. A list of links to other people's test pages is not a feature. The one thing
 pointed elsewhere is how rare a fingerprint is, which needs a sample of other browsers.
 
-**What only some want.** Unread mail, recent files, closed tabs and other devices, most
-visited: each is an extra, off until switched on, because each needs a permission Chrome warns
-about. Since 4.5.0 none of them sits beside the links: they made the side column one long box
-that scrolled inside itself. Unread mail is a badge on the Gmail icon, the way a phone shows
-it, and the rest are a Recent page in the menu, each card asking for its own permission. The
-side column is Up next, open tabs and notes, and scrolls with the page when it can't fit.
-*Not possible:* reading Chrome's notifications (an extension can send them, not read other
-sites'). *Not built:* the next meeting from Google Calendar, which needs a Google sign-in for
-the extension, an OAuth client in a Google Cloud project and Google's review for the store.
+**Beyond the bookmarks.** Unread mail is always on, as a badge on a Gmail link in the space in
+view, the way a phone shows it; Gmail is asked only while one is on screen. The one extra, off
+until switched on, is the sites you visit most that you haven't saved, as a row above the
+collections to drag into one, with × to put a site away for good. It serves the page's job,
+saving links, where a plain most-visited list didn't. *Cut at 4.6.0:* recently closed tabs,
+other devices' tabs and recent Google files. Chrome's History menu already holds the first two
+(and ⌘⇧T reopens a tab), and Drive's own Recent holds the third; a page of them, tried at
+4.5.0, was somewhere else to look for the same thing. The side column is Up next, open tabs
+and notes. *Not possible:* reading Chrome's notifications (an extension can send them, not
+read other sites'). *Not built, by choice:* the next meeting from Google Calendar, which needs
+a Google sign-in for the extension (a Google Cloud project and Google's review); being signed
+in to Chrome does not give an extension that. The clock already opens Calendar.
 
 **Leave.** Uninstall. Every link is where it always was, including the Up next folder.
 
