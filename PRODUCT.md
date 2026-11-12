@@ -4,7 +4,7 @@ The reasoning behind the product: who it serves, what they are trying to do at t
 tab opens, and how each of those moments goes. Read it before adding a feature. The README says
 what the product does; this says why, and what it refuses to become.
 
-Last walked through end to end at 3.3.1 (2026-11-11).
+Last walked through end to end at 3.3.2 (2026-11-11).
 
 ## Who it is for
 
@@ -82,8 +82,9 @@ work. *Held to:* one click never removes more than one link or one empty folder.
 
 **Glance.** The strip across every space has the time, the sun's arc, the temperature and a
 radar still; Today has the whole sky, the hourly forecast and seven days. The page turns dark
-at dusk where the person is. *Held to:* drawn at once from what is saved; the network is never
-waited on.
+at dusk where the person is. On a trip, a place taken from the computer follows it (at once
+when the time zone changes); a typed place is never moved, only asked about. *Held to:* drawn
+at once from what is saved; the network is never waited on.
 
 **Jot.** One synced scratch box. It is not a notes app; `keep/` is one keystroke away.
 

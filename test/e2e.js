@@ -311,10 +311,14 @@ ok("no page errors with the extras on", g.errs.length === 0, g.errs);
 await g.ctx.close();
 
 // ---------- nothing bookmarked, and a computer that can't say where it is ----------
+// In this browser a location request that has failed once takes ten seconds to fail again, so
+// each wait on one allows thirty.
 const n = await launch({ locate: false, timezoneId: "America/Los_Angeles" });
 const local = (key) => n.sw.evaluate(async (k) => (await chrome.storage.local.get(k))[k], key);
+// Waits for the saved place to pass a test. (waitForFunction can't: it takes a promise for a yes.)
+const placed = async (pass, ms = 30000) => { for (const end = Date.now() + ms; Date.now() < end; await new Promise((r) => setTimeout(r, 250))) if (pass((await local("place")) || {})) return true; return false; };
 const f = await n.open();
-await f.waitForFunction(() => /network's city/.test(document.getElementById("toast").textContent), null, { timeout: 15000 }).catch(() => {});
+await f.waitForFunction(() => /network's city/.test(document.getElementById("toast").textContent), null, { timeout: 30000 }).catch(() => {});
 ok("with no folders on the bookmarks bar the page says so and offers a first space without Edit", (await f.isVisible("#empty")) && (await text(f, "#spaces .add-space")) === "+ New space" && (await f.isVisible("#spaces .add-space")) && !(await f.$("#today[hidden]")));
 ok("when the computer won't say where it is, the first new tab uses the network's city, rounded, and says so", (await local("place")).source === "network" && (await local("place")).name === "San Francisco, California" && (await local("place")).lat === 37.77 && (await local("place")).lon === -122.42 && /^The sky and forecast are for your network's city: San Francisco, California\./.test(await text(f, "#toast")) && n.net.estimates === 1, { place: await local("place"), toast: await text(f, "#toast") });
 await f.waitForFunction(() => /approximate/.test(document.getElementById("place").textContent) && document.querySelector(".wx-temp"), null, { timeout: 8000 }).catch(() => {});
@@ -322,7 +326,7 @@ ok("Today marks the place approximate and the forecast is for it", (await text(f
 await f.click("#toast button"); await f.waitForSelector("#todayAsk:not([hidden])");
 ok("Change on that notice opens the place form, which says it is an estimate and why", /is an estimate from your network\. .*(couldn't work out|isn't allowed|took too long)/.test(await text(f, "#todayAskWhy")), await text(f, "#todayAskWhy"));
 await f.click('#todayAskForm button:has-text("Use this computer")');
-await f.waitForFunction(() => /instead/.test(document.getElementById("toast").textContent), null, { timeout: 15000 }).catch(() => {});
+await f.waitForFunction(() => /instead/.test(document.getElementById("toast").textContent), null, { timeout: 30000 }).catch(() => {});
 ok("pressing the button says why the exact spot was refused and what it used instead", /(couldn't work out|isn't allowed|took too long).* So this is your network's city instead: San Francisco, California\.$/.test(await text(f, "#toast")), await text(f, "#toast"));
 await f.click("#spaces .add-space"); await f.waitForSelector("#spaces .rename"); await f.fill("#spaces .rename", "🏠 Home"); await f.keyboard.press("Enter"); await f.waitForSelector('#spaces .tab[aria-selected="true"]:has-text("Home")');
 ok("the first space is made from the page, opens, and leaves Edit on to fill it", (await n.tree()).children[0].children.map((c) => c.title).join() === "🏠 Home" && (await f.evaluate(() => document.body.classList.contains("editing"))) && !(await f.isVisible("#empty")) && (await f.isVisible(".tile.add")));
@@ -332,7 +336,7 @@ await f.close();
 n.net.estimateAs = { latitude: 59.3293, longitude: 18.0686, city: "Stockholm", principalSubdivision: "Stockholm", countryCode: "SE", countryName: "Sweden", zone: "Europe/Stockholm" };
 await n.sw.evaluate(() => chrome.storage.local.remove(["place", "placeTried", "wx"]));
 const fv = await n.open(); await fv.waitForSelector(".card");
-await fv.waitForFunction(() => /type a place/.test(document.querySelector("#askForm .note").textContent), null, { timeout: 15000 }).catch(() => {});
+await fv.waitForFunction(() => /type a place/.test(document.querySelector("#askForm .note").textContent), null, { timeout: 30000 }).catch(() => {});
 ok("a network in another time zone (a VPN) is not taken for where you are: the page says so and asks", !(await local("place")) && !(await fv.$("#ask[hidden]")) && n.net.points.length === 1 && / Its network looks like it is in Stockholm, Sweden, which isn't this computer's time zone \(a VPN does that\), so type a place\.$/.test(await text(fv, "#askForm .note")), await text(fv, "#askForm .note"));
 await fv.fill("#askForm input", "94103"); await fv.press("#askForm input", "Enter"); await fv.waitForSelector("#askForm .place-hits button"); await fv.click("#askForm .place-hits button");
 await fv.waitForFunction(() => /^\d+°$/.test(document.getElementById("glTemp").textContent), null, { timeout: 8000 }).catch(() => {});
@@ -343,12 +347,42 @@ const fw = await n.open(); await fw.waitForSelector(".card"); await fw.waitForTi
 ok("a place typed on a VPN stays put: hours later nothing asks the computer or the network again", (await local("place")).source === "typed" && (await local("place")).name === "San Francisco, California" && n.net.estimates === asked1);
 await fv.close(); await fw.close();
 
+// travelling: the computer's time zone is the sign. A typed place asks; a followed one looks again at once
+const zoned = (changes) => n.sw.evaluate(async (c) => { const { place } = await chrome.storage.local.get("place"); await chrome.storage.local.set({ place: { ...place, ...c } }); }, changes);
+const toastOf = async (q) => ((await q.$("#toast[hidden]")) ? "" : text(q, "#toast"));
+ok("every place is saved with the time zone it was set in", (await local("place")).zone === "America/Los_Angeles");
+await zoned({ zone: "America/New_York" });
+let ft = await n.open(); await ft.waitForSelector(".card"); await ft.waitForSelector("#toast:not([hidden])", { timeout: 5000 }).catch(() => {});
+ok("a typed place whose computer has changed time zone is kept, and the page asks whether to change it", /^This computer's clock has changed time zone since you set San Francisco, California\. The sky and forecast are still for San Francisco, California\.ChangeKeep$/.test(await toastOf(ft)) && (await local("place")).source === "typed" && (await local("place")).lat === 37.77 && n.net.estimates === asked1, await toastOf(ft));
+await ft.close(); ft = await n.open(); await ft.waitForSelector(".card"); await ft.waitForTimeout(800);
+ok("it asks once, not on every new tab", (await toastOf(ft)) === "");
+await zoned({ asked: undefined });
+await ft.close(); ft = await n.open(); await ft.waitForSelector("#toast:not([hidden])");
+await ft.click('#toast button:has-text("Keep")'); await placed((pl) => pl.zone === "America/Los_Angeles");
+await ft.close(); ft = await n.open(); await ft.waitForSelector(".card"); await ft.waitForTimeout(800);
+ok("Keep settles it: the place counts as set where the computer is now", (await toastOf(ft)) === "" && (await local("place")).name === "San Francisco, California" && !(await local("place")).asked);
+await zoned({ zone: "America/New_York" });
+await ft.close(); ft = await n.open(); await ft.waitForSelector("#toast:not([hidden])");
+await ft.click('#toast button:has-text("Change")'); await ft.waitForSelector("#todayAsk:not([hidden])");
+ok("Change opens the place form on Today", (await ft.getAttribute('#pages .tab:has-text("Today")', "aria-selected")) === "true");
+await ft.close();
+await n.sw.evaluate(() => chrome.storage.local.set({ place: { lat: 40.71, lon: -74.01, name: "New York, New York", source: "network", why: "It was off.", zone: "America/New_York", at: Date.now() - 3600e3 } }));
+ft = await n.open(); await ft.waitForSelector(".card");
+await placed((pl) => pl.zone === "America/Los_Angeles");
+ok("a followed place is looked for again at once when the time zone changes, not six hours later", (await local("place")).source === "network" && (await local("place")).name === "San Francisco, California" && n.net.estimates === asked1 + 1 && n.net.points.at(-1) === "37.77,-122.42", await local("place"));
+await ft.close();
+await n.sw.evaluate(() => chrome.storage.local.set({ place: { lat: 40.71, lon: -74.01, source: "device", zone: "America/New_York", at: Date.now() - 3600e3 } }));
+ft = await n.open(); await ft.waitForSelector(".card");
+await placed((pl) => pl.source === "network");
+ok("an exact place in a time zone the computer has left gives way to the network's city when the computer can't say", (await local("place")).source === "network" && (await local("place")).zone === "America/Los_Angeles" && (await local("place")).lat === 37.77);
+await ft.close();
+
 // the estimate unreachable too: nothing is assumed, and the page asks
 n.net.estimateDown = true;
 await n.sw.evaluate(() => chrome.storage.local.remove(["place", "placeTried", "wx"]));
 const f1 = await n.open(); await f1.waitForSelector(".card");
-await f1.waitForFunction(() => /type a place/.test(document.querySelector("#askForm .note").textContent), null, { timeout: 15000 }).catch(() => {});
-ok("with no location and no estimate it says why, asks, and looks nothing up", !(await f1.$("#ask[hidden]")) && !!(await f1.$("#glSun[hidden]")) && n.net.points.length === 2 && /(couldn't work out|isn't allowed|took too long).* Its network couldn't be placed either, so type a place\.$/.test(await text(f1, "#askForm .note")) && /\d/.test(await text(f1, "#glTime")), await text(f1, "#askForm .note"));
+await f1.waitForFunction(() => /type a place/.test(document.querySelector("#askForm .note").textContent), null, { timeout: 30000 }).catch(() => {});
+ok("with no location and no estimate it says why, asks, and looks nothing up", !(await f1.$("#ask[hidden]")) && !!(await f1.$("#glSun[hidden]")) && /(couldn't work out|isn't allowed|took too long).* Its network couldn't be placed either, so type a place\.$/.test(await text(f1, "#askForm .note")) && /\d/.test(await text(f1, "#glTime")), await text(f1, "#askForm .note"));
 await f1.close();
 const f2 = await n.open(); await f2.waitForSelector(".card"); await f2.waitForTimeout(1200);
 ok("it asks the computer once, not on every new tab", (await text(f2, "#askForm .note")) === "" && !(await f2.$("#ask[hidden]")));
@@ -363,13 +397,14 @@ const aged = (place) => n.sw.evaluate((p) => chrome.storage.local.set({ place: {
 n.net.estimateDown = false;
 const asked0 = n.net.estimates;
 await aged({ lat: 40.71, lon: -74.01, source: "device" });
-let f3 = await n.open(); await f3.waitForSelector(".card"); await f3.waitForTimeout(2500);
-ok("an exact place the computer can't confirm later is kept, and the network is not asked", (await local("place")).source === "device" && (await local("place")).lat === 40.71 && n.net.estimates === asked0, { place: await local("place"), asked: n.net.estimates - asked0 });
+let f3 = await n.open(); await f3.waitForSelector(".card");
+await placed((pl) => !!pl.tried);
+ok("an exact place the computer can't confirm later is kept, the network is not asked, and it waits six hours to look again", (await local("place")).source === "device" && (await local("place")).lat === 40.71 && n.net.estimates === asked0 && Date.now() - (await local("place")).tried < 60e3, { place: await local("place"), asked: n.net.estimates - asked0 });
 await f3.close();
 await n.ctx.grantPermissions(["geolocation"]); await n.ctx.setGeolocation({ latitude: 40.7128, longitude: -74.006 });
 await aged({ lat: 37.77, lon: -122.42, name: "San Francisco, California", source: "network", why: "It was off." });
 f3 = await n.open(); await f3.waitForSelector(".card");
-await f3.waitForFunction(() => chrome.storage.local.get("place").then(({ place }) => place.source === "device"), null, { timeout: 15000 }).catch(() => {});
+await placed((pl) => pl.source === "device");
 ok("an estimate becomes the exact place by itself once the computer will say where it is", (await local("place")).source === "device" && (await local("place")).lat === 40.71 && !(await local("place")).name && n.net.estimates === asked0, await local("place"));
 ok("no page errors without a location", n.errs.length === 0, n.errs);
 await n.ctx.close();

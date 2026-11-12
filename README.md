@@ -158,6 +158,12 @@ opened lately.
   Weather Service. Everywhere else the sun, moon and twilights still work.
 - **A short link with spaces** (`claude/what should I ask`) reaches Chrome as a search, which the
   extension redirects. With hyphens, or with `claude` then Tab, nothing is searched at all.
+- **When you travel,** the clock is the computer's, so it follows by itself, and every time on
+  the page is on that clock. A place taken from the computer or its network follows you: it is
+  looked for again every six hours, and at once when the computer's time zone changes. A place
+  you typed stays put; when the computer's time zone changes the page asks once whether to
+  change it or keep it. A trip inside one time zone with a typed place is not noticed: click
+  the place name on Today to change it.
 - **On a VPN** your network is somewhere you are not. When its city is in a different time zone
   from this computer's clock, the page doesn't use it and asks instead. The computer's own
   location (the button) is not affected by a VPN, and a place you type always wins and never
@@ -189,7 +195,7 @@ No build step. The extension is the `extension` folder as it stands.
 ```
 npm install
 npx playwright install chromium
-npm test            # 13 astronomy checks in Node, then 131 checks in a real Chromium
+npm test            # 13 astronomy checks in Node, then 138 checks in a real Chromium
 npm run shots       # the screenshots in store/screenshots
 npm run zip         # newtab.zip, ready to upload or release
 ```

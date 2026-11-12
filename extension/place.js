@@ -5,15 +5,21 @@
 import { el } from "./dom.js";
 
 const RELOCATE_MS = 6 * 3600e3;
+const RETRY_MS = 15 * 60e3;
 const round = (n) => +(+n).toFixed(2);
+// The computer's own time zone. Every place is saved with the zone it was set in, so a change
+// of zone says the computer has travelled, with nothing asked of anyone.
+const zoneNow = () => Intl.DateTimeFormat().resolvedOptions().timeZone;
 
 export const placeKey = (p) => `${p.lat},${p.lon}`;
 export async function getPlace() {
   return (await chrome.storage.local.get("place")).place || null;
 }
 async function save(place) {
-  await chrome.storage.local.set({ place });
-  return place;
+  const { asked, tried, ...rest } = place;
+  const saved = { ...rest, zone: zoneNow() };
+  await chrome.storage.local.set({ place: saved });
+  return saved;
 }
 
 // Why the computer's own location didn't come back, by the browser's error code. Chrome shows
@@ -90,17 +96,47 @@ export async function useDevice() {
   return save({ ...(await thisComputer()), at: Date.now() });
 }
 
-// A place taken from the computer or its network follows it, checked again after six hours; one
-// you typed stays put. An exact place is only replaced by another exact one (a moment without
-// Wi-Fi must not swap it for a guess); an estimate takes whatever is better by then. Resolves
-// with the new place only when it has changed.
+// A place taken from the computer or its network follows it: looked for again after six hours,
+// or at once when the computer's time zone has changed since. One you typed stays put. An exact
+// place is only replaced by another exact one (a moment without Wi-Fi must not swap it for a
+// guess), unless the time zone says the computer has left it. A look that fails is not repeated
+// on every new tab. Resolves with the new place only when it has changed.
 export async function placeMoved(place) {
-  if (place.source === "typed" || Date.now() - place.at < RELOCATE_MS) return null;
+  if (place.source === "typed") return null;
+  const travelled = !!place.zone && place.zone !== zoneNow();
+  if (Date.now() - Math.max(place.at, place.tried || 0) < (travelled ? RETRY_MS : RELOCATE_MS)) return null;
   let here;
-  try { here = await (place.source === "device" ? exact() : thisComputer()); } catch (err) { console.warn("location:", err.message); return null; }
+  try {
+    here = await (place.source === "device" && !travelled ? exact() : thisComputer());
+  } catch (err) {
+    console.warn("location:", err.message);
+    await chrome.storage.local.set({ place: { ...place, tried: Date.now() } });
+    return null;
+  }
   const moved = here.lat !== place.lat || here.lon !== place.lon || here.source !== place.source;
   const saved = await save({ ...here, at: Date.now() });
   return moved ? saved : null;
+}
+
+// A place you typed never moves by itself. When the computer's time zone has changed since you
+// typed it, the page asks whether it still holds: once for each zone the computer turns up in.
+// Resolves true when it is time to ask.
+export async function leftBehind(place) {
+  if (place.source !== "typed") return false;
+  const now = zoneNow();
+  const keep = (changes) => chrome.storage.local.set({ place: { ...place, ...changes } });
+  // Typed before zones were kept: take it as typed here.
+  if (!place.zone) { await keep({ zone: now }); return false; }
+  if (place.zone === now) { if (place.asked) await keep({ asked: undefined }); return false; }
+  if (place.asked === now) return false;
+  await keep({ asked: now });
+  return true;
+}
+
+// The answer "keep it": the typed place now counts as set in the zone the computer is in.
+export async function keepPlace() {
+  const place = await getPlace();
+  if (place) await save(place);
 }
 
 // The place search is OpenStreetMap's Nominatim. Its usage policy allows a search a person asks

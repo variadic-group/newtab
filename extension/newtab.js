@@ -3,7 +3,7 @@ import { loadIcons, siteIcon, tabIcon, host } from "./icons.js";
 import { barChildren, bookmarkBars, leaves, aliasTable, aliasFor, nextFolder, addToNext } from "./shared.js";
 import { renderShortcuts, aliasPill } from "./shortcuts.js";
 import { renderToday, tickToday, tickTheme, renderGlance, warmWeather } from "./today.js";
-import { placeForm, getPlace } from "./place.js";
+import { placeForm, getPlace, leftBehind, keepPlace } from "./place.js";
 import { renderExtras, renderMail, renderFiles } from "./extras.js";
 
 const TODAY = "today";
@@ -15,12 +15,18 @@ let pendingRename = null;
 const editing = () => document.body.classList.contains("editing");
 const label = (node) => node.title || host(node.url) || node.url;
 
-// A line at the foot of the page that goes away by itself, with one thing to press if `act` is given.
+// A line at the foot of the page that goes away by itself. `act` is what its one button does,
+// or a list of { label, run } when there is more than one answer.
 let toastTimer;
 function toast(text, act, { label = "Undo", ms = 6000 } = {}) {
   const t = $("toast");
   t.replaceChildren(el("span", null, text));
-  if (act) { const b = el("button", null, label); b.type = "button"; b.onclick = () => { act(); t.hidden = true; }; t.append(b); }
+  for (const a of typeof act === "function" ? [{ label, run: act }] : act || []) {
+    const b = el("button", null, a.label);
+    b.type = "button";
+    b.onclick = () => { a.run(); t.hidden = true; };
+    t.append(b);
+  }
   t.hidden = false;
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => { t.hidden = true; }, ms);
@@ -627,7 +633,15 @@ warmWeather();
 // The very first new tab asks the computer where it is, once, without waiting for a press: the
 // extension holds that permission. If the computer can't say, the form says why and waits.
 const { placeTried } = await chrome.storage.local.get("placeTried");
-if (!placeTried && !(await getPlace())) {
+const set = await getPlace();
+if (!placeTried && !set) {
   await chrome.storage.local.set({ placeTried: true });
   asking.locate();
+}
+// A typed place stays where it was typed. If the computer has since changed time zone, ask.
+if (set && (await leftBehind(set))) {
+  toast(`This computer's clock has changed time zone since you set ${set.name}. The sky and forecast are still for ${set.name}.`, [
+    { label: "Change", run: () => { show(TODAY); changePlace(true); } },
+    { label: "Keep", run: keepPlace },
+  ], { ms: 30000 });
 }
