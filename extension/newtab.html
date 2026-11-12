@@ -19,12 +19,12 @@
         <input id="findBox" type="text" autocomplete="off" spellcheck="false" placeholder="Find a link" aria-label="Find a link, in any space" aria-controls="findList">
       </label>
       <button type="button" class="mini edit-only" data-go="chrome://bookmarks/" title="Chrome's bookmark manager, for bulk moves and new folders">Bookmarks in Chrome</button>
-      <button type="button" id="edit" class="icon-btn" aria-pressed="false" aria-label="Edit this page" title="Edit: rename, add and remove">
+      <button type="button" id="edit" class="icon-btn" aria-pressed="false" aria-label="Edit bookmarks" title="Edit: rename, add and remove">
         <svg class="when-off" viewBox="0 0 20 20" aria-hidden="true"><path d="M3.2 16.8l.9-3.9L14.3 2.7a1.6 1.6 0 0 1 2.2 0l.8.8a1.6 1.6 0 0 1 0 2.2L7.1 15.9z"/><path d="M12.4 4.6l3 3"/></svg>
         <svg class="when-on" viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10.6l4 4 8-9.2"/></svg>
       </button>
-      <button type="button" id="extrasBtn" class="icon-btn" aria-expanded="false" aria-controls="extras" aria-label="Settings" title="Settings">
-        <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 6h7M14 6h3M3 14h3M10 14h7"/><circle cx="12" cy="6" r="2"/><circle cx="8" cy="14" r="2"/></svg>
+      <button type="button" id="extrasBtn" class="icon-btn" aria-expanded="false" aria-controls="extras" aria-label="Settings and extras" title="Settings and extras">
+        <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M8.6 2.5h2.8l.4 2a5.6 5.6 0 0 1 1.5.9l1.9-.7 1.4 2.4-1.5 1.3a5.7 5.7 0 0 1 0 1.8l1.5 1.3-1.4 2.4-1.9-.7a5.6 5.6 0 0 1-1.5.9l-.4 2H8.6l-.4-2a5.6 5.6 0 0 1-1.5-.9l-1.9.7-1.4-2.4 1.5-1.3a5.7 5.7 0 0 1 0-1.8L3.4 7.1l1.4-2.4 1.9.7a5.6 5.6 0 0 1 1.5-.9z"/><circle cx="10" cy="10" r="2.3"/></svg>
       </button>
     </div>
   </div>
@@ -39,7 +39,6 @@
     <div class="glance">
       <div class="gl-main">
         <a id="glCal" class="gl-time" href="https://calendar.google.com/" title="Opens your calendar"><b id="glTime"></b><span id="glDate" class="cap"></span></a>
-        <div id="glZones" class="gl-zones" role="group" aria-label="Your cities. Press one to see its sky and forecast." hidden></div>
         <button type="button" id="glance" class="gl-rest" aria-label="Daylight, weather and radar. Opens Today.">
         <span id="glSun" class="gl-sun" hidden>
           <svg viewBox="0 0 132 54" aria-hidden="true">
@@ -49,7 +48,7 @@
             <line class="gl-horizon" x1="0" y1="40" x2="132" y2="40"/>
             <circle id="glDot" r="5"/>
           </svg>
-          <span class="gl-lines"><span class="gl-times"><span id="glRise"></span><span id="glSet"></span></span><span id="glLeft" class="cap"></span><span id="glPlace" class="cap"></span></span>
+          <span class="gl-lines"><span class="gl-times"><span id="glRise"></span><span id="glSet"></span><span id="glMoon" class="gl-moon"></span></span><span id="glLeft" class="cap"></span></span>
         </span>
         <span id="glWx" class="gl-wx" hidden>
           <span id="glGlyph" class="gl-glyph"></span><b id="glTemp"></b>
@@ -119,15 +118,6 @@
       <div id="todayAskForm"></div>
     </article>
     <div id="todayGrid" class="today-grid">
-      <div class="places-row">
-        <div id="places" class="places" role="group" aria-label="Where you are and your cities. Press one to see its sky and forecast."></div>
-        <button type="button" id="zoneAdd" class="mini lead">Add a city</button>
-        <form id="zoneForm" class="edit-only">
-          <input id="zoneInput" type="text" autocomplete="off" placeholder="A city to add" aria-label="A city to add">
-          <button type="submit" class="btn">Add</button>
-          <span id="zoneNote" class="cap" role="status"></span>
-        </form>
-      </div>
       <div class="t-now">
         <article id="sky" class="sky" aria-label="Time, sun and moon">
           <header class="sky-head">
@@ -185,6 +175,10 @@
           </header>
           <div id="wxNow" class="wx-now"></div>
           <p id="wxNote" class="note" hidden></p>
+          <figure id="world" class="daymap">
+            <figcaption id="worldSay"></figcaption>
+            <svg id="worldMap" viewBox="0 0 720 276" role="img"><path id="worldNight" class="land night"/><path id="worldDay" class="land day"/><g id="worldPins"></g></svg>
+          </figure>
         </div>
         <ol id="wxDays" class="wx-days"></ol>
       </article>
@@ -203,7 +197,7 @@
     <header class="sc-head">
       <h1>Shortcuts</h1>
       <p>Type a short name in the address bar and press Enter. Words after the slash search that place.</p>
-      <p>Every bookmark gets its short name from its own name the moment it is saved. The pencil at the top right changes one, and adds your own.</p>
+      <p>Every bookmark gets its short name from its own name the moment it is saved. Click a name below to change it, and add your own under “Your own”.</p>
     </header>
     <div id="scBody" class="sc-body"></div>
   </section>
@@ -212,6 +206,7 @@
 
 <footer class="foot">
   <p id="hint" class="hint"></p>
+  <button type="button" id="extrasFoot" class="mini">Settings and extras</button>
   <span id="version" class="cap"></span>
 </footer>
 

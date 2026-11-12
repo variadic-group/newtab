@@ -351,11 +351,18 @@ function heroPanel() {
 
   // The sentence and the map as soon as the address is known; the four answers when DNS is in.
   let away = false;
-  const landed = (at, place) => {
+  // The distance is measured from where you are. A place you typed is taken for that only if
+  // it could be: one whose sun time is hours off this computer's clock (Paris, on a clock set
+  // to California) is somewhere you looked up, not where you are, and nothing is measured from it.
+  const couldBeHere = (place) => place.source === "device" || Math.abs(place.lon / 15 + new Date().getTimezoneOffset() / 60) <= 3.5;
+  const landed = (at, set) => {
+    const place = set && couldBeHere(set) ? set : null;
     const { km, near } = map.draw({ place, at });
     away = km !== null && !near;
     line.textContent = `You come out in ${cityOf(at)}. ${flag(at.code)}`.trim();
-    sub.textContent = km === null ? (place ? "How far that is from your place isn't known." : "Say where you are and this tells you how far that is from you.")
+    sub.textContent = km === null ? (place ? "How far that is from your place isn't known."
+      : set ? `This page is set to ${set.name || "a place"}, which isn't where this computer's clock is, so how far that is from you isn't judged.`
+        : "Say where you are and this tells you how far that is from you.")
       : near ? "That is where you are, near enough. Nothing is carrying you elsewhere, or it comes out close by."
         : `That is ${far(km)} from ${place.name || "your place"}, so a VPN or proxy is carrying you.`;
     address.replaceChildren(el("code", null, at.ip), copyable(at.ip));

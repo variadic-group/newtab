@@ -19,8 +19,8 @@ Last updated 2026-11-12.
 | To | What | When |
 |---|---|---|
 | National Weather Service (`api.weather.gov`, `radar.weather.gov`) | Your rounded location, then the radar station nearest it | When the forecast is more than 20 minutes old and you open a new tab |
-| BigDataCloud (`api.bigdatacloud.net`) | Nothing but the request itself: it answers with the city your IP address appears to be in | Only when the computer won't give its location: on the first new tab, when you press "Use this computer's location", and at most every six hours while the place is still an estimate. Never once you have typed a place. Separately, when you add a city on Today, that city's coordinates are sent so it can say which time zone the city is in |
-| OpenStreetMap's Nominatim (`nominatim.openstreetmap.org`) | What you typed: a city, a ZIP code or an address | Only when you press Search in the location form, or Add for a city on Today |
+| BigDataCloud (`api.bigdatacloud.net`) | Nothing but the request itself: it answers with the city your IP address appears to be in | Only when the computer won't give its location: on the first new tab, when you press "Use this computer's location", and at most every six hours while the place is still an estimate. Never once you have typed a place |
+| OpenStreetMap's Nominatim (`nominatim.openstreetmap.org`) | What you typed: a city, a ZIP code or an address | Only when you press Search in the location form |
 | ipleak.net, run by AirVPN (`ipleak.net` and names under it) | The request itself, so it can say what address it sees you at, where that is and whose network it is. For DNS, four made-up names under `ipleak.net` are looked up so it can see which DNS servers came asking; each of those servers' addresses is then sent back to it to be named | Only when you open the Tools tab, or press Check again there. No other part of the page asks. Nothing is kept after the tab closes |
 | Cloudflare (`speed.cloudflare.com`, `stun.cloudflare.com`) and Google's STUN server (`stun.l.google.com`) | Filler data for the speed reading; the STUN servers are asked what address they see, which is what WebRTC would show a site | The speed reading only when you press Run; the STUN servers when you open the Tools tab or press Check again |
 | Your search engine, whichever Chrome is set to | The words you typed after a bookmark's short name, with `site:` and that bookmark's site | Only when you type words after a short name that has no search of its own (`stripe/refund policy`) |
@@ -46,11 +46,10 @@ A bookmarks file or a settings file you choose is read on your computer and goes
 ## What it keeps
 
 - **In Chrome's synced storage** (travels with your Chrome profile, through Google's sync): the
-  short names you set, shortcuts you add, your notes, the cities you added on Today, and your
-  choice of light or dark, accent and tiles or a list.
-- **In this browser only:** the place you set, which city you are looking at if not your own,
-  the last forecast for each, which icons were found, the last space you opened, and tonight's
-  dusk and dawn.
+  short names you set, shortcuts you add, your notes, and your choice of light or dark, accent
+  and tiles or a list.
+- **In this browser only:** the place you set, the last forecast, which icons were found, the
+  last space you opened, and tonight's dusk and dawn.
 
 Removing the extension deletes all of it. Your bookmarks stay, including the `⏭️ Next` folder.
 

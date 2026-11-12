@@ -67,14 +67,14 @@ async function ownCard(done) {
   for (const [name, url] of Object.entries(links).sort()) {
     const what = el("span", "sc-what");
     what.append(siteIcon(url, name), el("span", "t", url.replace(/^https?:\/\//, "")));
-    const x = el("button", "mini danger edit-only", "Remove");
+    const x = el("button", "mini danger", "Remove");
     x.type = "button";
     x.setAttribute("aria-label", `Remove ${name}/`);
     x.onclick = async () => { const all = await customLinks(); delete all[name]; await chrome.storage.sync.set({ links: all }); done(); };
     what.append(x);
     card.append(row(el("code", "key fixed", `${name}/`), what));
   }
-  const form = el("form", "sc-add edit-only");
+  const form = el("form", "sc-add");
   const name = el("input"); name.placeholder = "name"; name.required = true; name.setAttribute("aria-label", "Shortcut name");
   const url = el("input"); url.placeholder = "address (%s = typed words)"; url.required = true; url.setAttribute("aria-label", "Address");
   const add = el("button", "btn", "Add"); add.type = "submit";
@@ -91,14 +91,14 @@ async function ownCard(done) {
     await chrome.storage.sync.set({ links: all });
     done();
   };
-  card.append(form, el("p", "sc-note solo", Object.keys(links).length ? "The pencil at the top right adds one and removes one." : "Any name to any address, with %s where the typed words go: name hn, address https://hn.algolia.com/?q=%s, then hn/rust searches it. The pencil at the top right adds one."));
+  card.append(form, el("p", "sc-note solo", "Example: name hn, address https://hn.algolia.com/?q=%s, then hn/rust searches it."));
   const chromes = el("button", "mini", "Search engines in Chrome");
   chromes.type = "button";
   chromes.dataset.go = "chrome://settings/searchEngines";
   chromes.title = "Chrome keeps its own list of search shortcuts, which an extension can't read or change";
   const more = Object.entries(SUGGEST).filter(([key]) => !links[key]);
   if (more.length) {
-    const row = el("div", "sc-suggest edit-only");
+    const row = el("div", "sc-suggest");
     row.append(el("span", "cap", "Add one:"));
     for (const [key, [label, address]] of more) {
       const b = el("button", "chip", `${key}/ ${label}`);

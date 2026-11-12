@@ -53,7 +53,7 @@ Then say where you are (this computer's location, or type a city), and type a sh
 
 LAUNCH
 • Spaces, collections and groups, straight from the bookmarks bar; make and rename them on the page
-• Find (press /): type and everything you keep is filtered down to what matches, in any space, with your open tabs
+• A search bar (press /): type and everything you keep is filtered down to what matches, in any space, with your open tabs; it takes short links too
 • Links as icon tiles, or as a list with each link's short name beside it
 • Drag to reorder links, cards and tabs; the bookmarks bar changes with you
 • Open a whole collection as one named tab group
@@ -74,7 +74,7 @@ LOOK UP
 • The sun's real path across the day, the three twilights, and the moon in its true phase
 • Sunrise, sunset and the radar for where you are, at the top
 • Drag along the next 24 hours and the clock, the sun and that hour's forecast move with you
-• Add the cities you deal with: each shows its clock on every page, and one press draws the sky and forecast for it
+• A map of where it is day right now, with you on it, that follows the drag
 • The page turns dark when night falls where you are; or hold it light or dark, and pick an accent
 • Forecast, seven days and radar from the National Weather Service (United States)
 
@@ -112,7 +112,7 @@ Free and open source.
 | `tabGroups` | "Open all" opens a collection as one named tab group. |
 | `webNavigation` | Notices when the user types one of their short links (for example `mail/`) in the address bar, to send the tab to the bookmark it names. No browsing data is stored or sent. |
 | `search` | When the user types words after a bookmark's short name (for example `stripe/refund policy`), runs that search on the user's own default search engine through `chrome.search.query`. It does not read or change the search setting. |
-| `storage` | Keeps the user's short names, their own shortcuts, their notes, the cities they added, their choice of light, dark and accent, the place they set and a cache of the forecast and icons. |
+| `storage` | Keeps the user's short names, their own shortcuts, their notes, their choice of light, dark, accent and tiles or a list, the place they set and a cache of the forecast and icons. |
 | `geolocation` | On the first new tab and when the user clicks "Use this computer's location", to show sunrise, sunset and the local forecast. Chrome shows no location prompt on a new tab page, so the permission is declared. If the computer refuses, the page falls back to the city of the network connection (marked approximate), and the user can type a place instead. |
 | Host `api.weather.gov` | Fetches the forecast for the user's place from the National Weather Service. |
 | Optional `history` | Only if the user switches on "Recent files": lists the Google Docs, Sheets and Slides they opened lately. Read locally; nothing is sent. |

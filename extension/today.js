@@ -4,20 +4,16 @@
 import { $, el } from "./dom.js";
 import { getPlace, placeKey, placeMoved } from "./place.js";
 import { sunPosition, sunTimes, moonPosition, moonPhase, moonTimes, lightPhase, nextLight, nightSpan, skyColors } from "./sky.js";
-import { shownPlace, renderPlaces } from "./places.js";
+import { CELLS, dots, spot, svg as mapSvg } from "./world.js";
 
 const FRESH_MS = 20 * 60e3;
 const DAY_MS = 864e5;
 
-// Every time on Today is told in the time zone of the place being looked at: this computer's,
-// unless a city elsewhere is picked. TZ is set from that place whenever it is drawn.
-let TZ;
-const fmtTime = (d) => (d ? d.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit", timeZone: TZ }) : "—");
-const fmtHour = (d) => d.toLocaleTimeString(undefined, { hour: "numeric", timeZone: TZ });
-const partIn = (d, part) => +new Intl.DateTimeFormat("en-US", { [part]: "numeric", hourCycle: "h23", timeZone: TZ }).format(d);
+const fmtTime = (d) => (d ? d.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" }) : "—");
+const fmtHour = (d) => d.toLocaleTimeString(undefined, { hour: "numeric" });
 // A time without its AM or PM, for places where the column it sits in already says which.
-const fmtBare = (d) => new Intl.DateTimeFormat(undefined, { hour: "numeric", minute: "2-digit", timeZone: TZ }).formatToParts(d).filter((p) => p.type !== "dayPeriod").map((p) => p.value).join("").trim();
-const fmtDate = (d) => d.toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric", timeZone: TZ });
+const fmtBare = (d) => new Intl.DateTimeFormat(undefined, { hour: "numeric", minute: "2-digit" }).formatToParts(d).filter((p) => p.type !== "dayPeriod").map((p) => p.value).join("").trim();
+const fmtDate = (d) => d.toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" });
 const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
 function span(ms) {
   const m = Math.max(0, Math.round(ms / 60000));
@@ -51,22 +47,15 @@ async function getJSON(u) {
   return r.json();
 }
 
-// Two forecasts are kept: the one for where you are, and the one for a city being looked at,
-// so going back and forth doesn't ask the service again.
-async function slotOf(place) {
-  const home = await getPlace();
-  return home && placeKey(home) === placeKey(place) ? "" : "View";
-}
-
 // Which forecast grid and radar a place belongs to never changes, so look it up once per place.
 async function gridFor(place) {
-  const key = placeKey(place), slot = `grid${await slotOf(place)}`;
-  const { [slot]: grid } = await chrome.storage.local.get(slot);
+  const key = placeKey(place);
+  const { grid } = await chrome.storage.local.get("grid");
   if (grid && grid.key === key) return grid;
   const p = (await getJSON(`https://api.weather.gov/points/${key}`)).properties;
   const rel = p.relativeLocation && p.relativeLocation.properties;
   const g = { key, daily: p.forecast, hourly: p.forecastHourly, station: p.radarStation, place: rel ? `${rel.city}, ${rel.state}` : "" };
-  await chrome.storage.local.set({ [slot]: g });
+  await chrome.storage.local.set({ grid: g });
   return g;
 }
 
@@ -79,7 +68,7 @@ const slim = (p) => ({
   wind: `${p.windSpeed} ${p.windDirection}`,
 });
 
-// One request per place at a time. A forecast is saved only if it is still for a place in use,
+// One request per place at a time. A forecast is saved only if it is still for the place in use,
 // so one asked for before the place changed can't replace the newer place's.
 const inflight = new Map();
 function refreshWeather(place) {
@@ -88,28 +77,27 @@ function refreshWeather(place) {
     const g = await gridFor(place);
     const [d, h] = await Promise.all([getJSON(g.daily), getJSON(g.hourly)]);
     const wx = { key, at: Date.now(), place: g.place, station: g.station, daily: d.properties.periods.map(slim), hourly: h.properties.periods.slice(0, 30).map(slim) };
-    const [home, shown] = await Promise.all([getPlace(), shownPlace()]);
-    if (home && placeKey(home) === key) await chrome.storage.local.set({ wx });
-    else if (shown && placeKey(shown) === key) await chrome.storage.local.set({ wxView: wx });
+    const here = await getPlace();
+    if (here && placeKey(here) === key) await chrome.storage.local.set({ wx });
     return wx;
   })().finally(() => inflight.delete(key)));
   return inflight.get(key);
 }
 
 async function cachedWeather(place) {
-  const { wx, wxView } = await chrome.storage.local.get(["wx", "wxView"]);
-  return [wx, wxView].find((w) => w && w.key === placeKey(place)) || null;
+  const { wx } = await chrome.storage.local.get("wx");
+  return wx && wx.key === placeKey(place) ? wx : null;
 }
 
 // Runs on every new tab, so the forecast is already here when it is looked at. A failure here is
 // only logged: Today says so when it is opened, and the glance keeps the last forecast.
 export async function warmWeather() {
-  const [home, place] = await Promise.all([getPlace(), shownPlace()]);
+  const place = await getPlace();
   if (!place) return;
   const quiet = (err) => console.warn("weather:", err.message);
   const wx = await cachedWeather(place);
   if (!wx || Date.now() - wx.at > FRESH_MS) refreshWeather(place).catch(quiet);
-  const moved = home && (await placeMoved(home));
+  const moved = await placeMoved(place);
   if (moved) refreshWeather(moved).catch(quiet);
 }
 
@@ -145,7 +133,7 @@ export const moment = () => new Date(Date.now() + shift);
 
 function drawClock() {
   const now = moment();
-  const parts = new Intl.DateTimeFormat(undefined, { hour: "numeric", minute: "2-digit", timeZone: TZ }).formatToParts(now);
+  const parts = new Intl.DateTimeFormat(undefined, { hour: "numeric", minute: "2-digit" }).formatToParts(now);
   const digits = parts.filter((p) => p.type !== "dayPeriod").map((p) => p.value).join("").trim();
   const half = parts.find((p) => p.type === "dayPeriod");
   const t = $("bigTime");
@@ -310,10 +298,11 @@ function drawStrip(place, wx) {
   mark.append(svg("line", { class: "st-then", x1: 0, x2: 0, y1: 4, y2: STRIP.floor }), svg("circle", { class: "st-knob", cx: 0, cy: STRIP.floor, r: 7.5 }));
   parts.push(mark);
   // A name every three hours by the clock, and the temperature over it where there is one.
-  const first = new Date(Math.floor(start / 60e3) * 60e3 - partIn(new Date(start), "minute") * 60e3);
+  const first = new Date(start);
+  first.setMinutes(0, 0, 0);
   for (let k = 1; k <= 24; k++) {
     const when = new Date(+first + k * 3600e3);
-    if (partIn(when, "hour") % 3 || +when - start > DAY_MS) continue;
+    if (when.getHours() % 3 || +when - start > DAY_MS) continue;
     const x = stripX(+when - start);
     if (x < STRIP.pad + 34) continue;
     parts.push(svg("text", { class: "hc-h", x: x.toFixed(1), y: STRIP.floor + 23 }, fmtHour(when)));
@@ -338,7 +327,7 @@ const radarUrl = (station, which) => `https://radar.weather.gov/ridge/standard/$
 // The place's name over the forecast. One estimated from the network says so, and why.
 function showPlace(place, wx) {
   const rough = place.source === "network";
-  $("place").textContent = (place.tz ? place.name : place.name || (wx && wx.place) || `${place.lat}, ${place.lon}`) + (rough ? " (approximate)" : "");
+  $("place").textContent = (place.name || (wx && wx.place) || `${place.lat}, ${place.lon}`) + (rough ? " (approximate)" : "");
   $("placeBtn").title = rough ? `Estimated from your network. ${place.why || ""} Click to set the place.` : "Change the place";
 }
 
@@ -362,7 +351,7 @@ function drawWeather(wx, place) {
 
   const lows = days.map((d) => (d.lo != null ? d.lo : d.hi)), highs = days.map((d) => (d.hi != null ? d.hi : d.lo));
   const min = Math.min(...lows), max = Math.max(...highs), range = max - min || 1;
-  const todayDate = new Date().toLocaleDateString("en-CA", { timeZone: TZ });
+  const todayDate = new Date().toLocaleDateString("en-CA");
   $("wxDays").replaceChildren(...days.map((d) => {
     const li = el("li");
     const name = d.date === todayDate ? "Today" : new Date(`${d.date}T12:00:00`).toLocaleDateString(undefined, { weekday: "short" });
@@ -406,13 +395,19 @@ function clearWeather(place, text) {
   $("wxNote").hidden = false;
 }
 
+// A forecast that arrives, or fails, after the place has changed is for somewhere else: the
+// page has moved on and is left alone.
+const still = async (place) => { const now = await getPlace(); return !!now && placeKey(now) === placeKey(place); };
 async function update(place, hadForecast) {
   const note = $("wxNote");
   try {
-    drawWeather(await refreshWeather(place), place);
+    const wx = await refreshWeather(place);
+    if (!(await still(place))) return;
+    drawWeather(wx, place);
     note.hidden = true;
   } catch (err) {
     console.error("weather", err);
+    if (!(await still(place))) return;
     if (hadForecast) {
       note.textContent = "Couldn't refresh the forecast just now, so this is the last one.";
       note.hidden = false;
@@ -439,21 +434,37 @@ function sayThen(wx) {
   placeMark();
 }
 
+// ---------- the world at the same moment ----------
+// Under the weather sits the map of where it is day: the land the sun is over is lit, the rest
+// is in the dark, and you are the pin. It is drawn for the moment the page is showing, so
+// dragging the day sweeps the night across it.
+function drawWorld(place, at) {
+  const lit = [], dark = [];
+  for (const c of CELLS) (sunPosition(at, c.lat, c.lon).altitude > 0 ? lit : dark).push(c);
+  $("worldDay").setAttribute("d", dots(lit));
+  $("worldNight").setAttribute("d", dots(dark));
+  const [x, y] = spot(place);
+  const pin = mapSvg("g", { class: "pin you" });
+  pin.append(mapSvg("circle", { class: "dot", cx: x, cy: y, r: 6.5 }), mapSvg("text", { x: x + 11, y: y + 6 }, "You"));
+  $("worldPins").replaceChildren(pin);
+  $("worldSay").textContent = shift ? `Day and night at ${fmtTime(at)}` : "Day and night, now";
+  $("worldMap").setAttribute("aria-label", `Daylight is on ${Math.round((lit.length / CELLS.length) * 100)}% of the land`);
+}
+
 // The place form shows itself while there is no place and goes once there is one. Opened by
 // hand to change the place, it stays until one is chosen: a forecast arriving must not shut it.
 let unplaced = false;
 export async function renderToday() {
-  const [home, place] = await Promise.all([getPlace(), shownPlace()]);
-  applyTheme(home);
+  const place = await getPlace();
+  applyTheme(place);
   if (!place) $("todayAsk").hidden = false;
   else if (unplaced) $("todayAsk").hidden = true;
   unplaced = !place;
   $("todayGrid").hidden = !place;
   if (!place) return;
-  TZ = place.tz;
   drawClock();
   drawSky(place);
-  renderPlaces(moment());
+  drawWorld(place, moment());
   const cached = await cachedWeather(place);
   if (cached) { drawWeather(cached, place); $("wxNote").hidden = true; }
   else clearWeather(place, "Getting the forecast…");
@@ -461,16 +472,15 @@ export async function renderToday() {
   if (!cached || Date.now() - cached.at > FRESH_MS) update(place, !!cached);
 }
 
-// Drags the day: the clock, the sun, the moon, the weather beside the clock and the clocks of
-// your cities all move to that moment. Zero puts them back.
+// Drags the day: the clock, the sun, the moon, the weather beside the clock and the map of day
+// and night all move to that moment. Zero puts them back.
 export async function scrubTo(ms) {
   shift = ms;
-  const place = await shownPlace();
+  const place = await getPlace();
   if (!place) return;
-  TZ = place.tz;
   drawClock();
   drawSky(place);
-  renderPlaces(moment());
+  drawWorld(place, moment());
   sayThen(await cachedWeather(place));
 }
 
@@ -480,13 +490,12 @@ export async function tickTheme() {
 }
 
 export async function tickToday() {
-  const [home, place] = await Promise.all([getPlace(), shownPlace()]);
+  const place = await getPlace();
   if (!place) return;
-  applyTheme(home);
-  TZ = place.tz;
+  applyTheme(place);
   drawClock();
   drawSky(place);
-  renderPlaces(moment());
+  drawWorld(place, moment());
   // Left alone, the strip keeps starting at now.
   if (!shift) drawStrip(place, await cachedWeather(place));
 }
@@ -498,14 +507,10 @@ const along = (path, f) => path.getPointAtLength(Math.min(1, Math.max(0, f)) * p
 
 export async function renderGlance() {
   const at = new Date();
-  // The clock at the left is always this computer's; the sun and the weather are the place's.
-  $("glTime").textContent = at.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
-  $("glDate").textContent = at.toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" });
-  const [home, place] = await Promise.all([getPlace(), shownPlace()]);
-  applyTheme(home);
-  renderPlaces(at);
-  TZ = place ? place.tz : undefined;
-  $("glPlace").textContent = place && place.tz ? `📍 ${place.name}` : "";
+  $("glTime").textContent = fmtTime(at);
+  $("glDate").textContent = fmtDate(at);
+  const place = await getPlace();
+  applyTheme(place);
   $("ask").hidden = !!place;
   $("glSun").hidden = !place;
   if (!place) { $("glWx").hidden = true; $("glRadar").hidden = true; return; }
@@ -532,6 +537,10 @@ export async function renderGlance() {
   $("glDone").style.strokeDasharray = `${up ? f : 1} 1`;
   $("glRise").textContent = `↑ ${fmtTime(t.sunrise)}`;
   $("glSet").textContent = `↓ ${fmtTime(t.sunset)}`;
+  // The moon's phase rides on the same line, with its name for anyone who points at it.
+  const phase = moonPhase(at);
+  $("glMoon").textContent = phase.emoji;
+  $("glMoon").title = `${phase.name}, ${Math.round(phase.fraction * 100)}% lit`;
   const next = nextLight(at, lat, lon);
   $("glLeft").textContent = next ? `${cap(next.label)} in ${span(next.at - at)}` : lightPhase(sun.altitude);
 

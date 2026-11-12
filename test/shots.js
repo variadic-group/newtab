@@ -17,7 +17,6 @@ await sw.evaluate(async () => {
   await chrome.bookmarks.create({ parentId: next.id, title: "Quarterly estimate", url: "https://tax.example.gov/estimate" });
   await chrome.storage.sync.set({
     note: "Ask the printer about paper weight\nRenew the domain by Friday", notePages: ["note", "note:trip"], "note:trip": "Trip ideas\nLisbon in May",
-    zones: [{ name: "London, England, United Kingdom", lat: 51.51, lon: -0.13, zone: "Europe/London" }, { name: "Tokyo, Japan", lat: 35.68, lon: 139.69, zone: "Asia/Tokyo" }],
   });
 });
 const shot = async (page, name) => { await page.mouse.move(640, 790); await page.waitForTimeout(500); await page.screenshot({ path: path.join(out, `${name}.png`) }); console.log(name); };

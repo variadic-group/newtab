@@ -3,7 +3,6 @@ import { loadIcons, siteIcon, tabIcon, host } from "./icons.js";
 import { BUILTIN, claims, barChildren, bookmarkBars, leaves, aliasTable, aliasFor, nextFolder, addToNext } from "./shared.js";
 import { renderShortcuts, aliasPill } from "./shortcuts.js";
 import { renderToday, tickToday, tickTheme, renderGlance, warmWeather, scrubTo, stripMinutes } from "./today.js";
-import { wirePlaces } from "./places.js";
 import { placeForm, getPlace, leftBehind, keepPlace } from "./place.js";
 import { renderExtras, renderMail, renderFiles, renderClosed, renderOften } from "./extras.js";
 import { renderTools } from "./tools.js";
@@ -135,8 +134,8 @@ async function render() {
   $("tools").hidden = current !== TOOLS;
   const bare = current === BARE;
   $("space").hidden = isPage(current) && !bare;
-  // The pencil is there wherever something can be changed: a space, your cities, your short names.
-  $("edit").hidden = current === TOOLS || bare;
+  // The pencil is for the links: it shows on a space, and nowhere else.
+  $("edit").hidden = isPage(current);
   $("empty").hidden = !bare;
   $("collections").hidden = bare;
   if (current === TODAY) return renderToday();
@@ -151,9 +150,8 @@ async function render() {
 }
 
 function show(id) {
-  // Editing carries from one space to the next, since links are moved between them. Going to or
-  // from any other page ends it. Either way, what was being found is cleared.
-  if (editing() && (isPage(id) || isPage(current))) $("edit").click();
+  // Editing belongs to the spaces; leaving them ends it. What was being found is cleared.
+  if (isPage(id) && editing()) $("edit").click();
   clearFind();
   current = id;
   if (id !== TODAY) scrubTo(0);
@@ -605,8 +603,6 @@ $("edit").onclick = () => {
   document.body.classList.toggle("editing", on);
   $("edit").setAttribute("aria-pressed", String(on));
   $("edit").title = on ? "Done editing" : "Edit: rename, add and remove";
-  // On Today, editing is where you are and which cities you keep.
-  if (current === TODAY) changePlace(on);
   // Edit adds a + to the strip of spaces, so it is fitted again.
   fitSpaces();
 };
@@ -629,6 +625,15 @@ function placed(place, byHand) {
   if (byHand) toast(`${place.why} So this is your network's city instead: ${where}.`, null, { ms: 14000 });
   else toast(`The sky and forecast are for your network's city: ${where}.`, () => { show(TODAY); changePlace(true); }, { label: "Change", ms: 12000 });
 }
+// A place you type takes the place of the one before it. The page says so, with the way back,
+// because a city typed out of curiosity would otherwise quietly become where you are.
+let undoing = false;
+function replaced({ oldValue: was, newValue: now }) {
+  if (undoing) { undoing = false; return; }
+  if (!was || !now || now.source !== "typed" || (was.lat === now.lat && was.lon === now.lon)) return;
+  const before = was.name || (was.source === "typed" ? "the place before" : "this computer's location");
+  toast(`The page is now set to ${now.name}, in place of ${before}.`, () => { undoing = true; chrome.storage.local.set({ place: was }); }, { label: "Go back", ms: 20000 });
+}
 const asking = placeForm(placed);
 $("askForm").append(asking);
 $("todayAskForm").append(placeForm(placed));
@@ -643,6 +648,7 @@ const settings = (open) => {
   if (open) drawExtras();
 };
 $("extrasBtn").onclick = () => settings($("extras").hidden);
+$("extrasFoot").onclick = () => settings($("extras").hidden);
 $("extrasClose").onclick = () => settings(false);
 chrome.permissions.onAdded.addListener(drawExtras);
 chrome.permissions.onRemoved.addListener(drawExtras);
@@ -653,7 +659,7 @@ $("emptyWays").append(...setupRows(brought));
 
 // Anything lifted over the page goes away with Esc, or with a press anywhere outside it.
 const LIFTED = [
-  { open: () => !$("extras").hidden, within: "#extras, #extrasBtn", shut: () => settings(false) },
+  { open: () => !$("extras").hidden, within: "#extras, #extrasBtn, #extrasFoot", shut: () => settings(false) },
   { open: noteIsBig, within: ".notes", shut: () => bigNote(false) },
 ];
 document.addEventListener("pointerdown", (e) => {
@@ -734,9 +740,8 @@ for (const ev of ["onCreated", "onRemoved", "onChanged", "onMoved", "onChildrenR
 const redrawSky = () => { if (current === TODAY) renderToday(); else if (isPage(current)) tickTheme(); else renderGlance(); };
 chrome.storage.onChanged.addListener((changes, area) => {
   if (area === "sync" && (changes.aliases || changes.links)) rerender();
-  if (area === "local" && (changes.place || changes.view)) warmWeather();
-  if (area === "local" && (changes.wx || changes.wxView || changes.place || changes.view)) redrawSky();
-  if (area === "sync" && changes.zones) redrawSky();
+  if (area === "local" && changes.place) { warmWeather(); replaced(changes.place); }
+  if (area === "local" && (changes.wx || changes.place)) redrawSky();
 });
 matchMedia("(prefers-color-scheme: dark)").addEventListener("change", redrawSky);
 
@@ -767,10 +772,7 @@ dayStrip.addEventListener("pointerdown", (e) => {
 });
 dayStrip.addEventListener("pointermove", (e) => { if (dayStrip.hasPointerCapture(e.pointerId)) dragTo(stripMinutes(e.clientX)); });
 $("scrubNow").onclick = () => scrubTo(0);
-wirePlaces();
 wireFind();
-// "Add a city" is the way into editing Today for someone who has none yet.
-$("zoneAdd").onclick = () => { if (!editing()) $("edit").click(); $("zoneInput").focus(); };
 await loadIcons();
 wireNotes(toast);
 await loadNotes();

@@ -1,13 +1,16 @@
 // Find: the box in the top bar. Type part of a name, a site or a short name and the page is
 // replaced, while there is something typed, by a list of every link you keep that matches,
 // whichever space it is in, and the tabs open in this window. Best match first; Enter opens
-// the first. With no match, Enter hands the words to your search engine.
+// the first. A short link typed here (claude/what to ask) goes where it would from the address
+// bar. With no match, Enter hands the words to your search engine.
 import { $, el } from "./dom.js";
 import { siteIcon, tabIcon, host } from "./icons.js";
-import { barChildren, aliasTable, aliasFor, nextFolder } from "./shared.js";
+import { barChildren, aliasTable, aliasFor, nextFolder, resolve } from "./shared.js";
 
 const SHOWN = 20;
 let all = [];
+// Where a short link typed in the box leads, once that has been worked out.
+let short = null;
 
 async function everything() {
   const table = await aliasTable();
@@ -63,6 +66,15 @@ function draw() {
   }));
   $("findSay").textContent = !words.length ? "" : !hits.length ? `Nothing you keep matches “${typed}”. Enter searches the web for it.`
     : hits.length > SHOWN ? `${hits.length - SHOWN} more match. Keep typing to narrow it.` : "Enter opens the first.";
+  // The same names the address bar takes, with the same words after the slash.
+  short = null;
+  const m = /^([^\s/]+)\/(.*)$/.exec(typed);
+  if (m) resolve(m[1], m[2]).then((target) => {
+    if (!target || $("findBox").value.trim() !== typed) return;
+    short = target;
+    const rest = m[2].trim();
+    $("findSay").textContent = typeof target === "string" ? `A short link. Enter opens ${host(target)}${rest ? ` with “${rest}”` : ""}.` : `A short link. Enter searches the web for “${rest}” on ${target.search.split(" site:").pop()}.`;
+  });
   return hits;
 }
 
@@ -82,6 +94,8 @@ export function wireFind() {
     if (e.key === "ArrowDown") { e.preventDefault(); $("findList").querySelector("a")?.focus(); }
     if (e.key !== "Enter") return;
     const typed = box.value.trim();
+    if (typeof short === "string") return chrome.tabs.update({ url: short });
+    if (short) return chrome.search.query({ text: short.search, disposition: "CURRENT_TAB" });
     const [first] = draw();
     if (first) go(first); else if (typed) chrome.search.query({ text: typed, disposition: "CURRENT_TAB" });
   };

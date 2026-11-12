@@ -40,14 +40,13 @@ This page adds a face to that store and keeps nothing of its own:
 - **Find** (the box at the top, or `/`) filters everything you keep, whichever space it is in,
   and the tabs open in this window. While something is typed the matches stand in for the
   page, best first, each with where it lives and its short name. Enter opens the first; with
-  no match, Enter searches the web; Esc puts the page back.
+  no match, Enter searches the web; Esc puts the page back. A short link typed there
+  (`claude/what to ask`) goes where it would from the address bar.
 - **Tiles or a list.** Settings shows links as icon tiles or as rows, which fit more in a card
   and show each link's short name beside it.
-- **The pencil** (top right) turns on editing for the page you are on. On a space: add a
-  space, a collection, a group or a link; click a name to rename it; remove in place, with
-  Undo. On Today: where you are, and your cities. On Shortcuts: short names and your own
-  shortcuts. Naming a folder offers a row of emoji to lead it with, which is what a crowded
-  top bar keeps of the name.
+- **The pencil** (top right) turns on editing: add a space, a collection, a group or a link;
+  click a name to rename any of them; remove in place, with Undo. Naming a folder offers a row
+  of emoji to lead it with, which is what a crowded top bar keeps of the name.
 - **Three ways to bring links in,** on a bare bookmarks bar and in Settings any time: a starter
   set; a bookmarks file from another browser; or a prompt to paste into the assistant you use,
   which asks what you do and writes that file for you. Only web links are taken from a file,
@@ -84,15 +83,14 @@ This page adds a face to that store and keeps nothing of its own:
   it. Under the sky runs the next 24 hours: night shaded, the temperature along it, rain under
   it. Press or drag anywhere on it and the clock, the sun and that hour's forecast move to
   that moment.
-- **Your cities.** Add the places you deal with and each shows its clock, on Today and in the
-  strip across every space. Press one and the sky and forecast are drawn for it, in its own
-  time; "Here" goes back. Where you are doesn't change.
+- **Day and night.** Under the weather, a map with daylight on the land the sun is over and
+  you on it. It follows the drag too, so the night sweeps across as the hours go by.
 - **The page goes dark when night falls** where you are, and light again at dawn. Settings can
   hold it light or dark, and has four accent colours.
 - **Forecast and radar** from the National Weather Service: now, seven days, and the radar
-  loop. A strip across the top of every space carries the short version: your clock, your
-  cities, sunrise and sunset, the temperature and a radar still. Its time and date open your
-  calendar.
+  loop. A strip across the top of every space carries the short version on one line: the
+  time, the sun's arc with sunrise, sunset and the moon's phase, the temperature and a radar
+  still. Its time and date open your calendar.
 
 **Check, when you want to**
 - **Tools** is a tab that shows how this connection and this browser look from outside. Opening
@@ -175,11 +173,12 @@ offers the ways in. Four things make it yours:
    then the pin). One press on it, Alt+Shift+S, or a right-click on any page files that page
    under Up next. Tick it off when you have been back.
 
-Then, when you want them: **Find** (the box at the top, or `/`) lists any link in any space;
-**Today** has the sky, the radar, the forecast and the cities you add; **Tools** shows how
-your connection looks from outside and what to do about it; the **pencil** changes whatever
-page you are on; **Settings** has light and dark, an accent, tiles or a list, and four extras
-that are off until you switch them on.
+Then, when you want them: the **search bar** at the top (or `/`) finds any link in any space,
+and takes short links too; **Today** has the sky, the radar, the forecast and a map of where
+it is day; **Tools** shows how your connection looks from outside and what to do about it;
+the **pencil** rearranges your links; **Settings and extras** (the gear, or the link at the
+foot of the page) has light and dark, an accent, tiles or a list, and four extras that are
+off until you switch them on.
 
 ## How a new bookmark gets its place, icon and names
 
@@ -250,6 +249,9 @@ WebRTC route, when you choose to.
   you typed stays put; when the computer's time zone changes the page asks once whether to
   change it or keep it. A trip inside one time zone with a typed place is not noticed: click
   the place name on Today to change it.
+- **A place you type replaces the one before.** The page says so and offers "Go back", since a
+  city typed out of curiosity would otherwise become where you are. The page is for one place:
+  yours.
 - **On a VPN** your network is somewhere you are not. When its city is in a different time zone
   from this computer's clock, the page doesn't use it and asks instead. The computer's own
   location (the button) is not affected by a VPN, and a place you type always wins and never

@@ -89,7 +89,7 @@ body.editing .tab[data-id][aria-selected="true"]::after { content: " ✎"; color
 .icon-btn { display: grid; place-items: center; width: 34px; height: 34px; padding: 0; border: 1px solid var(--line); border-radius: 10px; background: var(--card); color: var(--muted); cursor: pointer; }
 .icon-btn:hover { color: var(--ink); border-color: var(--muted); }
 .icon-btn svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
-.icon-btn[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.icon-btn[aria-pressed="true"], .icon-btn[aria-expanded="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
 .icon-btn[aria-pressed="false"] .when-on, .icon-btn[aria-pressed="true"] .when-off { display: none; }
 .wrap { max-width: 1240px; margin: 0 auto; padding: 22px 24px 28px; }
 body:not(.editing) .edit-only { display: none; }
@@ -114,12 +114,7 @@ a.gl-time:hover .cap { color: var(--ink); text-decoration: underline; }
 .glance:has(.ask:not([hidden])) .gl-main { flex: 0 0 auto; }
 .gl-main:hover, .gl-chip:hover { border-color: var(--muted); }
 .gl-rest > span { border-left: 1px solid var(--line); padding-left: 26px; }
-.gl-zones { display: grid; align-content: center; gap: 1px; padding: 0 14px; border-left: 1px solid var(--line); }
-.gl-zones .place { justify-content: space-between; gap: 12px; padding: 2px 8px; border: 0; border-radius: 7px; background: none; font-size: 12.5px; }
-.gl-zones .place:hover { background: var(--tile); }
-.gl-zones .place b { font: 600 12.5px var(--display); letter-spacing: 0; }
-.gl-zones .place[aria-pressed="true"] { background: var(--ink); color: var(--bg); }
-#glPlace:empty { display: none; }
+.gl-moon { font-size: 14px; line-height: 1; }
 .glance b { font: 600 32px/1 var(--display); letter-spacing: -0.03em; font-variant-numeric: tabular-nums; }
 .gl-time { display: grid; gap: 4px; }
 .gl-sun, .gl-wx, .gl-radar { display: flex; align-items: center; gap: 12px; min-width: 0; }
@@ -258,25 +253,11 @@ button.key { cursor: text; }
 .notes textarea { display: block; width: calc(100% - 8px); min-height: 96px; resize: vertical; margin: 2px 4px 4px; border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; background: var(--bg); font-size: 13px; line-height: 1.45; }
 
 /* ----- today ----- */
-/* Your places in a row; then now (the time, the sky, the radar); then the forecast. */
+/* Now on top (the time, the sky, the radar); under it the forecast, with the map of day and night. */
 .today, .today-grid { display: grid; gap: 18px; }
 .t-now { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: 18px; align-items: start; }
 .t-now:has(.radar[hidden]) { grid-template-columns: minmax(0, 720px); }
 .sky, .wx, .radar, .ask-card { background: var(--card); border: 1px solid var(--line); border-radius: 20px; min-width: 0; margin: 0; }
-/* Where you are and the cities you keep: one is pressed, and the page is drawn for it. */
-.places-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; }
-.places { display: flex; flex-wrap: wrap; gap: 8px; }
-.places:empty { display: none; }
-.place { display: inline-flex; align-items: baseline; gap: 8px; border: 1px solid var(--line); background: var(--card); color: var(--ink); border-radius: 999px; padding: 6px 13px; font: 13px var(--body); cursor: pointer; }
-.place:hover { border-color: var(--muted); }
-.place b { font: 600 13px var(--display); font-variant-numeric: tabular-nums; }
-.place[aria-pressed="true"] { background: var(--ink); border-color: var(--ink); color: var(--bg); }
-.place-wrap { position: relative; display: inline-flex; }
-.place-wrap .x { position: absolute; top: -6px; right: -6px; width: 20px; height: 20px; padding: 0; border-radius: 50%; border: 1px solid var(--line); background: var(--card); color: var(--danger); font-size: 12px; line-height: 1; cursor: pointer; }
-body.editing #zoneAdd { display: none; }
-body.editing #zoneForm { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
-#zoneForm input { width: 200px; font: 13px var(--body); padding: 7px 10px; border: 1px solid var(--line); border-radius: 9px; background: var(--card); color: var(--ink); }
-#zoneNote:empty { display: none; }
 .ask-card { padding: 20px 24px; display: grid; gap: 10px; }
 .ask-card h2 { font: 600 17px var(--display); margin: 0; }
 .ask-card .cap { margin: 0; }
@@ -347,6 +328,13 @@ body.editing #zoneForm { display: flex; flex-wrap: wrap; align-items: center; ga
 
 .wx { padding: 20px 22px; display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: 16px 36px; align-items: start; }
 .wx-main { display: grid; gap: 16px; min-width: 0; }
+/* The land the sun is over, lit; the rest in the dark; you, the pin. */
+.daymap { margin: 4px 0 0; }
+.daymap figcaption { font-size: 12.5px; color: var(--muted); margin-bottom: 6px; }
+.daymap svg { display: block; width: 100%; max-width: 560px; height: auto; }
+.land.day { stroke: color-mix(in srgb, var(--sun) 88%, var(--ink)); }
+.land.night { stroke: color-mix(in srgb, var(--night) 46%, transparent); }
+.daymap .pin text { font-size: 17px; stroke-width: 5px; }
 .wx-days:empty { display: none; }
 .wx:has(.wx-days:empty) { grid-template-columns: 1fr; }
 .wx-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
@@ -386,8 +374,6 @@ body.editing #zoneForm { display: flex; flex-wrap: wrap; align-items: center; ga
 /* The address bar's stand-in: the one loud thing on the Shortcuts page. */
 .key.page { color: var(--ink); background: var(--tile); }
 .sc-row > .sc-note { font-family: var(--mono); }
-/* Short names are changed with the pencil on; without it they are only read. */
-body:not(.editing) .key { pointer-events: none; }
 .sc-body { columns: 3 330px; column-gap: 14px; }
 .sc-card { display: block; break-inside: avoid; margin: 0 0 14px; background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 14px 16px; }
 .sc-card h2 { font: 600 15px var(--display); margin: 0 0 8px; }
@@ -552,7 +538,7 @@ button.sc-what { border: 0; background: none; padding: 0; font: inherit; text-al
 .foot .hint { margin: 0; }
 .foot .hint .mini { color: var(--accent); font-weight: 600; }
 .foot code { font: 11.5px var(--mono); color: var(--accent); background: var(--accent-soft); border-radius: 5px; padding: 1px 5px; }
-.foot #version { margin-left: auto; }
+.foot #extrasFoot { margin-left: auto; }
 
 /* Settings: one sheet over the page, in groups. */
 .extras { position: fixed; z-index: 30; left: 50%; top: 7vh; transform: translateX(-50%); width: min(600px, calc(100vw - 24px)); max-height: 86vh; overflow: auto; overscroll-behavior: contain; background: var(--card); border: 1px solid var(--line); border-radius: 18px; padding: 6px 22px 20px; color: var(--ink); }

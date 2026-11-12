@@ -4,7 +4,7 @@ The reasoning behind the product: who it serves, what they are trying to do at t
 tab opens, and how each of those moments goes. Read it before adding a feature. The README says
 what the product does; this says why, and what it refuses to become.
 
-Last walked through end to end at 4.0.0 (2026-11-12).
+Last walked through end to end at 4.1.0 (2026-11-12).
 
 ## Who it is for
 
@@ -137,10 +137,11 @@ each place has exactly one name on the Shortcuts page.
 A box to try one in was added at 3.7.0 and cut at 4.0.0: the address bar is where they are
 typed, and a stand-in for it taught nothing the list didn't.
 
-**Find something you kept.** The box at the top (or `/`) filters every link in every space and
-the open tabs down to what matches, in place of the page while something is typed. *Held to:*
-it is a filter over what the person keeps, not a web search; Esc or going anywhere puts the
-page back.
+**Find something you kept.** The search bar at the top (or `/`) filters every link in every
+space and the open tabs down to what matches, in place of the page while something is typed.
+A short link typed there goes where it would from the address bar, so the bar on the page and
+the bar above it understand the same names. *Held to:* it is a filter over what the person
+keeps, not a web search; Esc or going anywhere puts the page back.
 
 **Find something.** Words after a short name search: inside the app for Google's apps and
 Claude, wherever the person said for shortcuts they added, and on the web for that site for
@@ -157,29 +158,31 @@ collection, a group or a link, renames any of them by clicking the name, and rem
 Undo. Folders are deleted only when empty; the bookmark manager, one click away, does bulk
 work. *Held to:* one click never removes more than one link or one empty folder.
 
-**Glance.** The strip across every space has the time, the sun's arc, the temperature and a
-radar still; Today has the sky with sunrise and sunset and the radar beside it at the top,
-because where the person is, now, is most of what they came for, then the week. Under the sky
-the next 24 hours run as a strip that can be dragged to any hour. Someone who deals with
-people elsewhere adds those cities: each shows its clock on Today and in the strip on every
-space, and pressing one draws the sky and the forecast for it, in its own time, until "Here"
-is pressed. Where the person is doesn't change, so light and dark and the Tools page still
-go by home. A map of day and night was tried at 3.8.0 and cut: cities that could not be
-picked and showed nowhere else were decoration. The page turns dark
-at dusk where the person is. On a trip, a place taken from the computer follows it (at once
-when the time zone changes); a typed place is never moved, only asked about. *Held to:* drawn
-at once from what is saved; the network is never waited on.
+**Glance.** The strip across every space is one line: the time, the sun's arc with sunrise,
+sunset and the moon's phase, the temperature, a radar still. Today has the sky and the radar
+beside it at the top, because where the person is, now, is most of what they came for; then
+the forecast, with a map of where it is day under it. Under the sky the next 24 hours run as
+a strip that can be dragged to any hour, and the clock, the sun, that hour's forecast and the
+night on the map all move with it. The page is for one place, the person's own. Cities to add
+and pick between were tried at 3.8.0 and again at 4.0.0 and cut both times: a second place
+put a second clock in the strip, made it unclear which place a number was for, and nobody
+could say when another city's radar would matter. The page turns dark at dusk where the
+person is. On a trip, a place taken from the computer follows it (at once when the time zone
+changes); a typed place is never moved, only asked about, and typing one says what it
+replaced and offers the way back. *Held to:* drawn at once from what is saved; the network is
+never waited on.
 
 **Jot.** A synced scratch box. Expanded, it can be a few pages, copied or downloaded; small,
 it is only a box. It is not a notes app: no folders, no formatting; `keep/` is one keystroke
 away.
 
-**Change something.** One pencil, top right, wherever there is something to change: on a
-space the links and folders, on Today where you are and your cities, on Shortcuts the short
-names and your own. With it off those pages are only read. Tools has nothing to change and
-no pencil.
+**Change something.** The pencil, top right, is for the links: on a space it adds, renames,
+moves and removes. Today and Shortcuts carry their own controls where the thing is (the place
+name, a short name, the form under "Your own"), so they need no mode. Putting those behind the
+pencil was tried at 4.0.0 and cut: people looked for the form where it had been.
 
-**Make it yours.** Settings, at the top right, is one sheet: light and dark, one of four
+**Make it yours.** Settings and extras, the gear at the top right and a link at the foot of
+the page, is one sheet: light and dark, one of four
 accents, tiles or a list, the three ways to bring links in, the extras, and the pages of
 Chrome's own settings this page leans on. Esc or a press outside puts it away, as it does the
 expanded note. *Held to:* no
@@ -190,7 +193,9 @@ traffic comes out, whether the clock agrees, what WebRTC and DNS give away, a sp
 the fingerprint a tracking script would compute, and how Chrome's own privacy switches are set.
 *Held to:* opening the tab is the asking, so the check runs then and lands as one sentence and a
 map; nothing else on the page makes these calls, and what spends data (speed) waits for a
-press; a check is done here and drawn here, or it is left out. Every finding is written for
+press; a check is done here and drawn here, or it is left out; how far the exit is from the
+person is measured only from a place that can be where their computer is, so a city typed for
+somewhere else is never read as a VPN. Every finding is written for
 someone who has never heard the word: what was looked at, what was found, what it means, and
 what to do, which is often nothing and says so. A sign (red, amber, green) is only given to
 what matters and can be acted on. A list of links to other people's test pages is not a feature. The one thing
