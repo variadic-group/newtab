@@ -37,14 +37,17 @@ This page adds a face to that store and keeps nothing of its own:
 - **Drag to reorder** tiles, cards and space tabs. It is your bookmarks moving, so the order
   holds everywhere.
 - **Open all** opens a collection as one named tab group.
-- **Find** (the magnifier, or `/`) is one box over every link you keep, whichever space it is
-  in, and the tabs open in this window: a list, best match first, each with where it lives and
-  its short name. Enter opens the first; with no match, Enter searches the web.
+- **Find** (the box at the top, or `/`) filters everything you keep, whichever space it is in,
+  and the tabs open in this window. While something is typed the matches stand in for the
+  page, best first, each with where it lives and its short name. Enter opens the first; with
+  no match, Enter searches the web; Esc puts the page back.
 - **Tiles or a list.** Settings shows links as icon tiles or as rows, which fit more in a card
   and show each link's short name beside it.
-- **The pencil** (top right) turns on editing: add a space, a collection, a group or a link;
-  click a name to rename any of them; remove in place, with Undo. Naming a folder offers a row
-  of emoji to lead it with, which is what a crowded top bar keeps of the name.
+- **The pencil** (top right) turns on editing for the page you are on. On a space: add a
+  space, a collection, a group or a link; click a name to rename it; remove in place, with
+  Undo. On Today: where you are, and your cities. On Shortcuts: short names and your own
+  shortcuts. Naming a folder offers a row of emoji to lead it with, which is what a crowded
+  top bar keeps of the name.
 - **Three ways to bring links in,** on a bare bookmarks bar and in Settings any time: a starter
   set; a bookmarks file from another browser; or a prompt to paste into the assistant you use,
   which asks what you do and writes that file for you. Only web links are taken from a file,
@@ -63,8 +66,6 @@ This page adds a face to that store and keeps nothing of its own:
 - **Chrome's own pages have names too:** `history/that recipe`, `downloads/invoice`,
   `bookmarks/tax`, `settings/cookies`, `extensions/`, `passwords/`. A bookmark with the same
   name wins.
-- **Try one before you trust it.** The box at the top of the Shortcuts page is the address
-  bar's stand-in: type a short link and it says, in words, where that goes. Enter goes there.
 
 **Pick up where you left off**
 - **Up next:** pages to come back to, in order. One click on the toolbar button, Alt+Shift+S,
@@ -72,24 +73,26 @@ This page adds a face to that store and keeps nothing of its own:
 - **Open tabs:** switch to one, reorder the tab strip, close one (× or a middle click), or drag
   one into a collection.
   **Save all** files the whole window.
-- **Notes:** a scratch box that follows your Chrome profile, in up to eight pages named by
-  their first line. Expand lifts one into a big box; Copy and Download take it elsewhere.
+- **Notes:** a scratch box that follows your Chrome profile. Expand lifts it into a big box,
+  where it can be a few pages, copied or downloaded.
 
 **Look up**
 - **The sky, drawn to scale.** The sun's real path for today with solar noon in the middle, the
   civil, nautical and astronomical twilights under the horizon, and the moon where it stands, lit
   on the side that faces the sun.
-- **Drag the day.** Under the sky runs the next 24 hours: night shaded, the temperature along
-  it, rain under it. Press or drag anywhere on it and the whole page moves to that moment: the
-  clock, the sun and moon, that hour's forecast.
-- **The world at the same moment,** beside the sky: a map with daylight on the land the sun is
-  over, your clock, and the clocks of any cities you add. They follow the drag too, which
-  answers "what time is that for everyone" before a call is booked.
+- **Now, at the top:** the time, the sun's path with sunrise and sunset, and the radar beside
+  it. Under the sky runs the next 24 hours: night shaded, the temperature along it, rain under
+  it. Press or drag anywhere on it and the clock, the sun and that hour's forecast move to
+  that moment.
+- **Your cities.** Add the places you deal with and each shows its clock, on Today and in the
+  strip across every space. Press one and the sky and forecast are drawn for it, in its own
+  time; "Here" goes back. Where you are doesn't change.
 - **The page goes dark when night falls** where you are, and light again at dawn. Settings can
   hold it light or dark, and has four accent colours.
 - **Forecast and radar** from the National Weather Service: now, seven days, and the radar
-  loop of the last hour. A strip across the top of every space carries the short version; its
-  time and date open your calendar.
+  loop. A strip across the top of every space carries the short version: your clock, your
+  cities, sunrise and sunset, the temperature and a radar still. Its time and date open your
+  calendar.
 
 **Check, when you want to**
 - **Tools** is a tab that shows how this connection and this browser look from outside. Opening
@@ -143,8 +146,9 @@ New Tab is built and tested on Chrome 120 and later. Other Chromium browsers are
 
 ## Getting started
 
-The first new tab opens on **Start here**, which walks through the same four things, each
-with the button for it and a tick once it is true. It stays in Settings afterwards.
+There is no setup screen and no guide to click through. If you already keep folders on your
+bookmarks bar, a new tab is them. If you don't, the page says so where your links will go and
+offers the ways in. Four things make it yours:
 
 1. **Bring in your links.** The page is your bookmarks bar, laid out: each folder on the bar
    is a tab at the top, each folder inside it a card of links. With nothing there yet, pick
@@ -171,10 +175,11 @@ with the button for it and a tick once it is true. It stays in Settings afterwar
    then the pin). One press on it, Alt+Shift+S, or a right-click on any page files that page
    under Up next. Tick it off when you have been back.
 
-Then, when you want them: **Find** (the magnifier, or `/`) lists any link in any space;
-**Today** has the sky, the next 24 hours and the clocks of cities you add; **Tools** shows how
-your connection looks from outside and what to do about it; **Settings** has light and dark,
-an accent, tiles or a list, and four extras that are off until you switch them on.
+Then, when you want them: **Find** (the box at the top, or `/`) lists any link in any space;
+**Today** has the sky, the radar, the forecast and the cities you add; **Tools** shows how
+your connection looks from outside and what to do about it; the **pencil** changes whatever
+page you are on; **Settings** has light and dark, an accent, tiles or a list, and four extras
+that are off until you switch them on.
 
 ## How a new bookmark gets its place, icon and names
 

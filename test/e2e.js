@@ -8,7 +8,7 @@ const ok = (name, cond, extra) => { if (!cond) failed++; console.log((cond ? "PA
 
 // The clock is New York's, where the computer is set to be, so the sky and the Tools checks
 // have one answer wherever the tests run.
-const { ctx, sw, id, net, errs, open, tree, find, titles } = await launch({ timezoneId: "America/New_York", fresh: true });
+const { ctx, sw, id, net, errs, open, tree, find, titles } = await launch({ timezoneId: "America/New_York" });
 await seed(sw);
 const tabOrder = () => sw.evaluate(async () => (await chrome.tabs.query({})).filter((x) => /^https?:/.test(x.url)).sort((x, y) => x.index - y.index).map((x) => new URL(x.url).hostname));
 const place = () => sw.evaluate(async () => (await chrome.storage.local.get("place")).place);
@@ -22,9 +22,6 @@ const a = await ctx.newPage(); await a.goto("https://example.com/alpha");
 const b = await ctx.newPage(); await b.goto("https://example.org/beta");
 const nt = await ctx.newPage(); await nt.goto("chrome://newtab").catch(() => {});
 ok("new tab override loads the extension page", nt.url().includes(id), nt.url());
-await nt.waitForSelector("#startSteps .step", { timeout: 8000 }).catch(() => {});
-const first = await nt.evaluate(() => ({ shown: !document.getElementById("start").hidden, tab: document.querySelector('#pages .tab[aria-selected="true"]')?.textContent, steps: [...document.querySelectorAll("#startSteps .step h2")].map((h) => h.textContent), links: document.querySelector("#startSteps .step").classList.contains("done"), state: document.querySelector("#startSteps .step-state").textContent, more: !!document.querySelector("#startSteps .step-more #startWays"), also: [...document.querySelectorAll("#startAlso .btn")].map((b) => b.textContent) }));
-ok("the first new tab on a computer opens on Start here: four steps, the first already ticked from the bookmarks that are there", first.shown && first.tab === "👋 Start" && first.steps.join() === "Bring in your links,Say where you are,Type a short name,Keep a page for later" && first.links && /^\d+ links in 2 spaces$/.test(first.state) && first.more && first.also.join() === "Find,Today,Tools,Settings", first);
 await nt.close();
 const p = await open();
 await p.waitForSelector(".card");
@@ -34,7 +31,7 @@ await p.waitForFunction(() => /^\d+°$/.test(document.getElementById("glTemp").t
 ok("the first new tab asks the computer where it is, saves that rounded, and the forecast follows", (await place()).source === "device" && (await place()).lat === 40.71 && net.points.join() === "40.71,-74.01" && !!(await p.$("#ask[hidden]")), { place: await place(), lookups: net.points });
 
 // ---------- layout, the glance, the footer ----------
-ok("after that a new tab opens on a space; tabs: spaces, then Start, Today, Shortcuts and Tools", !(await p.$("#space[hidden]")) && (await p.$$eval("#pages .tab", (x) => x.map((e) => e.textContent))).join() === "👋 Start,☀️ Today,⌨️ Shortcuts,🛠️ Tools", [await p.$$eval("#spaces .tab", (x) => x.map((e) => e.textContent)), await p.$$eval("#pages .tab", (x) => x.map((e) => e.textContent))]);
+ok("a new tab opens on your links, with no guide in the way; tabs: spaces, then Today, Shortcuts and Tools", !(await p.$("#space[hidden]")) && (await p.$$eval("#pages .tab", (x) => x.map((e) => e.textContent))).join() === "☀️ Today,⌨️ Shortcuts,🛠️ Tools", [await p.$$eval("#spaces .tab", (x) => x.map((e) => e.textContent)), await p.$$eval("#pages .tab", (x) => x.map((e) => e.textContent))]);
 ok("the glance shows the time, the sun and the weather now", /\d/.test(await text(p, "#glTime")) && /↑ \d/.test(await text(p, "#glRise")) && /↓ \d/.test(await text(p, "#glSet")) && / in \d/.test(await text(p, "#glLeft")) && /^\d+°$/.test(await text(p, "#glTemp")) && /^\d+° high, \d+° low/.test(await text(p, "#glHiLo")), { time: await text(p, "#glTime"), sun: await text(p, "#glLeft"), now: [await text(p, "#glTemp"), await text(p, "#glText"), await text(p, "#glHiLo")] });
 ok("the time and date are a link to your calendar: your own Calendar bookmark", (await p.getAttribute("#glCal", "href")) === "https://calendar.google.com/calendar/u/0/r" && (await p.evaluate(() => document.getElementById("glCal").contains(document.getElementById("glTime")) && !document.getElementById("glance").contains(document.getElementById("glTime")))));
 ok("the glance has a radar still, not the loop", /_0\.gif/.test(await p.$eval("#glRadarImg", (i) => i.src)) && !(await p.$("#glRadar[hidden]")));
@@ -54,18 +51,9 @@ ok("Settings has four accents; the one chosen travels with the profile and is th
 const sheet = await p.evaluate(() => { const s = document.getElementById("extras"); return { fixed: getComputedStyle(s).position, groups: [...s.querySelectorAll("h3")].map((h) => h.textContent) }; });
 await p.keyboard.press("Escape"); const byEsc = await p.$eval("#extras", (s) => s.hidden);
 await p.click("#extrasBtn"); await p.mouse.click(40, 500); const byPress = await p.$eval("#extras", (s) => s.hidden);
-ok("Settings is one sheet over the page, in groups, and Esc or a press outside it puts it away", sheet.fixed === "fixed" && sheet.groups.join() === "Look,Bring in your links,Extras, off until you switch them on,What this page keeps,Kept in Chrome" && byEsc && byPress, sheet);
+ok("Settings is one sheet over the page, in groups, and Esc or a press outside it puts it away", sheet.fixed === "fixed" && sheet.groups.join() === "Look,Bring in your links,Extras, off until you switch them on,Kept in Chrome" && byEsc && byPress, sheet);
 await p.click("#extrasBtn");
-const [copyFile] = await Promise.all([p.waitForEvent("download"), p.click("#copySave")]);
-const copyOf = JSON.parse(fs.readFileSync(await copyFile.path(), "utf8"));
-await p.setInputFiles("#copyFile", { name: "settings.json", mimeType: "application/json", buffer: Buffer.from(JSON.stringify({ app: "new-tab", settings: { theme: "sun", accent: "red", evil: "x", "note:../x": "y" } })) });
-await p.waitForFunction(() => /Restored/.test(document.getElementById("toast").textContent), null, { timeout: 4000 }).catch(() => {});
-const kept = await sw.evaluate(() => chrome.storage.sync.get(null));
-await p.setInputFiles("#copyFile", { name: "notes.txt", mimeType: "text/plain", buffer: Buffer.from("hello") });
-await p.waitForFunction(() => /wasn't restored/.test(document.getElementById("toast").textContent), null, { timeout: 4000 }).catch(() => {});
-ok("what this page keeps can be saved as a file and brought back; a file is read as untrusted, and only what belongs is taken", /^new-tab-settings-\d{4}-\d\d-\d\d\.json$/.test(copyFile.suggestedFilename()) && copyOf.app === "new-tab" && copyOf.settings.accent === "teal" && kept.theme === "sun" && kept.accent === "teal" && !("evil" in kept) && !("note:../x" in kept) && (await text(p, "#toast")) === "That file wasn't restored: it isn't a settings file from this page.", [Object.keys(copyOf.settings), Object.keys(kept), await text(p, "#toast")]);
-await p.click("#extrasBtn");
-ok("Edit is a pencil with a name for screen readers; the bookmark manager shows only while editing", (await p.getAttribute("#edit", "aria-label")) === "Edit bookmarks" && !!(await p.$("#edit svg")) && !(await p.isVisible('[data-go="chrome://bookmarks/"]')));
+ok("Edit is a pencil with a name for screen readers; the bookmark manager shows only while editing", (await p.getAttribute("#edit", "aria-label")) === "Edit this page" && !!(await p.$("#edit svg")) && !(await p.isVisible('[data-go="chrome://bookmarks/"]')));
 await p.mouse.move(700, 4);
 ok("\"Open all\" waits for the pointer, and cards carry no count", (await p.$eval(".card .act", (e) => getComputedStyle(e).opacity)) === "0" && !(await p.$(".card-head .n")) && !(await p.$(".panel .sub")));
 
@@ -129,7 +117,8 @@ const big = await p.evaluate(() => { const b = document.querySelector(".notes").
 await p.press("#note", "Escape");
 ok("Expand lifts the same note into a big box, and Esc puts it back", big.w >= 700 && big.h > 400 && big.fixed === "fixed" && big.focus === "note" && big.label === "Shrink" && !(await p.$(".notes.big")) && (await p.inputValue("#note")) === "call the accountant", big);
 await p.click("#noteBig"); await p.mouse.click(30, 600);
-ok("a press outside the big note puts it back too", !(await p.$(".notes.big")));
+ok("a press outside the big note puts it back too; the small box is only for jotting, its buttons come with the big one", !(await p.$(".notes.big")) && !(await p.isVisible("#noteNew")) && !(await p.isVisible("#noteDelete")));
+await p.click("#noteBig");
 const noteSaved = () => p.waitForFunction(() => document.getElementById("noteState").textContent === "saved", null, { timeout: 4000 }).catch(() => {});
 const onePage = { tabs: await p.isVisible("#notePages"), last: await text(p, "#noteDelete") };
 await p.click("#noteNew"); await p.fill("#note", "Trip ideas\nLisbon in May"); await noteSaved();
@@ -148,6 +137,7 @@ const back = await sw.evaluate(() => chrome.storage.sync.get(null));
 ok("a deleted page goes with an Undo that puts it back where it was", !afterDelete.tabs && afterDelete.value === "call the accountant" && back.notePages.length === 2 && back[back.notePages[1]] === "Trip ideas\nLisbon in May", [afterDelete, back.notePages]);
 await p.click("#notePages .np >> nth=1"); await p.click("#noteDelete"); await p.waitForFunction(() => !document.getElementById("toast").hidden && /^Deleted/.test(document.getElementById("toast").textContent));
 await p.waitForFunction(() => document.getElementById("notePages").hidden);
+await p.keyboard.press("Escape");
 
 // ---------- edit mode ----------
 await p.click("#edit");
@@ -188,6 +178,9 @@ ok("Open all makes one named tab group", groups.titles.join() === "✉️ Worksp
 
 // ---------- shortcuts page ----------
 await p.bringToFront(); await p.click('#pages .tab:has-text("Shortcuts")'); await p.waitForSelector(".sc-card");
+const readOnly = { pencil: await p.isVisible("#edit"), form: await p.isVisible(".sc-add"), suggest: await p.isVisible(".sc-suggest"), pill: await p.$eval("#scBody button.key", (b) => getComputedStyle(b).pointerEvents), tryBox: !!(await p.$("#tryBar")) };
+await p.click("#edit");
+ok("Shortcuts is read until the pencil is on: then names can be clicked to change, and your own added and removed", readOnly.pencil && !readOnly.form && !readOnly.suggest && readOnly.pill === "none" && !readOnly.tryBox && (await p.isVisible(".sc-add")) && (await p.$eval("#scBody button.key", (b) => getComputedStyle(b).pointerEvents)) !== "none", readOnly);
 const keys = () => p.$$eval("#scBody .key", (x) => x.map((e) => e.textContent));
 ok("Always there lists Google's apps and Claude, bookmarked or not, and no plain web search", (await p.$$eval(".key.fixed", (x) => x.map((e) => e.textContent))).join() === "mail/,cal/,drive/,docs/,sheets/,slides/,keep/,claude/");
 const always = (name) => p.$eval(`.sc-row:has(.key:text-is("${name}/")) .sc-what`, (a) => `${a.textContent}|${a.getAttribute("href")}`);
@@ -200,10 +193,6 @@ await p.waitForFunction(() => [...document.querySelectorAll("#scBody .key")].som
 const nameOf = (title) => p.$eval(`.sc-row:has(.t:text-is("${title}")) .key`, (k) => k.textContent);
 ok("a new bookmark is named at once by the fewest leading words no other bookmark starts with", (await nameOf("Google Cloud console")) === "googlecloud/" && (await nameOf("Google Ads")) === "googleads/" && (await nameOf("Admin console")) === "admin/", [await nameOf("Google Cloud console"), await nameOf("Google Ads")]);
 ok("a bookmark named like a built-in app that isn't that app gets no name of its own, and says so", (await nameOf("Docs")) === "set a name" && (await go("http://docs/")) === "https://docs.google.com/document/");
-const tryIt = async (typed) => { await p.fill("#tryBar", typed); await p.waitForTimeout(250); return text(p, "#tryOut"); };
-ok("the box at the top says in words where a short link goes, as the address bar would take it", (await tryIt("mail/invoice")) === "Searches Gmail for “invoice”." && (await tryIt("stripe/refund policy")) === "Searches the web for “refund policy” on stripe.com." && (await tryIt("cal")) === "Opens Google Calendar." && (await tryIt("adm")) === "Opens Admin console." && (await tryIt("history/that recipe")) === "Searches Chrome's history for “that recipe”." && (await tryIt("zzz/x")) === "No short name starts with “zzz”." && (await tryIt("")) === "", [await tryIt("mail/invoice"), await tryIt("adm")]);
-await p.click('.sc-row:has(.key:text-is("drive/")) .eg');
-ok("an example on the page is a button that types itself into the box", (await p.inputValue("#tryBar")) === "drive/contract" && (await text(p, "#tryOut")) === "Searches Google Drive for “contract”." && (await p.evaluate(() => document.activeElement.id)) === "tryBar");
 ok("Chrome's own pages have names too, listed with the key that saves a page", (await p.$$eval(".key.page", (x) => x.map((e) => e.textContent))).join() === "history/,downloads/,bookmarks/,settings/,extensions/,passwords/" && /adds the page you are on to Up next\.$|No key is set/.test(await text(p, '.sc-card:has(h2:text-is("Chrome\'s own pages")) .sc-note.solo')) && !!(await p.$('#scBody [data-go="chrome://extensions/shortcuts"]')));
 ok("Chrome's own search shortcuts are one click from the Shortcuts page", !!(await p.$('#scBody [data-go="chrome://settings/searchEngines"]')));
 ok("no tasks/ shortcut; todo/ comes from the Todo list bookmark", !(await keys()).includes("tasks/") && (await keys()).includes("todo/"));
@@ -240,33 +229,22 @@ ok("claude/what is a tsunami? (typed with spaces, so searched) → Claude with t
 ok("mail/invoice from stripe, searched on another engine → Gmail search", (await go("https://duckduckgo.com/?q=mail%2Finvoice+from+stripe")).startsWith("https://mail.google.com/mail/u/0/#search/invoice%20from%20stripe"));
 ok("a search only counts for a whole short name", (await go("https://www.google.com/search?q=adm%2Fusers")).includes("google.com/search") && (await go("https://www.google.com/search?q=and%2For+logic")).includes("google.com/search") && (await go("https://www.google.com/search?q=plain+words")).includes("google.com/search"));
 
-// ---------- start here: the guide ----------
-await p.bringToFront();
-await p.click('#pages .tab:has-text("Start")'); await p.waitForSelector("#startSteps .step");
-const stepsNow = (q = p) => q.$$eval("#startSteps .step", (x) => x.map((s) => `${s.classList.contains("done") ? "✓" : "·"} ${s.querySelector("h2").textContent}: ${s.querySelector(".step-state").textContent}`));
-const guide = await stepsNow();
-ok("each step is ticked from what is true, not from pressing it: links on the bar, a saved place, a short name typed, Up next in use", guide.length === 4 && /^✓ Bring in your links: \d+ links in \d+ spaces$/.test(guide[0]) && /^✓ Say where you are: Set/.test(guide[1]) && guide[2] === "✓ Type a short name: You have typed one" && guide[3] === "✓ Keep a page for later: Up next is in use" && (await text(p, "#startCount")) === "All four done." && (await sw.evaluate(async () => (await chrome.storage.sync.get("usedShort")).usedShort)) === true, guide);
-const chips = await p.$$eval(".step-chips .key", (x) => x.map((b) => b.textContent));
-await p.click('.step-chips .key:has-text("mail/invoice")'); await p.waitForFunction(() => /invoice from the printer/.test(document.getElementById("tryOut").textContent));
-ok("it shows a few of your own short names; pressing one shows, on Shortcuts, what typing it would do", chips[0] === "mail/" && chips[1] === "cal/" && chips.length >= 4 && chips.at(-1) === "mail/invoice" && (await p.getAttribute('#pages .tab:has-text("Shortcuts")', "aria-selected")) === "true" && (await p.inputValue("#tryBar")) === "mail/invoice from the printer" && /^Searches .+ for “invoice from the printer”\.$/.test(await text(p, "#tryOut")), [chips, await text(p, "#tryOut")]);
-await p.click('#pages .tab:has-text("Start")'); await p.click("#startHide"); await p.waitForFunction(() => document.getElementById("startHide").textContent === "Show the Start tab again");
-await p.click('#spaces .tab:has-text("Work")'); await p.waitForSelector(".card");
-const pagesAfter = (await p.$$eval("#pages .tab", (x) => x.map((e) => e.textContent))).join();
-await p.click("#extrasBtn"); await p.click("#guideBtn"); await p.waitForSelector("#start:not([hidden])");
-ok("the Start tab can be hidden once it has done its job, and the guide stays in Settings", pagesAfter === "☀️ Today,⌨️ Shortcuts,🛠️ Tools" && (await p.$eval("#extras", (s) => s.hidden)) && (await p.getAttribute('#pages .tab:has-text("Start")', "aria-selected")) === "true" && (await sw.evaluate(async () => (await chrome.storage.sync.get("guide")).guide)) === "hidden");
-await p.click('#spaces .tab:has-text("Work")'); await p.waitForSelector(".card");
-
 // ---------- find, and links as a list ----------
-await p.keyboard.press("/"); await p.waitForSelector("#find:not([hidden])");
+await p.bringToFront(); await p.click('#spaces .tab:has-text("Work")'); await p.waitForSelector(".card");
+await p.keyboard.press("/");
 const typedInto = await p.evaluate(() => document.activeElement.id);
 await p.fill("#findBox", "strip"); await p.waitForFunction(() => document.querySelectorAll("#findList li").length > 0);
 const rowsFound = () => p.$$eval("#findList .find-row", (x) => x.map((a) => `${a.querySelector(".t").textContent}|${a.querySelector(".h").textContent}|${a.querySelector(".key") ? a.querySelector(".key").textContent : ""}`));
 const found = await rowsFound();
+const inPlace = await p.evaluate(() => ({ finding: document.body.classList.contains("finding"), space: getComputedStyle(document.getElementById("space")).display, list: !document.getElementById("find").hidden, inBar: !!document.querySelector(".top #findBox"), popup: getComputedStyle(document.getElementById("find")).position }));
 await p.fill("#findBox", "example.org"); await p.waitForTimeout(150); const tabsFound = await rowsFound();
 await p.fill("#findBox", "zzzz"); const noneSaid = await text(p, "#findSay");
 await p.keyboard.press("Escape");
-ok("Find opens on / or its button and lists matches from every space, each with where it is and its short name, and the open tabs", typedInto === "findBox" && /^Stripe\|🏢 Work › .+\|[a-z]+\/$/.test(found[0]) && tabsFound.some((r) => r.endsWith("|Open tab|")) && noneSaid === "Nothing you keep matches “zzzz”. Enter searches the web for it." && (await p.$eval("#find", (s) => s.hidden)), [found, tabsFound]);
-const fq = await open(); await fq.waitForSelector(".card"); await fq.click("#findBtn"); await fq.fill("#findBox", "bank"); await fq.waitForFunction(() => document.querySelectorAll("#findList li").length > 0); await fq.keyboard.press("Enter");
+ok("Find is a field in the top bar, reached with /: what matches, in any space, stands in for the page while something is typed, each with where it is and its short name, and the open tabs", typedInto === "findBox" && inPlace.finding && inPlace.space === "none" && inPlace.list && inPlace.inBar && inPlace.popup === "static" && /^Stripe\|🏢 Work › .+\|[a-z]+\/$/.test(found[0]) && tabsFound.some((r) => r.endsWith("|Open tab|")) && noneSaid === "Nothing you keep matches “zzzz”. Enter searches the web for it.", [found, tabsFound, inPlace]);
+ok("Esc clears it and the page is back", (await p.inputValue("#findBox")) === "" && (await p.$eval("#find", (s) => s.hidden)) && !(await p.evaluate(() => document.body.classList.contains("finding"))) && (await p.isVisible(".card")));
+await p.fill("#findBox", "bank"); await p.click('#pages .tab:has-text("Shortcuts")'); const leftFind = await p.inputValue("#findBox"); await p.click('#spaces .tab:has-text("Work")'); await p.waitForSelector(".card");
+ok("going to another page clears it too", leftFind === "");
+const fq = await open(); await fq.waitForSelector(".card"); await fq.fill("#findBox", "bank"); await fq.waitForFunction(() => document.querySelectorAll("#findList li").length > 0); await fq.keyboard.press("Enter");
 await fq.waitForURL(/examplebank/, { timeout: 5000 }).catch(() => {});
 ok("Enter opens the first match", /^https:\/\/app\.examplebank\.com\//.test(fq.url()), fq.url()); await fq.close(); await p.bringToFront();
 await p.click("#extrasBtn"); await p.selectOption("#viewPick", "list"); await p.keyboard.press("Escape");
@@ -288,39 +266,47 @@ ok("now, an hourly chart and seven days", /^\d+°$/.test(await text(p, ".wx-temp
 ok("days are named by date, not by the service's holiday names", (await text(p, "#wxDays li:first-child .d")) === "Today");
 ok("no links to mail or calendar on Today", (await p.$$("#today a")).length === 1);
 await p.waitForSelector("#radarCard:not([hidden])", { timeout: 4000 }).catch(() => {});
-ok("radar shows once its image loads, beside the forecast and as wide as its column", !(await p.$("#radarCard[hidden]")) && (await p.$eval("#radarImg", (i) => i.getBoundingClientRect().width)) >= 440 && (await p.$eval("#radarCard", (r) => !!r.closest(".wx"))) && /_loop\.gif/.test(await p.$eval("#radarImg", (i) => i.src)));
+ok("radar shows once its image loads, at the top beside the sky, as wide as its column up to 600 px", !(await p.$("#radarCard[hidden]")) && (await p.$eval("#radarImg", (i) => i.getBoundingClientRect().width)) >= 500 && (await p.$eval("#radarCard", (r) => !!r.closest(".t-now"))) && /_loop\.gif/.test(await p.$eval("#radarImg", (i) => i.src)));
 
 // the next 24 hours: one strip that is the hourly forecast and the handle on the day
-const dayNow = () => p.evaluate(() => ({ time: document.getElementById("bigTime").textContent, then: document.getElementById("sky").classList.contains("then"), say: document.getElementById("thenLine").textContent, world: document.getElementById("worldSay").textContent, sun: +document.getElementById("sunDot").getAttribute("cx"), back: !document.getElementById("scrubNow").hidden, mark: document.getElementById("stripMark").getAttribute("transform"), wx: document.getElementById("skyWx").textContent, lit: document.getElementById("worldDay").getAttribute("d").split("M").length - 1, dark: document.getElementById("worldNight").getAttribute("d").split("M").length - 1, value: document.getElementById("scrub").value }));
+const dayNow = () => p.evaluate(() => ({ time: document.getElementById("bigTime").textContent, then: document.getElementById("sky").classList.contains("then"), say: document.getElementById("thenLine").textContent, sun: +document.getElementById("sunDot").getAttribute("cx"), back: !document.getElementById("scrubNow").hidden, mark: document.getElementById("stripMark").getAttribute("transform"), wx: document.getElementById("skyWx").textContent, value: document.getElementById("scrub").value }));
 const rest = await dayNow();
-ok("under the sky a strip shows the next 24 hours: night shaded, the temperature along it, a name every three hours", (await p.$$("#stripArt .st-night")).length >= 1 && !!(await p.$("#stripArt .hc-line")) && (await p.$$eval("#stripArt .hc-h", (x) => x.map((e) => e.textContent))).length >= 8 && (await p.$$eval("#stripArt .hc-h", (x) => x.at(-1).textContent)) === "Now" && !rest.then && !rest.back && rest.say === "Drag along the day to see any hour of the next 24." && rest.world === "The world right now" && rest.lit + rest.dark === 1636 && !(await p.$("#wxHours")), rest);
+ok("under the sky a strip shows the next 24 hours: night shaded, the temperature along it, a name every three hours", (await p.$$("#stripArt .st-night")).length >= 1 && !!(await p.$("#stripArt .hc-line")) && (await p.$$eval("#stripArt .hc-h", (x) => x.map((e) => e.textContent))).length >= 8 && (await p.$$eval("#stripArt .hc-h", (x) => x.at(-1).textContent)) === "Now" && !rest.then && !rest.back && rest.say === "Drag along the day to see any hour of the next 24." && !(await p.$("#wxHours")) && !(await p.$("#worldMap")), rest);
 const sb = await p.locator("#stripArt").boundingBox();
-await p.mouse.move(sb.x + sb.width * 0.2, sb.y + 30); await p.mouse.down(); await p.mouse.move(sb.x + sb.width * 0.5, sb.y + 30, { steps: 5 }); await p.mouse.up();
+await p.mouse.move(sb.x + sb.width * 0.2, sb.y + 30); await p.mouse.down(); await p.mouse.move(sb.x + sb.width * 0.5, sb.y + 30, { steps: 5 }); await p.mouse.up(); await p.waitForFunction(() => /^In 12 h 0 min/.test(document.getElementById("thenLine").textContent), null, { timeout: 4000 }).catch(() => {});
 const half = await dayNow();
-ok("dragging along it moves the whole page to that moment: the clock, the sun, that hour's forecast and the map of day and night", half.then && half.back && half.value === "720" && half.time !== rest.time && half.sun !== rest.sun && /^In 12 h 0 min: \d+°, /.test(half.say) && /^The world at \d/.test(half.world) && half.lit !== rest.lit && half.mark !== rest.mark && /\d+° and /.test(half.wx), half);
-await p.focus("#scrub"); await p.keyboard.press("ArrowRight");
+ok("dragging along it moves the page to that moment: the clock, the sun and that hour's forecast", half.then && half.back && half.value === "720" && half.time !== rest.time && half.sun !== rest.sun && /^In 12 h 0 min: \d+°, /.test(half.say) && half.mark !== rest.mark && /\d+° and /.test(half.wx), half);
+await p.focus("#scrub"); await p.keyboard.press("ArrowRight"); await p.waitForFunction(() => /12 h 5 min/.test(document.getElementById("thenLine").textContent), null, { timeout: 4000 }).catch(() => {});
 const stepped = await dayNow();
-await p.click("#scrubNow");
+await p.click("#scrubNow"); await p.waitForFunction(() => !document.getElementById("sky").classList.contains("then"), null, { timeout: 4000 }).catch(() => {});
 const home = await dayNow();
 ok("the keyboard moves it five minutes at a time, and Back to now puts the day back", stepped.value === "725" && /^In 12 h 5 min/.test(stepped.say) && home.value === "0" && !home.then && !home.back && home.time === rest.time && home.say === rest.say, [stepped.say, home]);
 await p.mouse.click(sb.x + sb.width * 0.7, sb.y + 30); await p.click('#pages .tab:has-text("Shortcuts")'); await p.click('#pages .tab:has-text("Today")'); await p.waitForSelector(".wx-temp");
 ok("leaving Today puts the day back as well", !(await dayNow()).then);
-// the world beside it: your clock, and the cities you add
-const zonesNow = () => p.$$eval("#zones li", (x) => x.map((li) => `${li.querySelector("b").textContent}|${li.querySelector(".where").textContent}`));
-ok("the world sits beside the sky with your own clock under it, and says what adding a city is for", (await p.$eval(".day", (d) => !!d.querySelector("#sky") && !!d.querySelector("#worldMap"))) && /^\w{3} \d+:\d\d [AP]M\|New York, NY, where you are$/.test((await zonesNow()).join()) && (await p.isVisible("#zoneHint")) && (await p.$$eval("#worldPins .pin text", (x) => x.map((e) => e.textContent))).join() === "You", await zonesNow());
-await p.fill("#zoneInput", "Paris"); await p.click("#zoneForm .btn"); await p.waitForFunction(() => document.querySelectorAll("#zones li").length === 2, null, { timeout: 5000 }).catch(() => {});
-const parisNow = await zonesNow();
-const zoneSaved = await sw.evaluate(async () => (await chrome.storage.sync.get("zones")).zones);
-await p.evaluate(() => { const s = document.getElementById("scrub"); s.value = "360"; s.oninput(); }); await p.waitForFunction(() => document.getElementById("sky").classList.contains("then"));
-await p.waitForTimeout(300);
-const parisLater = await zonesNow();
-ok("a city is added by name, kept with its time zone, pinned on the map, and its clock follows the day as it is dragged", /\|Paris, Île-de-France, France$/.test(parisNow[1]) && zoneSaved.length === 1 && zoneSaved[0].zone === "Europe/Paris" && net.zones.join() === "48.86,2.35" && (await p.$$eval("#worldPins .pin text", (x) => x.map((e) => e.textContent))).join() === "You,Paris" && parisLater[1] !== parisNow[1] && parisLater[0] !== parisNow[0] && !(await p.isVisible("#zoneHint")), [parisNow, parisLater, zoneSaved]);
-await p.click("#scrubNow"); await p.hover("#zones li >> nth=1"); await p.click("#zones li >> nth=1 >> .mini"); await p.waitForFunction(() => document.querySelectorAll("#zones li").length === 1, null, { timeout: 4000 }).catch(() => {});
-ok("and removed again", (await zonesNow()).length === 1 && (await sw.evaluate(async () => (await chrome.storage.sync.get("zones")).zones)).length === 0);
+
+// your places: where you are, and cities you add, pick and see on every space
+const chipsNow = (sel = "#places") => p.$$eval(`${sel} .place`, (x) => x.map((b) => `${b.getAttribute("aria-pressed") === "true" ? "*" : ""}${b.querySelector(".p-name").textContent}${b.querySelector("b") ? " " + b.querySelector("b").textContent : ""}`));
+const noCities = { chips: await chipsNow(), add: await p.isVisible("#zoneAdd"), form: await p.isVisible("#zoneForm"), pencil: await p.isVisible("#edit") };
+await p.click("#zoneAdd");
+const editingToday = { on: await p.evaluate(() => document.body.classList.contains("editing")), focus: await p.evaluate(() => document.activeElement.id), ask: await p.isVisible("#todayAsk") };
+await p.fill("#zoneInput", "Paris"); await p.click("#zoneForm .btn"); await p.waitForFunction(() => /Paris/.test(document.getElementById("place").textContent), null, { timeout: 6000 }).catch(() => {});
+const paris = { chips: await chipsNow(), place: await text(p, "#place"), saved: await sw.evaluate(async () => (await chrome.storage.sync.get("zones")).zones), view: await sw.evaluate(async () => (await chrome.storage.local.get("view")).view), home: (await place()).source, time: await text(p, "#bigTime"), x: await p.isVisible(".place-wrap .x") };
+ok("with no cities Today offers to add one, which turns the pencil on: there the place is changed and cities added", noCities.chips.length === 0 && noCities.add && !noCities.form && noCities.pencil && editingToday.on && editingToday.focus === "zoneInput" && editingToday.ask, [noCities, editingToday]);
+ok("a city is added by name with its time zone, picked at once, and Today is drawn for it in its own time; where you are is not changed", paris.saved.length === 1 && paris.saved[0].zone === "Europe/Paris" && net.zones.join() === "48.86,2.35" && paris.view.tz === "Europe/Paris" && paris.place === "Paris, Île-de-France, France" && paris.home === "device" && /^\*Paris \S/.test(paris.chips[1]) && /^📍 Here \d/.test(paris.chips[0]) && paris.time !== rest.time && paris.x, paris);
+await p.click("#edit");
+await p.click('#spaces .tab:has-text("Work")'); await p.waitForSelector(".card"); await p.waitForFunction(() => /Paris/.test(document.getElementById("glPlace").textContent), null, { timeout: 4000 }).catch(() => {});
+const strip = { chips: await chipsNow("#glZones"), place: await text(p, "#glPlace"), clock: await text(p, "#glTime") };
+ok("the pick shows on every space: the strip names the place, lists your cities with their clocks, and keeps your own clock at the left", strip.place === "📍 Paris, Île-de-France, France" && strip.chips[0] === "Here" && /^\*Paris \S/.test(strip.chips[1]) && /^\d+:\d\d [AP]M$/.test(strip.clock), strip);
+await p.click('#glZones .place:has-text("Here")'); await p.waitForFunction(() => !document.getElementById("glPlace").textContent, null, { timeout: 4000 }).catch(() => {});
+const backHere = { chips: await chipsNow("#glZones"), view: await sw.evaluate(async () => (await chrome.storage.local.get("view")).view) };
+ok("Here goes back to where you are, and the city stays in the row to pick again", backHere.chips.length === 1 && /^Paris \S/.test(backHere.chips[0]) && backHere.view === undefined, backHere);
+await p.click('#pages .tab:has-text("Today")'); await p.waitForSelector(".wx-temp"); await p.click("#edit"); await p.click(".place-wrap .x"); await p.waitForFunction(() => !document.querySelector("#places .place"), null, { timeout: 4000 }).catch(() => {});
+ok("with the pencil on, a city is removed", (await sw.evaluate(async () => (await chrome.storage.sync.get("zones")).zones)).length === 0 && (await chipsNow()).length === 0);
+await p.click("#edit"); await p.waitForSelector("#radarCard:not([hidden])", { timeout: 5000 }).catch(() => {});
 await p.setViewportSize({ width: 760, height: 900 });
-const stacked = await p.evaluate(() => { const s = document.getElementById("sky").getBoundingClientRect(), w = document.querySelector(".elsewhere").getBoundingClientRect(); return w.top >= s.bottom - 1 && document.documentElement.scrollWidth <= innerWidth; });
+const stacked = await p.evaluate(() => { const s = document.getElementById("sky").getBoundingClientRect(), r = document.getElementById("radarCard").getBoundingClientRect(); return r.top >= s.bottom - 1 && document.documentElement.scrollWidth <= innerWidth; });
 await p.setViewportSize({ width: 1360, height: 900 });
-ok("on a narrow window the world drops under the sky and nothing runs off the side", stacked);
+ok("on a narrow window the radar drops under the sky and nothing runs off the side", stacked);
 net.searches.length = 0;
 
 // changing the place: a city, a ZIP code, a street address, a place abroad, nothing at all
@@ -510,17 +496,15 @@ await g.ctx.close();
 // In this browser a location request that has failed once takes ten seconds to fail again, so
 // each wait on one allows thirty.
 // It says it is a Mac, where the switch for Chrome's location is in System Settings.
-const n = await launch({ locate: false, fresh: true, timezoneId: "America/Los_Angeles", userAgent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36" });
+const n = await launch({ locate: false, timezoneId: "America/Los_Angeles", userAgent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36" });
 const local = (key) => n.sw.evaluate(async (k) => (await chrome.storage.local.get(k))[k], key);
 // Waits for the saved place to pass a test. (waitForFunction can't: it takes a promise for a yes.)
 const placed = async (pass, ms = 30000) => { for (const end = Date.now() + ms; Date.now() < end; await new Promise((r) => setTimeout(r, 250))) if (pass((await local("place")) || {})) return true; return false; };
 const f = await n.open();
 await f.waitForFunction(() => /network's city/.test(document.getElementById("toast").textContent), null, { timeout: 30000 }).catch(() => {});
-await f.waitForSelector("#startSteps .step");
-ok("with nothing on the bookmarks bar the page opens on Start here, not Today: three ways to bring links in, laid open, and a first space without Edit", (await f.isVisible("#start")) && !!(await f.$("#today[hidden]")) && (await f.$$eval("#startSteps .step h2", (x) => x[0].textContent)) === "Bring in your links" && !(await f.$("#startSteps .step:first-child.done")) && !(await f.$(".step-more")) && (await f.$$eval("#startWays .extra b", (x) => x.map((b) => b.textContent))).join() === "A starter set,A bookmarks file,Have an assistant write the file" && (await f.isVisible('#startSteps button:has-text("Use this computer\'s location")')) && (await text(f, "#spaces .add-space")) === "+ New space" && (await f.isVisible("#spaces .add-space")) && !(await f.$("#empty")), await stepsNow(f));
+await f.waitForSelector("#empty:not([hidden])");
+ok("with nothing on the bookmarks bar the links area says so and offers three ways to bring links in, under the same strip as ever and beside Up next and Notes; there is no separate guide", (await f.isVisible("#empty")) && (await text(f, "#emptyTitle")) === "Bring in your links" && (await f.$$eval("#emptyWays .extra b", (x) => x.map((b) => b.textContent))).join() === "A starter set,A bookmarks file,Have an assistant write the file" && (await f.isVisible(".glance")) && (await f.isVisible("#nextPanel")) && !!(await f.$("#today[hidden]")) && (await f.$$eval("#spaces .tab", (x) => x.map((b) => b.textContent))).join() === "🔖 Your links,+ New space" && !(await f.isVisible("#edit")) && !(await f.$("#start")) && (await f.$$eval("#pages .tab", (x) => x.length)) === 3);
 ok("when the computer won't say where it is, the first new tab uses the network's city, rounded, and says so", (await local("place")).source === "network" && (await local("place")).name === "San Francisco, California" && (await local("place")).lat === 37.77 && (await local("place")).lon === -122.42 && /^The sky and forecast are for your network's city: San Francisco, California\./.test(await text(f, "#toast")) && n.net.estimates === 1, { place: await local("place"), toast: await text(f, "#toast") });
-await f.waitForFunction(() => /Estimated from your network/.test(document.querySelectorAll("#startSteps .step-state")[1].textContent), null, { timeout: 8000 }).catch(() => {});
-ok("the guide says the place is an estimate, and keeps the way to make it exact right there", (await stepsNow(f))[1] === "✓ Say where you are: Estimated from your network: San Francisco, California" && (await f.isVisible('#startSteps button:has-text("Use this computer\'s location")')), await stepsNow(f));
 await f.click('#pages .tab:has-text("Today")');
 await f.waitForFunction(() => /approximate/.test(document.getElementById("place").textContent) && document.querySelector(".wx-temp"), null, { timeout: 8000 }).catch(() => {});
 ok("Today marks the place approximate and the forecast is for it", (await text(f, "#place")) === "San Francisco, California (approximate)" && n.net.points.join() === "37.77,-122.42" && /Estimated from your network/.test(await f.getAttribute("#placeBtn", "title")), [await text(f, "#place"), n.net.points]);
@@ -530,9 +514,9 @@ await f.click('#todayAskForm button:has-text("Use this computer")');
 await f.waitForFunction(() => /instead/.test(document.getElementById("toast").textContent), null, { timeout: 30000 }).catch(() => {});
 ok("pressing the button says why the exact spot was refused and what it used instead", /(couldn't work out|isn't allowed|took too long).* So this is your network's city instead: San Francisco, California\.$/.test(await text(f, "#toast")), await text(f, "#toast"));
 // bringing links in: an assistant's prompt, a bookmarks file, a starter set
-await f.click('#pages .tab:has-text("Start")'); await f.waitForSelector("#startWays");
-await f.click('#startWays button:has-text("Copy the prompt")'); await f.waitForFunction(() => document.querySelector("#startWays .setup-then").textContent.length > 10);
-ok("the assistant's prompt is copied (or shown to copy), with where to paste it; it asks before it invents an address", /^(Copied\. Paste it into|Copy it from the box below, and paste it into) Gemini, Claude or ChatGPT, then choose the file it gives you here\.$/.test(await text(f, "#startWays .setup-then")) && (await f.$$eval("#startWays .setup-then a", (x) => x.map((a) => new URL(a.href).hostname))).join() === "gemini.google.com,claude.ai,chatgpt.com" && (await f.evaluate(async () => { const { PROMPT } = await import("./setup.js"); return /Never guess or invent one/.test(PROMPT) && /NETSCAPE-Bookmark-file-1/.test(PROMPT) && /Choose a file/.test(PROMPT); })), await text(f, "#startWays .setup-then"));
+await f.click('#spaces .tab:has-text("Your links")'); await f.waitForSelector("#empty:not([hidden])");
+await f.click('#emptyWays button:has-text("Copy the prompt")'); await f.waitForFunction(() => document.querySelector("#emptyWays .setup-then").textContent.length > 10);
+ok("the assistant's prompt is copied (or shown to copy), with where to paste it; it asks before it invents an address", /^(Copied\. Paste it into|Copy it from the box below, and paste it into) Gemini, Claude or ChatGPT, then choose the file it gives you here\.$/.test(await text(f, "#emptyWays .setup-then")) && (await f.$$eval("#emptyWays .setup-then a", (x) => x.map((a) => new URL(a.href).hostname))).join() === "gemini.google.com,claude.ai,chatgpt.com" && (await f.evaluate(async () => { const { PROMPT } = await import("./setup.js"); return /Never guess or invent one/.test(PROMPT) && /NETSCAPE-Bookmark-file-1/.test(PROMPT) && /Choose a file/.test(PROMPT); })), await text(f, "#emptyWays .setup-then"));
 const FILE = `<!DOCTYPE NETSCAPE-Bookmark-file-1>
 <META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=UTF-8">
 <TITLE>Bookmarks</TITLE>
@@ -558,11 +542,11 @@ const FILE = `<!DOCTYPE NETSCAPE-Bookmark-file-1>
     </DL><p>
     <DT><A HREF="https://other.example.com/">Not on the bar</A>
 </DL><p>`;
-const bring = async (text, name = "bookmarks.html") => { await f.setInputFiles("#startWays .setup-file", { name, mimeType: "text/html", buffer: Buffer.from(text) }); await f.waitForFunction((n) => !document.getElementById("toast").hidden && /Added|Nothing new|No web links/.test(document.getElementById("toast").textContent), name, { timeout: 8000 }).catch(() => {}); return text ? f.textContent("#toast") : ""; };
+const bring = async (text, name = "bookmarks.html") => { await f.setInputFiles("#emptyWays .setup-file", { name, mimeType: "text/html", buffer: Buffer.from(text) }); await f.waitForFunction((n) => !document.getElementById("toast").hidden && /Added|Nothing new|No web links/.test(document.getElementById("toast").textContent), name, { timeout: 8000 }).catch(() => {}); return text ? f.textContent("#toast") : ""; };
 const shape = async () => { const walk = (n) => (n.url ? n.title : `${n.title}[${(n.children || []).map(walk).join(",")}]`); return (await n.tree()).children[0].children.map(walk).join(" "); };
 const said1 = await bring(FILE);
 await f.waitForSelector(".card");
-ok("a bookmarks file's folders become spaces and collections; only web links are taken, loose ones are gathered, and the page opens on the first space", (await shape()) === "💼 Work[Mail,Docs[Wiki]] 🏡 Home[Bank] 📥 Imported[Loose]" && said1 === "Added 4 links in 4 new folders.Undo" && (await f.getAttribute('#spaces .tab:has-text("Work")', "aria-selected")) === "true" && !(await f.isVisible("#start")), [await shape(), said1]);
+ok("a bookmarks file's folders become spaces and collections; only web links are taken, loose ones are gathered, and the page opens on the first space", (await shape()) === "💼 Work[Mail,Docs[Wiki]] 🏡 Home[Bank] 📥 Imported[Loose]" && said1 === "Added 4 links in 4 new folders.Undo" && (await f.getAttribute('#spaces .tab:has-text("Work")', "aria-selected")) === "true" && !(await f.isVisible("#empty")), [await shape(), said1]);
 await f.click("#extrasBtn"); await f.setInputFiles("#setupBody .setup-file", { name: "bookmarks.html", mimeType: "text/html", buffer: Buffer.from(FILE) });
 await f.waitForFunction(() => /Nothing new/.test(document.getElementById("toast").textContent), null, { timeout: 8000 }).catch(() => {});
 const said2 = await text(f, "#toast");
@@ -571,16 +555,14 @@ await f.waitForFunction(() => /No web links/.test(document.getElementById("toast
 ok("the same file again adds nothing, from Settings too, and a file with no links says so", said2 === "Nothing new to add. 4 links were already here." && (await shape()) === "💼 Work[Mail,Docs[Wiki]] 🏡 Home[Bank] 📥 Imported[Loose]" && (await text(f, "#toast")) === "No web links were found in notes.html. It should be a bookmarks file, as browsers export them.", [said2, await text(f, "#toast")]);
 await f.keyboard.press("Escape");
 await n.sw.evaluate(async () => { const [root] = await chrome.bookmarks.getTree(); for (const k of root.children[0].children) await chrome.bookmarks.removeTree(k.id); });
-await f.waitForSelector("#start:not([hidden])"); await f.waitForSelector("#startSteps #startWays");
-await f.click('#startWays button:has-text("Add the starter set")'); await f.waitForSelector(".card");
-await f.click('#pages .tab:has-text("Start")'); await f.waitForSelector(".step-more");
-const afterStarter = (await stepsNow(f))[0];
-await f.click('#spaces .tab:has-text("Home")');
+await f.waitForSelector("#empty:not([hidden])");
+await f.click('#emptyWays button:has-text("Add the starter set")'); await f.waitForSelector(".card");
+
 const starter = await shape();
 await f.waitForFunction(() => /^Added/.test(document.getElementById("toast").textContent));
 const said3 = await text(f, "#toast");
-await f.click("#toast button"); await f.waitForSelector("#start:not([hidden])"); await f.waitForSelector("#startSteps #startWays");
-ok("the starter set is one space of everyday places, opened at once, and Undo takes all of it away again", starter === "🏠 Home[Everyday[Gmail,Calendar,Drive,YouTube],Ask[Claude,ChatGPT,Gemini],Look up[Wikipedia,Translate,Maps]]" && afterStarter === "✓ Bring in your links: 10 links in 1 space" && said3 === "Added 10 links in 4 new folders.Undo" && (await shape()) === "", [starter, said3, await shape()]);
+await f.click("#toast button"); await f.waitForSelector("#empty:not([hidden])");
+ok("the starter set is one space of everyday places, opened at once, and Undo takes all of it away again", starter === "🏠 Home[Everyday[Gmail,Calendar,Drive,YouTube],Ask[Claude,ChatGPT,Gemini],Look up[Wikipedia,Translate,Maps]]" && said3 === "Added 10 links in 4 new folders.Undo" && (await shape()) === "", [starter, said3, await shape()]);
 await f.click("#spaces .add-space"); await f.waitForSelector("#spaces .rename"); await f.waitForSelector(".emoji-pick"); await f.fill("#spaces .rename", "Home");
 const picks = (await f.$$(".emoji-pick button")).length;
 await f.click('.emoji-pick button:has-text("🏠")');
@@ -588,7 +570,7 @@ const withEmoji = { value: await f.inputValue("#spaces .rename"), focus: await f
 await f.click('.emoji-pick button:has-text("⭐")'); const swapped = await f.inputValue("#spaces .rename"); await f.click('.emoji-pick button:has-text("🏠")');
 await f.keyboard.press("Enter"); await f.waitForSelector('#spaces .tab[aria-selected="true"]:has-text("Home")');
 ok("naming a folder offers a row of emoji: one press leads the name with it, or swaps the one that was there, and typing carries on", picks === 32 && withEmoji.value === "🏠 Home" && withEmoji.focus === "rename" && swapped === "⭐ Home" && !(await f.$(".emoji-pick")), withEmoji);
-ok("the first space is made from the page, opens, and leaves Edit on to fill it", (await n.tree()).children[0].children.map((c) => c.title).join() === "🏠 Home" && (await f.evaluate(() => document.body.classList.contains("editing"))) && !(await f.isVisible("#start")) && (await f.isVisible(".tile.add")));
+ok("the first space is made from the page, opens, and leaves Edit on to fill it", (await n.tree()).children[0].children.map((c) => c.title).join() === "🏠 Home" && (await f.evaluate(() => document.body.classList.contains("editing"))) && !(await f.isVisible("#empty")) && (await f.isVisible(".tile.add")));
 await f.close();
 
 // on a VPN the network is somewhere else: its city is not used, and the page says why and asks

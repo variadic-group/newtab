@@ -29,7 +29,7 @@ Then write one file called bookmarks.html in the Netscape bookmark format that b
 - Use only https addresses I gave you or that you are sure of. Leave out anything you are unsure of, and list those for me afterwards.
 
 Give me the file to download, or its full text in one code block that I can save as bookmarks.html. Then tell me the next three things to do:
-1. Open a new tab, and under "Bring in your links" press "Choose a file" and pick bookmarks.html. (It is on the Start tab, and in Settings at the top right.)
+1. Open a new tab, and under "Bring in your links" press "Choose a file" and pick bookmarks.html. (It is on the page itself while the bookmarks bar is empty, and always in Settings at the top right.)
 2. Type a link's short name in the address bar and press Enter to open it. The short name is usually the first word of the link's name in lower case, followed by a slash: a link called "Stripe" opens with stripe/. Words after the slash search that site. The Shortcuts tab lists every name.
 3. Pin the extension's button in the browser toolbar. One press saves the page I am on to a list called Up next.
 List the short names you expect for the five links I said I use most.`;

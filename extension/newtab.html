@@ -14,13 +14,14 @@
     <nav id="spaces" class="tabs" role="tablist" aria-label="Spaces"></nav>
     <div class="right">
       <nav id="pages" class="tabs" role="tablist" aria-label="Pages"></nav>
+      <label class="finder" title="Find a link in any space ( / )">
+        <svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="8.8" cy="8.8" r="5.3"/><path d="M12.8 12.8l4 4"/></svg>
+        <input id="findBox" type="text" autocomplete="off" spellcheck="false" placeholder="Find a link" aria-label="Find a link, in any space" aria-controls="findList">
+      </label>
       <button type="button" class="mini edit-only" data-go="chrome://bookmarks/" title="Chrome's bookmark manager, for bulk moves and new folders">Bookmarks in Chrome</button>
-      <button type="button" id="edit" class="icon-btn" aria-pressed="false" aria-label="Edit bookmarks" title="Edit: rename, add and remove">
+      <button type="button" id="edit" class="icon-btn" aria-pressed="false" aria-label="Edit this page" title="Edit: rename, add and remove">
         <svg class="when-off" viewBox="0 0 20 20" aria-hidden="true"><path d="M3.2 16.8l.9-3.9L14.3 2.7a1.6 1.6 0 0 1 2.2 0l.8.8a1.6 1.6 0 0 1 0 2.2L7.1 15.9z"/><path d="M12.4 4.6l3 3"/></svg>
         <svg class="when-on" viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10.6l4 4 8-9.2"/></svg>
-      </button>
-      <button type="button" id="findBtn" class="icon-btn" aria-expanded="false" aria-controls="find" aria-label="Find a link" title="Find a link in any space ( / )">
-        <svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="8.8" cy="8.8" r="5.3"/><path d="M12.8 12.8l4 4"/></svg>
       </button>
       <button type="button" id="extrasBtn" class="icon-btn" aria-expanded="false" aria-controls="extras" aria-label="Settings" title="Settings">
         <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 6h7M14 6h3M3 14h3M10 14h7"/><circle cx="12" cy="6" r="2"/><circle cx="8" cy="14" r="2"/></svg>
@@ -30,20 +31,15 @@
 </header>
 
 <main class="wrap">
-  <section id="start" class="start" aria-labelledby="startTitle" hidden>
-    <header class="sc-head">
-      <h1 id="startTitle">Start here</h1>
-      <p>Four things, about a minute each. <span id="startCount"></span></p>
-    </header>
-    <ol id="startSteps" class="steps"></ol>
-    <h2 class="also-title">Also on this page</h2>
-    <div id="startAlso" class="alsos"></div>
-    <p class="start-foot"><button type="button" id="startHide" class="mini lead"></button><span class="cap">This guide stays in Settings, under Getting started.</span></p>
+  <section id="find" class="found" aria-label="Links found" hidden>
+    <ul id="findList" class="find-list"></ul>
+    <p id="findSay" class="cap" role="status"></p>
   </section>
   <section id="space" class="space" hidden>
     <div class="glance">
       <div class="gl-main">
         <a id="glCal" class="gl-time" href="https://calendar.google.com/" title="Opens your calendar"><b id="glTime"></b><span id="glDate" class="cap"></span></a>
+        <div id="glZones" class="gl-zones" role="group" aria-label="Your cities. Press one to see its sky and forecast." hidden></div>
         <button type="button" id="glance" class="gl-rest" aria-label="Daylight, weather and radar. Opens Today.">
         <span id="glSun" class="gl-sun" hidden>
           <svg viewBox="0 0 132 54" aria-hidden="true">
@@ -53,7 +49,7 @@
             <line class="gl-horizon" x1="0" y1="40" x2="132" y2="40"/>
             <circle id="glDot" r="5"/>
           </svg>
-          <span class="gl-lines"><span class="gl-times"><span id="glRise"></span><span id="glSet"></span></span><span id="glLeft" class="cap"></span></span>
+          <span class="gl-lines"><span class="gl-times"><span id="glRise"></span><span id="glSet"></span></span><span id="glLeft" class="cap"></span><span id="glPlace" class="cap"></span></span>
         </span>
         <span id="glWx" class="gl-wx" hidden>
           <span id="glGlyph" class="gl-glyph"></span><b id="glTemp"></b>
@@ -70,6 +66,11 @@
     </div>
     <nav id="often" class="often" aria-label="Most visited" hidden></nav>
     <div id="collections" class="collections"></div>
+    <article id="empty" class="empty" aria-labelledby="emptyTitle" hidden>
+      <h2 id="emptyTitle">Bring in your links</h2>
+      <p>This page is your bookmarks bar, laid out: each folder on the bar is a tab at the top, and each folder inside it a card of links. Yours has no folders yet. Start one of these ways, or press “+ New space” and build it by hand.</p>
+      <div id="emptyWays" class="setup"></div>
+    </article>
     <aside class="side">
       <section id="nextPanel" class="panel" aria-labelledby="nextTitle">
         <h2 id="nextTitle" title="Pages to come back to. Drag to reorder; tick one off when you're done with it.">Up next <span id="nextCount" class="n"></span></h2>
@@ -118,8 +119,17 @@
       <div id="todayAskForm"></div>
     </article>
     <div id="todayGrid" class="today-grid">
-      <article class="day" aria-label="Today, here and around the world">
-        <div id="sky" class="sky">
+      <div class="places-row">
+        <div id="places" class="places" role="group" aria-label="Where you are and your cities. Press one to see its sky and forecast."></div>
+        <button type="button" id="zoneAdd" class="mini lead">Add a city</button>
+        <form id="zoneForm" class="edit-only">
+          <input id="zoneInput" type="text" autocomplete="off" placeholder="A city to add" aria-label="A city to add">
+          <button type="submit" class="btn">Add</button>
+          <span id="zoneNote" class="cap" role="status"></span>
+        </form>
+      </div>
+      <div class="t-now">
+        <article id="sky" class="sky" aria-label="Time, sun and moon">
           <header class="sky-head">
             <div>
               <div id="bigTime" class="big-time"></div>
@@ -161,19 +171,12 @@
             <div class="mid"><b id="daylight"></b><span id="moonLine" class="cap"></span></div>
             <div class="end"><span class="cap">Sunset</span><b id="set"></b><span id="setSub" class="cap"></span></div>
           </footer>
-        </div>
-        <div class="elsewhere">
-          <h2 id="worldSay"></h2>
-          <svg id="worldMap" viewBox="0 0 720 276" role="img"><path id="worldNight" class="land night"/><path id="worldDay" class="land day"/><g id="worldPins"></g></svg>
-          <ul id="zones" class="zones"></ul>
-          <p id="zoneHint" class="cap">Add the cities you deal with. Their clocks follow as you drag the day, so you can see what time a call lands for everyone.</p>
-          <form id="zoneForm">
-            <input id="zoneInput" type="text" autocomplete="off" placeholder="Add a city" aria-label="Add a city to see its time">
-            <button type="submit" class="btn">Add</button>
-            <span id="zoneNote" class="cap" role="status"></span>
-          </form>
-        </div>
-      </article>
+        </article>
+        <figure id="radarCard" class="radar" hidden>
+          <figcaption><b>Radar</b><a id="radarLink" href="https://radar.weather.gov/">weather.gov</a></figcaption>
+          <img id="radarImg" alt="Weather radar loop for your area">
+        </figure>
+      </div>
       <article class="wx" aria-label="Forecast">
         <div class="wx-main">
           <header class="wx-head">
@@ -184,10 +187,6 @@
           <p id="wxNote" class="note" hidden></p>
         </div>
         <ol id="wxDays" class="wx-days"></ol>
-        <figure id="radarCard" class="radar" hidden>
-          <figcaption><b>Radar, the last hour</b><a id="radarLink" href="https://radar.weather.gov/">weather.gov</a></figcaption>
-          <img id="radarImg" alt="Weather radar loop for your area">
-        </figure>
       </article>
     </div>
   </section>
@@ -204,12 +203,7 @@
     <header class="sc-head">
       <h1>Shortcuts</h1>
       <p>Type a short name in the address bar and press Enter. Words after the slash search that place.</p>
-      <div class="try">
-        <label for="tryBar">Try one here</label>
-        <input id="tryBar" type="text" autocomplete="off" spellcheck="false" placeholder="mail/invoice from the printer">
-        <p id="tryOut" role="status"></p>
-      </div>
-      <p>Every bookmark gets its short name from its own name the moment it is saved. Click a name below to change it.</p>
+      <p>Every bookmark gets its short name from its own name the moment it is saved. The pencil at the top right changes one, and adds your own.</p>
     </header>
     <div id="scBody" class="sc-body"></div>
   </section>
@@ -224,7 +218,6 @@
 <section id="extras" class="extras" role="dialog" aria-labelledby="extrasTitle" hidden>
   <header class="extras-head">
     <h2 id="extrasTitle">Settings</h2>
-    <button type="button" id="guideBtn" class="mini lead">Getting started</button>
     <button type="button" id="extrasClose" class="mini">Close</button>
   </header>
   <h3>Look</h3>
@@ -251,15 +244,6 @@
   <div id="setupBody"></div>
   <h3>Extras, off until you switch them on</h3>
   <div id="extrasBody"></div>
-  <h3>What this page keeps</h3>
-  <div class="extra">
-    <div><b>A copy of your settings</b><p class="cap">Short names, your own shortcuts, notes, cities and the look already travel with your Chrome profile. This saves them as a file as well, or brings one back. Bookmarks are Chrome's own and sync with it.</p></div>
-    <div class="setup-acts">
-      <button type="button" id="copySave" class="btn">Save a copy</button>
-      <button type="button" id="copyRestore" class="btn">Restore</button>
-      <input type="file" id="copyFile" accept=".json,application/json" hidden>
-    </div>
-  </div>
   <h3>Kept in Chrome</h3>
   <div class="in-chrome">
     <button type="button" class="chip" id="selfPage">This extension, to reload or remove it</button>
@@ -269,12 +253,6 @@
     <button type="button" class="chip" data-go="chrome://settings/searchEngines">Search engines</button>
     <button type="button" class="chip" data-go="chrome://settings/syncSetup">Sync</button>
   </div>
-</section>
-
-<section id="find" class="find" role="dialog" aria-label="Find a link" hidden>
-  <input id="findBox" type="text" autocomplete="off" spellcheck="false" placeholder="Find a link, in any space" aria-label="Find a link, in any space" aria-controls="findList">
-  <ul id="findList" class="find-list"></ul>
-  <p id="findSay" class="cap" role="status"></p>
 </section>
 
 <div id="toast" class="toast" role="status" hidden></div>

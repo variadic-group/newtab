@@ -46,13 +46,11 @@ A bookmarks file or a settings file you choose is read on your computer and goes
 ## What it keeps
 
 - **In Chrome's synced storage** (travels with your Chrome profile, through Google's sync): the
-  short names you set, shortcuts you add, your notes, the cities you added on Today, your
-  choice of light or dark, accent and tiles or a list, whether the Start tab is hidden, and one
-  yes-or-no: whether a short name has ever been typed, which is what ticks that step of the
-  guide. Not which one, or when.
-- **In this browser only:** that the first new tab has been greeted with the guide, the place
-  you set, the last forecast, which icons were found, the
-  last space you opened, and tonight's dusk and dawn.
+  short names you set, shortcuts you add, your notes, the cities you added on Today, and your
+  choice of light or dark, accent and tiles or a list.
+- **In this browser only:** the place you set, which city you are looking at if not your own,
+  the last forecast for each, which icons were found, the last space you opened, and tonight's
+  dusk and dawn.
 
 Removing the extension deletes all of it. Your bookmarks stay, including the `⏭️ Next` folder.
 

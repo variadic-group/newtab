@@ -44,16 +44,16 @@ Your bookmarks are already organised. This makes them your new tab.
 
 Every folder on your bookmarks bar becomes a tab; every folder inside it becomes a card of icons. Nothing to import and no account: the page is drawn from Chrome's own bookmarks, so it is the same on every computer you sign in to, and removing it loses nothing.
 
-NEW HERE? IT STARTS YOU OFF
-The first tab opens on Start here: four things, about a minute each, ticked as you do them.
-1. Bring in your links: a starter set in one press, a bookmarks file from another browser, or a prompt that has your own assistant ask what you use and write the file
-2. Say where you are: this computer's location, or type a city
-3. Type a short name: stripe/ opens Stripe, mail/invoice searches your mail
-4. Keep a page for later: one press files it under Up next
+NOTHING BOOKMARKED YET? IT STARTS YOU OFF
+With an empty bookmarks bar, the page offers three ways in, right where your links will go:
+• A starter set, in one press
+• A bookmarks file from another browser
+• A prompt that has your own assistant ask what you use and write that file
+Then say where you are (this computer's location, or type a city), and type a short name in the address bar: stripe/ opens Stripe, mail/invoice searches your mail.
 
 LAUNCH
 • Spaces, collections and groups, straight from the bookmarks bar; make and rename them on the page
-• Find (press /): one box over every link in every space, and your open tabs
+• Find (press /): type and everything you keep is filtered down to what matches, in any space, with your open tabs
 • Links as icon tiles, or as a list with each link's short name beside it
 • Drag to reorder links, cards and tabs; the bookmarks bar changes with you
 • Open a whole collection as one named tab group
@@ -68,12 +68,13 @@ TYPE, DON'T CLICK
 PICK UP WHERE YOU LEFT OFF
 • Up next: pages to come back to, saved with one click, Alt+Shift+S or a right-click
 • Open tabs: switch, reorder, close, or file one into a collection
-• Notes: a few pages of scratch text that follow your Chrome profile; copy one or download it
+• Notes: a scratch box that follows your Chrome profile
 
 LOOK UP
 • The sun's real path across the day, the three twilights, and the moon in its true phase
-• Drag along the next 24 hours and the whole page moves to that moment: the clock, the sun, that hour's forecast
-• A map of where it is day right now, with the clocks of the cities you add, which follow the drag: what time a call lands for everyone
+• Sunrise, sunset and the radar for where you are, at the top
+• Drag along the next 24 hours and the clock, the sun and that hour's forecast move with you
+• Add the cities you deal with: each shows its clock on every page, and one press draws the sky and forecast for it
 • The page turns dark when night falls where you are; or hold it light or dark, and pick an accent
 • Forecast, seven days and radar from the National Weather Service (United States)
 
@@ -91,7 +92,7 @@ PRIVATE BY CONSTRUCTION
 Free and open source.
 ```
 
-**Screenshots** (1280×800, sample data): `13-start.png`, `2-space.png`, `12-today-dragged.png`,
+**Screenshots** (1280×800, sample data): `2-space.png`, `13-bare.png`, `4-today-day.png`,
 `10-shortcuts.png`, `11-tools.png`.
 
 ## Privacy tab

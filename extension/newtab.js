@@ -1,23 +1,23 @@
 import { $, el } from "./dom.js";
 import { loadIcons, siteIcon, tabIcon, host } from "./icons.js";
 import { BUILTIN, claims, barChildren, bookmarkBars, leaves, aliasTable, aliasFor, nextFolder, addToNext } from "./shared.js";
-import { renderShortcuts, aliasPill, wireTry } from "./shortcuts.js";
+import { renderShortcuts, aliasPill } from "./shortcuts.js";
 import { renderToday, tickToday, tickTheme, renderGlance, warmWeather, scrubTo, stripMinutes } from "./today.js";
-import { wireZones } from "./zones.js";
+import { wirePlaces } from "./places.js";
 import { placeForm, getPlace, leftBehind, keepPlace } from "./place.js";
 import { renderExtras, renderMail, renderFiles, renderClosed, renderOften } from "./extras.js";
 import { renderTools } from "./tools.js";
 import { loadNotes, wireNotes, bigNote, noteIsBig } from "./notes.js";
 import { setupRows } from "./setup.js";
-import { saveCopy, restoreCopy } from "./backup.js";
-import { wireStart, renderStart } from "./start.js";
-import { wireFind, openFind, findIsOpen } from "./find.js";
+import { wireFind, clearFind } from "./find.js";
 
 const TODAY = "today";
 const KEYS = "shortcuts";
 const TOOLS = "tools";
-const START = "start";
-const isPage = (id) => id === TODAY || id === KEYS || id === TOOLS || id === START;
+// With nothing on the bookmarks bar there is no space to show, so the links area itself says
+// how to bring links in. It is a page only in that it isn't a folder.
+const BARE = "bare";
+const isPage = (id) => id === TODAY || id === KEYS || id === TOOLS || id === BARE;
 let current = null;
 let pendingRename = null;
 
@@ -121,27 +121,24 @@ async function spaces() {
 
 async function render() {
   const all = await spaces();
-  const { space: saved, greeted } = await chrome.storage.local.get(["space", "greeted"]);
-  const { guide } = await chrome.storage.sync.get("guide");
-  // The very first new tab on this computer opens on the guide, and so does one with nothing
-  // on the bookmarks bar; after that a new tab opens on the last space.
-  if (!current) current = !greeted ? START : saved || (all[0] && all[0].id) || START;
-  if (!greeted) chrome.storage.local.set({ greeted: true });
-  if (!isPage(current) && !all.some((s) => s.id === current)) current = all[0] ? all[0].id : START;
+  const { space: saved } = await chrome.storage.local.get("space");
+  if (!current) current = saved || (all[0] && all[0].id) || BARE;
+  if (!isPage(current) && !all.some((s) => s.id === current)) current = all[0] ? all[0].id : BARE;
+  if (current === BARE && all.length) current = all[0].id;
 
-  $("spaces").replaceChildren(...all.map((s) => tabFor(s.id, s.title, s)), newSpaceTab(!all.length));
+  $("spaces").replaceChildren(...(all.length ? all.map((s) => tabFor(s.id, s.title, s)) : [tabFor(BARE, "🔖 Your links")]), newSpaceTab(!all.length));
   renameNew($("spaces"));
   fitSpaces();
-  // The Start tab stays until it is hidden from the guide itself; a bare bar always has it.
-  const guided = guide !== "hidden" || !all.length || current === START;
-  $("pages").replaceChildren(...(guided ? [tabFor(START, "👋 Start")] : []), tabFor(TODAY, "☀️ Today"), tabFor(KEYS, "⌨️ Shortcuts"), tabFor(TOOLS, "🛠️ Tools"));
-  $("start").hidden = current !== START;
+  $("pages").replaceChildren(tabFor(TODAY, "☀️ Today"), tabFor(KEYS, "⌨️ Shortcuts"), tabFor(TOOLS, "🛠️ Tools"));
   $("today").hidden = current !== TODAY;
   $("shortcuts").hidden = current !== KEYS;
   $("tools").hidden = current !== TOOLS;
-  $("space").hidden = isPage(current);
-  $("edit").hidden = isPage(current);
-  if (current === START) return renderStart();
+  const bare = current === BARE;
+  $("space").hidden = isPage(current) && !bare;
+  // The pencil is there wherever something can be changed: a space, your cities, your short names.
+  $("edit").hidden = current === TOOLS || bare;
+  $("empty").hidden = !bare;
+  $("collections").hidden = bare;
   if (current === TODAY) return renderToday();
   if (current === KEYS) return renderShortcuts($("scBody"), render);
   if (current === TOOLS) return renderTools($("toolsBody"));
@@ -149,16 +146,20 @@ async function render() {
   $("glCal").href = (await claims()).get("cal") || BUILTIN.cal.url;
   const space = all.find((s) => s.id === current);
   if (space) await renderSpace(space);
+  $("saveTabs").hidden = !space || !!space.pinned;
   await Promise.all([renderGlance(), renderNext(), renderTabs(), renderMail(), renderFiles(), renderClosed(), renderOften()]);
 }
 
 function show(id) {
+  // Editing carries from one space to the next, since links are moved between them. Going to or
+  // from any other page ends it. Either way, what was being found is cleared.
+  if (editing() && (isPage(id) || isPage(current))) $("edit").click();
+  clearFind();
   current = id;
-  // Editing belongs to a space; leaving for Today or Shortcuts ends it.
-  if (isPage(id) && editing()) $("edit").click();
   if (id !== TODAY) scrubTo(0);
   // A new tab reopens on the last space, never on Today or Shortcuts.
   if (!isPage(id)) chrome.storage.local.set({ space: id });
+  scrollTo(0, 0);
   render();
 }
 
@@ -275,7 +276,6 @@ async function renderSpace(space) {
     $("collections").append(del);
   }
   $("saveTabs").onclick = () => saveTabs(space);
-  $("saveTabs").hidden = !!space.pinned;
   renameNew($("collections"));
 }
 
@@ -605,6 +605,8 @@ $("edit").onclick = () => {
   document.body.classList.toggle("editing", on);
   $("edit").setAttribute("aria-pressed", String(on));
   $("edit").title = on ? "Done editing" : "Edit: rename, add and remove";
+  // On Today, editing is where you are and which cities you keep.
+  if (current === TODAY) changePlace(on);
   // Edit adds a + to the strip of spaces, so it is fitted again.
   fitSpaces();
 };
@@ -647,12 +649,11 @@ chrome.permissions.onRemoved.addListener(drawExtras);
 // The first folders to arrive on a bare bookmarks bar are opened, in place of Today.
 const brought = { toast, opened: async () => { const [first] = await spaces(); if (first) show(first.id); } };
 $("setupBody").append(...setupRows(brought));
-$("guideBtn").onclick = () => { settings(false); show(START); };
+$("emptyWays").append(...setupRows(brought));
 
 // Anything lifted over the page goes away with Esc, or with a press anywhere outside it.
 const LIFTED = [
   { open: () => !$("extras").hidden, within: "#extras, #extrasBtn", shut: () => settings(false) },
-  { open: findIsOpen, within: "#find, #findBtn", shut: () => openFind(false) },
   { open: noteIsBig, within: ".notes", shut: () => bigNote(false) },
 ];
 document.addEventListener("pointerdown", (e) => {
@@ -660,17 +661,6 @@ document.addEventListener("pointerdown", (e) => {
   for (const l of LIFTED) if (l.open() && !e.target.closest(l.within)) l.shut();
 });
 document.addEventListener("keydown", (e) => { if (e.key === "Escape") for (const l of LIFTED) if (l.open()) l.shut(); });
-
-// A copy of what this page keeps, out to a file and back.
-$("copySave").onclick = async () => { await saveCopy(); toast("Saved a copy of your settings to your downloads."); };
-$("copyRestore").onclick = () => $("copyFile").click();
-$("copyFile").onchange = async () => {
-  const [file] = $("copyFile").files;
-  $("copyFile").value = "";
-  if (!file) return;
-  try { const n = await restoreCopy(file); toast(`Restored ${n} thing${n === 1 ? "" : "s"} from ${file.name}.`); render(); }
-  catch (err) { console.warn("restore:", err.message); toast(`That file wasn't restored: ${err.message}.`, null, { ms: 10000 }); }
-};
 
 // The footer says how to type a short link and leads to the full list. Chrome's own pages can't
 // be shown inside this one, so a button marked data-go sends this tab to one.
@@ -734,7 +724,7 @@ chrome.storage.onChanged.addListener((changes, area) => { if (area === "sync" &&
 
 // Redrawing replaces the text boxes, so a change from outside (another tab, sync) waits while one
 // of them is being typed in.
-const typing = () => !!document.activeElement && document.activeElement.matches("#spaces input, #collections input, #scBody input");
+const typing = () => !!document.activeElement && document.activeElement.matches("#spaces input, #collections input, #scBody input, #findBox");
 let queued;
 function rerender(wait = 60) { clearTimeout(queued); queued = setTimeout(() => (typing() ? rerender(500) : render()), wait); }
 for (const ev of ["onCreated", "onRemoved", "onChanged", "onMoved", "onChildrenReordered", "onImportEnded"]) {
@@ -743,10 +733,10 @@ for (const ev of ["onCreated", "onRemoved", "onChanged", "onMoved", "onChildrenR
 // The sky and the forecast are drawn from what is saved, so a new place or forecast redraws them.
 const redrawSky = () => { if (current === TODAY) renderToday(); else if (isPage(current)) tickTheme(); else renderGlance(); };
 chrome.storage.onChanged.addListener((changes, area) => {
-  if (area === "sync" && (changes.aliases || changes.links || changes.guide || changes.usedShort)) rerender();
-  if (area === "local" && changes.place && current === START) rerender();
-  if (area === "local" && changes.place) warmWeather();
-  if (area === "local" && (changes.wx || changes.place)) redrawSky();
+  if (area === "sync" && (changes.aliases || changes.links)) rerender();
+  if (area === "local" && (changes.place || changes.view)) warmWeather();
+  if (area === "local" && (changes.wx || changes.wxView || changes.place || changes.view)) redrawSky();
+  if (area === "sync" && changes.zones) redrawSky();
 });
 matchMedia("(prefers-color-scheme: dark)").addEventListener("change", redrawSky);
 
@@ -777,12 +767,10 @@ dayStrip.addEventListener("pointerdown", (e) => {
 });
 dayStrip.addEventListener("pointermove", (e) => { if (dayStrip.hasPointerCapture(e.pointerId)) dragTo(stripMinutes(e.clientX)); });
 $("scrubNow").onclick = () => scrubTo(0);
-wireZones();
+wirePlaces();
 wireFind();
-// The guide's buttons lead into the rest of the page.
-const tryShort = (text) => { show(KEYS); wireTry(); const bar = $("tryBar"); bar.value = text; bar.oninput(); bar.focus(); };
-wireStart({ ...brought, placed, changePlace: () => { show(TODAY); changePlace(true); }, tryShort, shortcuts: () => show(KEYS), find: () => openFind(), today: () => show(TODAY), tools: () => show(TOOLS), settings: () => settings(true) });
-chrome.storage.onChanged.addListener((changes, area) => { if (area === "sync" && changes.zones && current === TODAY) renderToday(); });
+// "Add a city" is the way into editing Today for someone who has none yet.
+$("zoneAdd").onclick = () => { if (!editing()) $("edit").click(); $("zoneInput").focus(); };
 await loadIcons();
 wireNotes(toast);
 await loadNotes();

@@ -58,12 +58,14 @@ await page.click('.tool:has(h2:has-text("Speed")) .btn'); await page.waitForSele
 await page.waitForTimeout(1600);
 await shot(page, "11-tools"); await page.close();
 
-// Start here, as someone with nothing on their bookmarks bar first sees it.
-const bare = await launch({ icons: "letters", fresh: true, viewport: { width: 1280, height: 800 }, timezoneId: "America/New_York" });
-await bare.sw.evaluate(() => chrome.storage.local.set({ placeTried: true }));
+// The page as someone with nothing on their bookmarks bar first sees it.
+const bare = await launch({ icons: "letters", viewport: { width: 1280, height: 800 }, timezoneId: "America/New_York" });
+await bare.sw.evaluate(() => chrome.storage.local.set({ placeTried: true, place: { lat: 40.71, lon: -74.01, source: "device", at: Date.now() } }));
+bare.net.at = Date.parse(DAY);
 page = await bare.open({ at: DAY });
-await page.waitForSelector("#startSteps .step");
-await shot(page, "13-start");
+await page.waitForSelector("#empty:not([hidden])");
+await page.waitForFunction(() => /°/.test(document.getElementById("glTemp").textContent), null, { timeout: 8000 }).catch(() => {});
+await shot(page, "13-bare");
 await bare.ctx.close();
 
 // The store's small promo tile, 440×280.

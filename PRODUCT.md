@@ -4,7 +4,7 @@ The reasoning behind the product: who it serves, what they are trying to do at t
 tab opens, and how each of those moments goes. Read it before adding a feature. The README says
 what the product does; this says why, and what it refuses to become.
 
-Last walked through end to end at 3.9.0 (2026-11-12).
+Last walked through end to end at 4.0.0 (2026-11-12).
 
 ## Who it is for
 
@@ -48,9 +48,9 @@ its own tab, Tools, so it costs the main page nothing.
 Checked once more before the store (2026-11-12), by what these kinds keep offering and what
 their users keep asking for:
 
-- **Taken, because most people with more than a screenful of links want it:** finding a link
-  by typing part of it, wherever it is filed (Find, on `/`); and a compact list as well as
-  tiles, which here also shows each link's short name. Collection managers lead with search;
+- **Taken, because most people with more than a screenful of links want it:** filtering
+  everything kept down to what matches as it is typed, wherever it is filed (Find, on `/`);
+  and a compact list as well as tiles, which here also shows each link's short name. Collection managers lead with search;
   the plainest start pages are a text list and nothing else, and people choose them for that.
 - **Already here, and what collection managers are faulted for lacking:** no account, no cap
   on what can be saved, nothing lost if a service goes away, adding an open tab to a
@@ -113,30 +113,34 @@ type; advertisements on the page; putting an affiliate code on a link the person
 
 ## Each flow, as the person meets it
 
-**First run.** The first new tab on a computer opens on Start here: four things, each with
-its button and a tick that is read from what is true (links on the bar, a saved place, a short
-name typed, Up next in use), never from having pressed something on the guide. Someone with
-bookmarks sees the first ticked already; someone with none, which is most people, sees the
-three ways in laid open. Every new tab after that opens on their links. The guide's tab can be
-hidden once it has done its job and stays in Settings. *Why a guide at all:* the page explained
-itself only to people who already had folders on their bar. The page asks the computer where it is, without a prompt to dismiss. If the computer
-refuses, it uses the network's city, says so, and says how to get the exact spot. If that fails,
-or the network is in another time zone (a VPN), it asks for a city, ZIP or address. With no
-folders on the bar, the page opens on that guide, not on Today, and offers three ways to bring
-links in: a starter set in
-one press, a bookmarks file from another browser, or a prompt to paste into an assistant, which
-interviews the person and writes that file. "+ New space" is still there to build by hand.
-*Held to:* something useful on screen before any question is answered; a file is read as
-untrusted (web links only, nothing added twice, one Undo for all of it); the page itself never
-calls a model.
+**First run.** A new tab opens on their own bookmarks, already arranged. There is no setup
+screen, no guide and no tab for one: both were tried at 3.9.0 and cut, because a page that
+greets someone who is already set up is in the way every day after. The page asks the
+computer where it is, without a prompt to dismiss. If the computer refuses, it uses the
+network's city, says so, and says how to get the exact spot. If that fails, or the network is
+in another time zone (a VPN), it asks for a city, ZIP or address.
+
+**Nothing bookmarked.** Most people who install this have no folders on their bar. For them
+the links area itself says so and offers three ways in: a starter set in one press, a
+bookmarks file from another browser, or a prompt to paste into an assistant, which interviews
+the person and writes that file. The strip above it and the side beside it are the same as
+ever, so the page they will have is the page they see. *Held to:* something useful on screen
+before any question is answered; a file is read as untrusted (web links only, nothing added
+twice, one Undo for all of it); the page itself never calls a model; and all of it is gone
+the moment there is a folder on the bar.
 
 **Go somewhere.** Click a tile, or type its short name and Enter. Names are shown on the tiles
 while editing and listed on the Shortcuts page. *Held to:* no name ever has to be set up, and
 each place has exactly one name on the Shortcuts page.
 
-**Learn the names.** The Shortcuts page opens with a box that stands in for the address bar:
-type a short link and it says in words where that goes. *Held to:* it asks the same code the
-address bar does, so it cannot say one thing and do another.
+**Learn the names.** The Shortcuts page lists them, each once, with an example of a search.
+A box to try one in was added at 3.7.0 and cut at 4.0.0: the address bar is where they are
+typed, and a stand-in for it taught nothing the list didn't.
+
+**Find something you kept.** The box at the top (or `/`) filters every link in every space and
+the open tabs down to what matches, in place of the page while something is typed. *Held to:*
+it is a filter over what the person keeps, not a web search; Esc or going anywhere puts the
+page back.
 
 **Find something.** Words after a short name search: inside the app for Google's apps and
 Claude, wherever the person said for shortcuts they added, and on the web for that site for
@@ -154,22 +158,31 @@ Undo. Folders are deleted only when empty; the bookmark manager, one click away,
 work. *Held to:* one click never removes more than one link or one empty folder.
 
 **Glance.** The strip across every space has the time, the sun's arc, the temperature and a
-radar still; Today has the whole sky over the next 24 hours as a strip, and the week. The strip
-is the handle on the day: dragging it moves the clock, the sun, the forecast for that hour, and
-beside the sky a map of where it is day, with the clocks of the cities the person added. That
-is the "what time is it there, then" question answered without arithmetic. The page turns dark
+radar still; Today has the sky with sunrise and sunset and the radar beside it at the top,
+because where the person is, now, is most of what they came for, then the week. Under the sky
+the next 24 hours run as a strip that can be dragged to any hour. Someone who deals with
+people elsewhere adds those cities: each shows its clock on Today and in the strip on every
+space, and pressing one draws the sky and the forecast for it, in its own time, until "Here"
+is pressed. Where the person is doesn't change, so light and dark and the Tools page still
+go by home. A map of day and night was tried at 3.8.0 and cut: cities that could not be
+picked and showed nowhere else were decoration. The page turns dark
 at dusk where the person is. On a trip, a place taken from the computer follows it (at once
 when the time zone changes); a typed place is never moved, only asked about. *Held to:* drawn
 at once from what is saved; the network is never waited on.
 
-**Jot.** A synced scratch box, which expands when a thought is longer and can be a few pages
-(eight at most), each named by its first line. A page can be copied or downloaded as a text
-file. It is still not a notes app: no folders, no formatting, no search; `keep/` is one
-keystroke away.
+**Jot.** A synced scratch box. Expanded, it can be a few pages, copied or downloaded; small,
+it is only a box. It is not a notes app: no folders, no formatting; `keep/` is one keystroke
+away.
+
+**Change something.** One pencil, top right, wherever there is something to change: on a
+space the links and folders, on Today where you are and your cities, on Shortcuts the short
+names and your own. With it off those pages are only read. Tools has nothing to change and
+no pencil.
 
 **Make it yours.** Settings, at the top right, is one sheet: light and dark, one of four
-accents, the three ways to bring links in, the extras, and a copy of what the page keeps as a
-file. Esc or a press outside puts it away, as it does the expanded note. *Held to:* no
+accents, tiles or a list, the three ways to bring links in, the extras, and the pages of
+Chrome's own settings this page leans on. Esc or a press outside puts it away, as it does the
+expanded note. *Held to:* no
 wallpaper, no layout switches; a choice has to earn its row.
 
 **Check.** The Tools tab answers "how do I look from outside" on the page itself: where the

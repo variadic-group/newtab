@@ -1,55 +1,7 @@
 // The Shortcuts page: every short link the address bar understands, and where each one goes.
 import { el } from "./dom.js";
 import { siteIcon, host } from "./icons.js";
-import { BUILTIN, CHROME_PAGES, barChildren, leaves, aliasTable, aliasFor, claims, customAliases, customLinks, slug, resolve } from "./shared.js";
-
-// ---------- try one ----------
-// The box at the top of the page is the address bar's stand-in: type a short link and it says
-// where that would go, in words; Enter goes there. It asks the same code the address bar does.
-async function explain(typed) {
-  const m = /^([^\s/]+)\/?(.*)$/.exec(typed.trim());
-  if (!m) return null;
-  const [, name, rest] = m;
-  const words = rest.trim();
-  const target = await resolve(name, rest);
-  if (!target) return { say: `No short name starts with “${name}”.` };
-  if (typeof target !== "string") return { target, say: `Searches the web for “${words}” on ${target.search.split(" site:").pop()}.` };
-  const page = Object.values(CHROME_PAGES).find((c) => target.startsWith(c.url));
-  if (page) return { target, say: words && page.search ? `Searches Chrome's ${page.label.toLowerCase()} for “${words}”.` : `Opens Chrome's ${page.label.toLowerCase()}.` };
-  const app = Object.values(BUILTIN).find((b) => b.own.test(target) || target.startsWith(b.search.split("%s")[0]));
-  if (app) return { target, say: words ? `Searches ${app.label} for “${words}”.` : `Opens ${app.label}.` };
-  const mine = (await barChildren()).flatMap((n) => (n.url ? [n] : leaves(n))).find((l) => l.url === target);
-  return { target, say: words ? `Opens ${host(target)} with “${words}”.` : `Opens ${mine ? mine.title : host(target)}.` };
-}
-
-let wired = false;
-export function wireTry() {
-  if (wired) return;
-  wired = true;
-  const bar = document.getElementById("tryBar"), out = document.getElementById("tryOut");
-  let found = null;
-  const read = async () => {
-    const typed = bar.value;
-    found = typed.trim() ? await explain(typed) : null;
-    if (typed !== bar.value) return; // more was typed while this was worked out
-    out.textContent = found ? found.say : "";
-    out.classList.toggle("go", !!(found && found.target));
-  };
-  bar.oninput = read;
-  bar.onkeydown = (e) => {
-    if (e.key !== "Enter" || !found || !found.target) return;
-    if (typeof found.target === "string") chrome.tabs.update({ url: found.target });
-    else chrome.search.query({ text: found.target.search, disposition: "CURRENT_TAB" });
-  };
-}
-// An example on the page is a button: pressing it types the example into the box.
-function example(text) {
-  const b = el("button", "sc-note eg", text);
-  b.type = "button";
-  b.title = "Try it in the box at the top";
-  b.onclick = () => { const bar = document.getElementById("tryBar"); bar.value = text; bar.focus(); bar.oninput(); bar.scrollIntoView({ block: "nearest" }); };
-  return b;
-}
+import { BUILTIN, CHROME_PAGES, barChildren, leaves, aliasTable, aliasFor, claims, customAliases, customLinks, slug } from "./shared.js";
 
 // Turns a link's short name into a text box; an empty name goes back to the automatic one.
 export function editAlias(pill, link, done) {
@@ -86,7 +38,7 @@ export function aliasPill(link, table, done) {
 function row(key, what, note) {
   const r = el("div", "sc-row");
   r.append(key, what);
-  if (note) r.append(example(note));
+  if (note) r.append(el("span", "sc-note", note));
   return r;
 }
 
@@ -115,14 +67,14 @@ async function ownCard(done) {
   for (const [name, url] of Object.entries(links).sort()) {
     const what = el("span", "sc-what");
     what.append(siteIcon(url, name), el("span", "t", url.replace(/^https?:\/\//, "")));
-    const x = el("button", "mini danger", "Remove");
+    const x = el("button", "mini danger edit-only", "Remove");
     x.type = "button";
     x.setAttribute("aria-label", `Remove ${name}/`);
     x.onclick = async () => { const all = await customLinks(); delete all[name]; await chrome.storage.sync.set({ links: all }); done(); };
     what.append(x);
     card.append(row(el("code", "key fixed", `${name}/`), what));
   }
-  const form = el("form", "sc-add");
+  const form = el("form", "sc-add edit-only");
   const name = el("input"); name.placeholder = "name"; name.required = true; name.setAttribute("aria-label", "Shortcut name");
   const url = el("input"); url.placeholder = "address (%s = typed words)"; url.required = true; url.setAttribute("aria-label", "Address");
   const add = el("button", "btn", "Add"); add.type = "submit";
@@ -139,14 +91,14 @@ async function ownCard(done) {
     await chrome.storage.sync.set({ links: all });
     done();
   };
-  card.append(form, el("p", "sc-note solo", "Example: name hn, address https://hn.algolia.com/?q=%s, then hn/rust searches it."));
+  card.append(form, el("p", "sc-note solo", Object.keys(links).length ? "The pencil at the top right adds one and removes one." : "Any name to any address, with %s where the typed words go: name hn, address https://hn.algolia.com/?q=%s, then hn/rust searches it. The pencil at the top right adds one."));
   const chromes = el("button", "mini", "Search engines in Chrome");
   chromes.type = "button";
   chromes.dataset.go = "chrome://settings/searchEngines";
   chromes.title = "Chrome keeps its own list of search shortcuts, which an extension can't read or change";
   const more = Object.entries(SUGGEST).filter(([key]) => !links[key]);
   if (more.length) {
-    const row = el("div", "sc-suggest");
+    const row = el("div", "sc-suggest edit-only");
     row.append(el("span", "cap", "Add one:"));
     for (const [key, [label, address]] of more) {
       const b = el("button", "chip", `${key}/ ${label}`);
@@ -183,7 +135,6 @@ async function chromeCard(table) {
 }
 
 export async function renderShortcuts(root, done) {
-  wireTry();
   const table = await aliasTable();
   const cards = [];
 
