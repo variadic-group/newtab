@@ -273,7 +273,15 @@ ok("no links to mail or calendar on Today", (await p.$$("#today a")).length === 
 await p.waitForSelector("#radarCard:not([hidden])", { timeout: 4000 }).catch(() => {});
 ok("radar shows once its image loads, at the top beside the sky, as wide as its column up to 600 px", !(await p.$("#radarCard[hidden]")) && (await p.$eval("#radarImg", (i) => i.getBoundingClientRect().width)) >= 500 && (await p.$eval("#radarCard", (r) => !!r.closest(".t-now"))) && /_loop\.gif/.test(await p.$eval("#radarImg", (i) => i.src)));
 
-ok("Today is as it was: the sky and the radar, then now, the hours and the week; no cities, no strip to drag, no map", !(await p.$("#places")) && !(await p.$("#stripArt")) && !(await p.$("#worldMap")) && !!(await p.$("#wxHours .hc-line")) && (await p.$eval("#stars", (s) => s.querySelectorAll("circle").length)) === 46 && !(await p.isVisible("#edit")));
+ok("Today is as it was: the sky and the radar, then now, the hours and the week; no cities and no strip to drag", !(await p.$("#places")) && !(await p.$("#stripArt")) && !!(await p.$("#wxHours .hc-line")) && (await p.$eval("#stars", (s) => s.querySelectorAll("circle").length)) === 46 && !(await p.isVisible("#edit")));
+const worldNow = () => p.evaluate(() => ({ lit: document.getElementById("worldDay").getAttribute("d").split("M").length - 1, dark: document.getElementById("worldNight").getAttribute("d").split("M").length - 1, say: document.getElementById("worldSay").textContent, hint: !document.getElementById("worldHint").hidden, pins: [...document.querySelectorAll("#worldPins .pin text")].map((e) => e.textContent).join(), mark: getComputedStyle(document.querySelector("#wxHours .hc-then")).display, inCard: !!document.getElementById("world").closest(".wx") }));
+const w0 = await worldNow();
+const hc = await p.locator("#wxHours svg").boundingBox();
+await p.hover("#wxHours svg", { position: { x: hc.width * 0.5, y: 40 } }); await p.waitForFunction(() => /^Day and night at/.test(document.getElementById("worldSay").textContent), null, { timeout: 4000 }).catch(() => {});
+const w1 = await worldNow();
+await p.hover("#bigTime"); await p.waitForFunction(() => document.getElementById("worldSay").textContent === "Day and night, now", null, { timeout: 4000 }).catch(() => {});
+const w2 = await worldNow();
+ok("beside the forecast a map shows where it is day, with you on it; pointing along the hours moves it to that hour, so sunrise crosses the map, and taking the pointer away puts it back", w0.inCard && w0.lit + w0.dark === 1636 && w0.say === "Day and night, now" && w0.hint && w0.pins === "You" && w0.mark === "none" && /^Day and night at \d/.test(w1.say) && w1.lit !== w0.lit && w1.lit + w1.dark === 1636 && w1.mark !== "none" && w2.say === "Day and night, now" && w2.lit === w0.lit && w2.mark === "none", [w0, w1, w2]);
 await p.setViewportSize({ width: 760, height: 900 });
 const stacked = await p.evaluate(() => { const s = document.getElementById("sky").getBoundingClientRect(), r = document.getElementById("radarCard").getBoundingClientRect(); return r.top >= s.bottom - 1 && document.documentElement.scrollWidth <= innerWidth; });
 await p.setViewportSize({ width: 1360, height: 900 });

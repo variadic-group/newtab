@@ -315,7 +315,18 @@ button.key { cursor: text; }
 .radar a { color: var(--accent); font-size: 12px; }
 .radar img { display: block; width: 100%; max-width: 600px; height: auto; margin: 0 auto; border-radius: 12px; }
 
-.wx { padding: 20px 22px; display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: 16px 36px; align-items: start; }
+.wx { padding: 20px 22px; display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr) minmax(0, 0.95fr); gap: 16px 32px; align-items: start; }
+/* The third column: the land the sun is over, lit; the rest in the dark; you, the pin. */
+.daymap { margin: 0; min-width: 0; align-self: center; }
+.daymap figcaption { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 10px; margin-bottom: 8px; }
+.daymap figcaption b { font: 600 14px var(--display); }
+.daymap svg { display: block; width: 100%; max-width: 560px; height: auto; }
+.land.day { stroke: color-mix(in srgb, var(--sun) 88%, var(--ink)); }
+.land.night { stroke: color-mix(in srgb, var(--night) 46%, transparent); }
+.daymap .pin text { font-size: 24px; stroke-width: 6px; }
+.hc-then { stroke: var(--accent); stroke-width: 2; pointer-events: none; }
+.wx-hours svg { cursor: crosshair; }
+@media (max-width: 1180px) { .wx { grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); } .daymap { grid-column: 1 / -1; } }
 .wx-main { display: grid; gap: 16px; min-width: 0; }
 .wx-days:empty { display: none; }
 .wx:has(.wx-days:empty) { grid-template-columns: 1fr; }

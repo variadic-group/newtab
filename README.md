@@ -79,6 +79,9 @@ This page adds a face to that store and keeps nothing of its own:
 - **The sky, drawn to scale.** The sun's real path for today with solar noon in the middle, the
   civil, nautical and astronomical twilights under the horizon, and the moon where it stands, lit
   on the side that faces the sun.
+- **Day and night on a map.** Beside the forecast, the land the sun is over is lit and the
+  rest is in the dark, with you on it. Point along the hours of the forecast and the map moves
+  to that hour, so sunrise can be watched crossing it.
 - **The page goes dark when night falls** where you are, and light again at dawn. Settings can
   hold it light or dark, and has four accent colours.
 - **Forecast and radar** from the National Weather Service: now, the next 24 hours, seven
@@ -169,7 +172,7 @@ offers the ways in. Four things make it yours:
    under Up next. Tick it off when you have been back.
 
 Then, when you want them: the **search bar** at the top (or `/`) finds any link in any space,
-and takes short links too; **Today** has the sky, the radar, the next 24 hours and the week; **Tools** shows how your connection looks from outside and what to do about it;
+and takes short links too; **Today** has the sky, the radar, the next 24 hours, the week and a map of where it is day; **Tools** shows how your connection looks from outside and what to do about it;
 the **pencil** rearranges your links; **Settings and extras** (the gear, or the link at the
 foot of the page) has light and dark, an accent, tiles or a list, and four extras that are
 off until you switch them on.

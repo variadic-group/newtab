@@ -4,7 +4,7 @@ The reasoning behind the product: who it serves, what they are trying to do at t
 tab opens, and how each of those moments goes. Read it before adding a feature. The README says
 what the product does; this says why, and what it refuses to become.
 
-Last walked through end to end at 4.2.0 (2026-11-12).
+Last walked through end to end at 4.3.0 (2026-11-12).
 
 ## Who it is for
 
@@ -162,10 +162,12 @@ work. *Held to:* one click never removes more than one link or one empty folder.
 sunset and the moon's phase, the temperature, a radar still. Today has the sky and the radar
 beside it at the top, because where the person is, now, is most of what they came for; then
 now, the next 24 hours and the week. That is how it stood at the Tools pass, and it is the
-layout that was put back at 4.2.0. What came between and was cut: a strip to drag the day
-along and a map of where it is day (3.8.0, 4.1.0), and cities to add and pick between (3.8.0,
-4.0.0). Each was a second thing to read on a page whose job is one glance, and the cities made
-it unclear which place a number was for. The page is for one place, the person's own, and it
+layout that was put back at 4.2.0. Beside the week sits a map of where it is day, which was
+asked for by name after it had been cut: the land the sun is over is lit, and pointing along
+the hours of the forecast moves it to that hour, so the hourly chart is the handle and no
+second control is needed. What stays cut: a separate strip to drag the day along (3.8.0,
+4.1.0), and cities to add and pick between (3.8.0, 4.0.0). The cities made it unclear which
+place a number was for. The page is for one place, the person's own, and it
 turns dark at dusk there. On a trip, a place taken from the computer follows it (at once when
 the time zone changes); a typed place is never moved, only asked about, and typing one says
 what it replaced and offers the way back. *Held to:* drawn at once from what is saved; the

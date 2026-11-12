@@ -4,6 +4,7 @@
 import { $, el } from "./dom.js";
 import { getPlace, placeKey, placeMoved } from "./place.js";
 import { sunPosition, sunTimes, moonPosition, moonPhase, moonTimes, lightPhase, nextLight, nightSpan, skyColors } from "./sky.js";
+import { CELLS, dots, spot, svg as mapSvg } from "./world.js";
 
 const FRESH_MS = 20 * 60e3;
 const DAY_MS = 864e5;
@@ -304,6 +305,7 @@ function drawWeather(wx, place) {
   $("skyWx").textContent = `${picture} ${now.temp}° and ${now.text.toLowerCase()}`;
 
   $("wxHours").innerHTML = hours.length > 3 ? hourChart(hours) : "";
+  followHours(place, hours);
 
   const lows = days.map((d) => (d.lo != null ? d.lo : d.hi)), highs = days.map((d) => (d.hi != null ? d.hi : d.lo));
   const min = Math.min(...lows), max = Math.max(...highs), range = max - min || 1;
@@ -345,6 +347,7 @@ function clearWeather(place, text) {
   $("skyWx").textContent = "";
   $("wxNow").replaceChildren();
   $("wxHours").replaceChildren();
+  $("worldHint").hidden = true;
   $("wxDays").replaceChildren();
   $("radarCard").hidden = true;
   $("wxNote").textContent = text;
@@ -375,6 +378,52 @@ async function update(place, hadForecast) {
   }
 }
 
+// ---------- the world at the same moment ----------
+// Beside the forecast is a map of where it is day: the land the sun is over is lit, the rest is
+// in the dark, and you are the pin. It is drawn for now. Pointing along the hours of the chart
+// moves it to that hour, so sunrise can be watched crossing the map; taking the pointer away
+// puts it back.
+let pointed = null;
+function drawWorld(place) {
+  const at = pointed ? new Date(pointed) : new Date();
+  const lit = [], dark = [];
+  for (const c of CELLS) (sunPosition(at, c.lat, c.lon).altitude > 0 ? lit : dark).push(c);
+  $("worldDay").setAttribute("d", dots(lit));
+  $("worldNight").setAttribute("d", dots(dark));
+  const [x, y] = spot(place);
+  const pin = mapSvg("g", { class: "pin you" });
+  const left = x > 640;
+  pin.append(mapSvg("circle", { class: "dot", cx: x, cy: y, r: 8 }), mapSvg("text", { x: x + (left ? -14 : 14), y: y + 8, "text-anchor": left ? "end" : "start" }, "You"));
+  $("worldPins").replaceChildren(pin);
+  $("worldSay").textContent = pointed ? `Day and night at ${fmtTime(at)}` : "Day and night, now";
+  $("worldMap").setAttribute("aria-label", `Daylight is on ${Math.round((lit.length / CELLS.length) * 100)}% of the land`);
+}
+
+// The chart of the next hours is also the handle on that map: where the pointer is along it is
+// an hour, marked on the chart, and the map is drawn for it.
+function followHours(place, hours) {
+  const chart = $("wxHours").querySelector("svg");
+  $("worldHint").hidden = !chart;
+  if (!chart) return;
+  const mark = mapSvg("line", { class: "hc-then", y1: 14, y2: 104 });
+  mark.style.display = "none";
+  chart.append(mark);
+  const step = (600 - 48) / (hours.length - 1);
+  chart.onpointermove = (e) => {
+    const r = chart.getBoundingClientRect();
+    const i = Math.max(0, Math.min(hours.length - 1, (((e.clientX - r.left) / r.width) * 600 - 24) / step));
+    // The first point on the chart is now; each one after is the top of an hour.
+    const whole = Math.floor(i), from = whole ? Date.parse(hours[whole].start) : Date.now();
+    const to = whole + 1 < hours.length ? Date.parse(hours[whole + 1].start) : from + 3600e3;
+    pointed = from + (i - whole) * (to - from);
+    mark.setAttribute("x1", (24 + i * step).toFixed(1));
+    mark.setAttribute("x2", (24 + i * step).toFixed(1));
+    mark.style.display = "";
+    drawWorld(place);
+  };
+  chart.onpointerleave = () => { pointed = null; mark.style.display = "none"; drawWorld(place); };
+}
+
 // The place form shows itself while there is no place and goes once there is one. Opened by
 // hand to change the place, it stays until one is chosen: a forecast arriving must not shut it.
 let unplaced = false;
@@ -388,6 +437,7 @@ export async function renderToday() {
   if (!place) return;
   drawClock();
   drawSky(place);
+  drawWorld(place);
   const cached = await cachedWeather(place);
   if (cached) { drawWeather(cached, place); $("wxNote").hidden = true; }
   else clearWeather(place, "Getting the forecast…");
@@ -405,6 +455,7 @@ export async function tickToday() {
   applyTheme(place);
   drawClock();
   drawSky(place);
+  drawWorld(place);
 }
 
 // ---------- the glance: the same facts as one strip at the top of every space ----------

@@ -73,6 +73,7 @@ PICK UP WHERE YOU LEFT OFF
 LOOK UP
 • The sun's real path across the day, the three twilights, and the moon in its true phase
 • Sunrise, sunset and the radar for where you are, at the top
+• A map of where it is day right now; point along the hourly forecast and watch sunrise cross it
 • The page turns dark when night falls where you are; or hold it light or dark, and pick an accent
 • Forecast, hourly chart, seven days and radar from the National Weather Service (United States)
 
