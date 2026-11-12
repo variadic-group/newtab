@@ -4,7 +4,7 @@ The reasoning behind the product: who it serves, what they are trying to do at t
 tab opens, and how each of those moments goes. Read it before adding a feature. The README says
 what the product does; this says why, and what it refuses to become.
 
-Last walked through end to end at 3.3.2 (2026-11-11).
+Last walked through end to end at 3.4.0 (2026-11-11).
 
 ## Who it is for
 
@@ -25,7 +25,11 @@ A new tab is opened dozens of times a day, and the person wants one of four thin
 3. **Put down something** they will come back to.
 4. **Glance**: what time is it, how much daylight is left, do I need a coat.
 
-Everything on the page serves one of those. Anything that serves none of them is noise.
+Everything on the main page serves one of those. Anything that serves none of them is noise.
+
+A fifth want is real but occasional, and only for some: **check** that the connection and the
+browser are what they should be (am I on the VPN, is anything leaking, how fast is this). It has
+its own tab, Tools, so it costs the main page nothing.
 
 ## What the market offers, by kind
 
@@ -86,14 +90,23 @@ at dusk where the person is. On a trip, a place taken from the computer follows 
 when the time zone changes); a typed place is never moved, only asked about. *Held to:* drawn
 at once from what is saved; the network is never waited on.
 
-**Jot.** One synced scratch box. It is not a notes app; `keep/` is one keystroke away.
+**Jot.** One synced scratch box, which expands when a thought is longer. It is not a notes
+app; `keep/` is one keystroke away.
+
+**Check.** The Tools tab: public address and exit, a WebRTC leak check, a speed reading, what
+the browser reveals, and Chrome's own settings pages. *Held to:* nothing reaches the network
+until pressed; a test that can't be done honestly from a page is a link, not an imitation.
+
+**What only some want.** Unread mail, recent files, closed tabs and other devices, most
+visited: each is an extra, off until switched on, because each needs a permission Chrome warns
+about.
 
 **Leave.** Uninstall. Every link is where it always was, including the Up next folder.
 
 ## What it refuses to be
 
-A task manager, a search box, a feed, a wallpaper, a theme picker, a sessions database, a team
-product. Each is a real want that something else serves better, and each would make the page
+A task manager, a notes app, a search box, a news feed, a wallpaper, a theme picker, a sessions
+database, a team product. Each is a real want that something else serves better, and each would make the page
 slower to read. When a request arrives, the test is whether it serves one of the four moments
 without adding a second library, an account or a wait.
 

@@ -84,13 +84,16 @@ body.editing .view-only { display: none; }
 .space { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 18px; align-items: start; }
 .collections { columns: 3 230px; column-gap: 14px; }
 
-/* the glance: one strip, four facts; the whole of it opens Today */
+/* the glance: one strip, four facts; the time opens the calendar, the rest opens Today */
 .glance { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: stretch; gap: 12px; min-width: 0; }
 .gl-main, .gl-chip, .ask { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 12px 18px; min-width: 0; }
-.gl-main { flex: 1 1 420px; display: flex; flex-wrap: wrap; align-items: center; gap: 12px 26px; text-align: left; cursor: pointer; }
+.gl-main { flex: 1 1 420px; display: flex; flex-wrap: wrap; align-items: center; gap: 12px 26px; text-align: left; }
+.gl-rest { flex: 1 1 0; min-width: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 12px 26px; border: 0; background: none; padding: 0; font: inherit; color: inherit; text-align: left; cursor: pointer; }
+a.gl-time { color: inherit; text-decoration: none; border-radius: 8px; }
+a.gl-time:hover .cap { color: var(--ink); text-decoration: underline; }
 .glance:has(.ask:not([hidden])) .gl-main { flex: 0 0 auto; }
 .gl-main:hover, .gl-chip:hover { border-color: var(--muted); }
-.gl-main > span + span { border-left: 1px solid var(--line); padding-left: 26px; }
+.gl-rest > span { border-left: 1px solid var(--line); padding-left: 26px; }
 .glance b { font: 600 32px/1 var(--display); letter-spacing: -0.03em; font-variant-numeric: tabular-nums; }
 .gl-time { display: grid; gap: 4px; }
 .gl-sun, .gl-wx, .gl-radar { display: flex; align-items: center; gap: 12px; min-width: 0; }
@@ -169,6 +172,13 @@ body:not(.editing) .tile .key { display: none; }
 
 .key { font: 11px var(--mono); color: var(--accent); background: var(--accent-soft); border: 0; border-radius: 6px; padding: 2px 6px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 button.key { cursor: text; }
+/* most visited: a quiet row of chips over the collections */
+.often { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 6px; min-width: 0; }
+.pin { display: inline-flex; align-items: center; gap: 6px; max-width: 190px; padding: 5px 11px 5px 7px; border: 1px solid var(--line); border-radius: 999px; background: var(--card); color: var(--ink); text-decoration: none; font-size: 12.5px; }
+.pin:hover { border-color: var(--muted); }
+.pin .sico { font-size: 16px; }
+.pin .t { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
 .alias-input { font: 11px var(--mono); width: 96px; max-width: 100%; border: 1px solid var(--accent); border-radius: 6px; padding: 1px 5px; background: var(--bg); color: var(--ink); }
 
 .addform { display: grid; gap: 6px; margin-top: 8px; padding: 8px; border-radius: 10px; background: var(--tile); }
@@ -202,6 +212,10 @@ button.key { cursor: text; }
 .rows .close { display: block; font-size: 15px; line-height: 1; padding: 3px 7px; opacity: 0.55; }
 .rows li:hover .close, .rows .close:focus-visible { opacity: 1; }
 .slot { display: contents; }
+.panel h3 { font: 600 11px var(--body); text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin: 10px 6px 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* Expanded, the note is the same box lifted over the page. */
+.notes.big { position: fixed; z-index: 30; left: 50%; top: 9vh; transform: translateX(-50%); width: min(760px, 92vw); padding: 16px 12px 12px; box-shadow: 0 24px 70px rgb(0 0 0 / 0.35); }
+.notes.big textarea { height: 64vh; font-size: 15px; resize: none; }
 .notes textarea { display: block; width: calc(100% - 8px); min-height: 96px; resize: vertical; margin: 2px 4px 4px; border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; background: var(--bg); font-size: 13px; line-height: 1.45; }
 
 /* ----- today ----- */
@@ -317,6 +331,20 @@ a.sc-what:hover .t { text-decoration: underline; }
 .sc-note { grid-column: 2; color: var(--muted); font-size: 12px; }
 .sc-note.solo { margin: 8px 0 0; }
 .sc-note.lead { margin: -4px 0 6px; }
+
+/* ----- tools ----- */
+.tool .btn { margin: 4px 0 2px; }
+.tool .btn:disabled { opacity: 0.5; cursor: default; }
+.tool .out:not(:empty) { margin-top: 10px; display: grid; gap: 8px; }
+.tool .note { font-size: 13px; color: var(--ink); }
+.tool .note.bad { color: var(--danger); font-weight: 600; }
+.facts { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 5px 14px; margin: 0; font-size: 13px; }
+.facts dt { color: var(--muted); }
+.facts dd { margin: 0; min-width: 0; overflow-wrap: anywhere; }
+.facts code { font: 12px var(--mono); }
+.facts a { color: var(--accent); }
+.golinks { display: flex; flex-wrap: wrap; gap: 6px; }
+.tool > a.sc-what { padding: 5px 0; }
 .sc-add { display: grid; grid-template-columns: 96px minmax(0, 1fr) auto; gap: 6px; margin-top: 8px; }
 .sc-add input { font-size: 13px; border: 1px solid var(--line); border-radius: 7px; padding: 6px 8px; background: var(--bg); min-width: 0; }
 .sc-suggest { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 10px 0 8px; }
@@ -344,5 +372,5 @@ a.sc-what:hover .t { text-decoration: underline; }
 .toast button { background: none; border: 0; color: inherit; font-weight: 600; text-decoration: underline; cursor: pointer; }
 
 @media (max-width: 980px) { .t-now, .wx, .space { grid-template-columns: 1fr; } .side { position: static; max-height: none; } }
-@media (max-width: 640px) { .bar, .wrap, .foot { padding-left: 14px; padding-right: 14px; } .sc-what .h { display: none; } .gl-main > span + span { border-left: 0; padding-left: 0; } }
+@media (max-width: 640px) { .bar, .wrap, .foot { padding-left: 14px; padding-right: 14px; } .sc-what .h { display: none; } .gl-rest > span { border-left: 0; padding-left: 0; } }
 @media (prefers-reduced-motion: no-preference) { .tile, .tab, .rows li, .act { transition: background-color .12s ease, border-color .12s ease, opacity .12s ease; } }

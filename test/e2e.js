@@ -27,8 +27,9 @@ await p.waitForFunction(() => /^\d+°$/.test(document.getElementById("glTemp").t
 ok("the first new tab asks the computer where it is, saves that rounded, and the forecast follows", (await place()).source === "device" && (await place()).lat === 40.71 && net.points.join() === "40.71,-74.01" && !!(await p.$("#ask[hidden]")), { place: await place(), lookups: net.points });
 
 // ---------- layout, the glance, the footer ----------
-ok("tabs: spaces, then Today and Shortcuts", true, [await p.$$eval("#spaces .tab", (x) => x.map((e) => e.textContent)), await p.$$eval("#pages .tab", (x) => x.map((e) => e.textContent))]);
+ok("tabs: spaces, then Today, Shortcuts and Tools", (await p.$$eval("#pages .tab", (x) => x.map((e) => e.textContent))).join() === "☀️ Today,⌨️ Shortcuts,🛠️ Tools", [await p.$$eval("#spaces .tab", (x) => x.map((e) => e.textContent)), await p.$$eval("#pages .tab", (x) => x.map((e) => e.textContent))]);
 ok("the glance shows the time, the sun and the weather now", /\d/.test(await text(p, "#glTime")) && /↑ \d/.test(await text(p, "#glRise")) && /↓ \d/.test(await text(p, "#glSet")) && / in \d/.test(await text(p, "#glLeft")) && /^\d+°$/.test(await text(p, "#glTemp")) && /High|Low/.test(await text(p, "#glHiLo")), { time: await text(p, "#glTime"), sun: await text(p, "#glLeft"), now: [await text(p, "#glTemp"), await text(p, "#glText"), await text(p, "#glHiLo")] });
+ok("the time and date are a link to your calendar: your own Calendar bookmark", (await p.getAttribute("#glCal", "href")) === "https://calendar.google.com/calendar/u/0/r" && (await p.evaluate(() => document.getElementById("glCal").contains(document.getElementById("glTime")) && !document.getElementById("glance").contains(document.getElementById("glTime")))));
 ok("the glance has a radar still, not the loop", /_0\.gif/.test(await p.$eval("#glRadarImg", (i) => i.src)) && !(await p.$("#glRadar[hidden]")));
 ok("the footer says how to type a short link and how to search with one, leads to them all, and holds Extras and the version", /mail\/.*claude\/.*short name.*mail\/invoice/.test(await text(p, "#hint")) && !!(await p.$("#hint #goShortcuts")) && (await p.$$eval(".foot nav .mini", (x) => x.map((e) => e.id))).join() === "extrasBtn,version" && (await text(p, "#version")) === "v" + manifest.version, await text(p, "#hint"));
 ok("Edit is a pencil with a name for screen readers; the bookmark manager shows only while editing", (await p.getAttribute("#edit", "aria-label")) === "Edit bookmarks" && !!(await p.$("#edit svg")) && !(await p.isVisible('[data-go="chrome://bookmarks/"]')));
@@ -58,6 +59,7 @@ ok("drag reorders Up next", find(await tree(), "⏭️ Next").children[0].title.
 await p.click("#next li:nth-child(1) .check"); await p.waitForFunction(() => document.querySelectorAll("#next li").length === 1);
 await p.click("#toast button"); await p.waitForFunction(() => document.querySelectorAll("#next li").length === 2);
 ok("ticking one off removes it, and Undo puts it back first", find(await tree(), "⏭️ Next").children[0].title.includes("example.org"));
+ok("a right-click on a page or a link offers Add to Up next", await sw.evaluate(async () => { await chrome.contextMenus.update("next", {}); return chrome.contextMenus.onClicked.hasListeners(); }));
 ok("the toolbar button has a listener and a keyboard shortcut", (await sw.evaluate(() => chrome.action.onClicked.hasListeners())) && !!manifest.commands._execute_action.suggested_key.default);
 const money = find(await tree(), "💵 Money");
 await p.dragAndDrop("#tabs li:nth-child(1)", `.card[data-folder="${money.id}"]`); await p.waitForTimeout(400);
@@ -89,6 +91,10 @@ ok("a tile dropped on a group moves into that folder", (await titles("Federal"))
 // ---------- notes ----------
 await p.fill("#note", "call the accountant"); await p.waitForFunction(() => document.getElementById("noteState").textContent === "saved", null, { timeout: 4000 }).catch(() => {});
 ok("a note saves itself to synced storage", (await sw.evaluate(async () => (await chrome.storage.sync.get("note")).note)) === "call the accountant");
+await p.click("#noteBig");
+const big = await p.evaluate(() => { const b = document.querySelector(".notes").getBoundingClientRect(); return { w: b.width, h: document.getElementById("note").getBoundingClientRect().height, fixed: getComputedStyle(document.querySelector(".notes")).position, focus: document.activeElement.id, label: document.getElementById("noteBig").textContent }; });
+await p.press("#note", "Escape");
+ok("Expand lifts the same note into a big box, and Esc puts it back", big.w >= 700 && big.h > 400 && big.fixed === "fixed" && big.focus === "note" && big.label === "Shrink" && !(await p.$(".notes.big")) && (await p.inputValue("#note")) === "call the accountant", big);
 
 // ---------- edit mode ----------
 await p.click("#edit");
@@ -249,6 +255,24 @@ await q.waitForFunction(() => document.documentElement.dataset.theme && document
 ok("a tab opened at night is dark before the page's script has run", (await q.evaluate(() => document.documentElement.dataset.theme + "|" + document.getElementById("glTime").textContent)) === "dark|");
 net.holdPage = false; await q.close(); await bare.close();
 
+// ---------- tools ----------
+await p.bringToFront(); await p.click('#pages .tab:has-text("Tools")'); await p.waitForSelector(".tool");
+ok("Tools has six cards, and nothing has reached the network before a press", (await p.$$eval(".tool h2", (x) => x.map((e) => e.textContent))).join() === "Connection,WebRTC,Speed,This browser,Chrome's settings,Deeper tests" && net.tools.length === 0, net.tools);
+ok("This browser lists what any site can read", /Browser.*(Chrom|HeadlessChrome).*Time zone.*Languages.*Screen/s.test(await text(p, '.tool:has(h2:text-is("This browser")) .facts')), await text(p, '.tool:has(h2:text-is("This browser")) .facts'));
+const tool = (name) => `.tool:has(h2:text-is("${name}"))`;
+const press = async (name) => { await p.click(`${tool(name)} .btn`); await p.waitForSelector(`${tool(name)} .btn:has-text("again"):not([disabled])`, { timeout: 20000 }); return text(p, `${tool(name)} .out`); };
+let shown = await press("Connection");
+ok("Connection shows the address, where it exits and whose network, and that it is far from your place", /IPv4 address203\.0\.113\.7 Copy.*IPv6 addressnone on this network.*Exits inStockholm, Stockholm County, Sweden.*NetworkAS64500.*Reached Cloudflare atARN, Stockholm/.test(shown) && /This exit is about 6,3\d0 km \(3,9\d0 mi\) from the place this page is set to, so a VPN or proxy is probably in the way\./.test(shown) && (await p.getAttribute(`${tool("Connection")} .facts a`, "href")) === "https://radar.cloudflare.com/as64500", shown);
+net.exitNear = true; shown = await press("Connection");
+ok("an exit near your place says so, and that a nearby VPN looks the same", /Exits inNew York, New York, United States.*This exit is near the place this page is set to\. A VPN that exits near you looks the same as none\./.test(shown), shown);
+shown = await press("WebRTC");
+ok("WebRTC says what a site can see through it", /^(No public address came back through WebRTC|WebRTC shows sites)/.test(shown), shown);
+shown = await press("Speed");
+ok("Speed reads download, upload and delay", /Download[\d.]+ MbpsUpload[\d.]+ MbpsDelay\d+ ms/.test(shown) && net.tools.includes("__up") && net.tools.filter((x) => x === "__down").length >= 8, shown);
+ok("Chrome's settings and the deeper tests are one click away", (await p.$$eval(`${tool("Chrome's settings")} [data-go]`, (x) => x.map((e) => e.dataset.go))).includes("chrome://settings/security") && (await p.$$eval(`${tool("Deeper tests")} a`, (x) => x.map((e) => new URL(e.href).hostname))).join() === "coveryourtracks.eff.org,browserleaks.com,www.dnsleaktest.com,mullvad.net,speed.cloudflare.com");
+await p.click('#pages .tab:has-text("Today")'); await p.click('#pages .tab:has-text("Tools")');
+ok("a result stays while the tab is open", /Download/.test(await text(p, `${tool("Speed")} .out`)));
+
 // ---------- the weather service unreachable ----------
 net.weatherDown = true;
 q = await open(); await q.waitForSelector(".card");
@@ -263,9 +287,9 @@ ok("an old forecast stays up with a note when it can't refresh", !!(await q.$(".
 
 // ---------- extras are off until asked for ----------
 await q.click('#spaces .tab:has-text("Work")'); await q.waitForSelector(".card");
-ok("unread mail and recent files ship switched off, as optional permissions", !!(await q.$("#glMail[hidden]")) && !!(await q.$("#filesPanel[hidden]")) && manifest.optional_permissions.join() === "history" && manifest.optional_host_permissions.join() === "https://mail.google.com/*" && !manifest.permissions.includes("history"));
+ok("the extras ship switched off, as optional permissions", !!(await q.$("#glMail[hidden]")) && !!(await q.$("#filesPanel[hidden]")) && !!(await q.$("#closedPanel[hidden]")) && !!(await q.$("#often[hidden]")) && manifest.optional_permissions.join() === "history,sessions,topSites" && manifest.optional_host_permissions.join() === "https://mail.google.com/*" && !manifest.permissions.includes("history"));
 await q.click("#extrasBtn"); await q.waitForSelector(".extra");
-ok("Extras in the footer lists them, both off", (await q.$$eval(".extra .btn", (x) => x.map((e) => `${e.getAttribute("aria-label")}:${e.textContent}`))).join() === "Unread mail:Off,Recent files:Off");
+ok("Extras in the footer lists them, all off", (await q.$$eval(".extra .btn", (x) => x.map((e) => `${e.getAttribute("aria-label")}:${e.textContent}`))).join() === "Unread mail:Off,Recent files:Off,Closed tabs and other devices:Off,Most visited:Off");
 
 // ---------- a busy tab ----------
 const before = (await q.$$("#tabs li")).length;
@@ -305,8 +329,17 @@ await e.waitForSelector("#files li", { timeout: 5000 }).catch(() => {});
 ok("with its permission, the Google files opened lately are listed by name, newest first", (await e.$$eval("#files .row", (x) => x.map((r) => `${r.textContent}|${r.getAttribute("href")}`))).join(";") === "Launch notes|https://docs.google.com/document/d/xyz789/edit;Q4 plan|https://docs.google.com/spreadsheets/d/abc123/edit", await e.$$eval("#files .row", (x) => x.map((r) => `${r.textContent}|${r.getAttribute("href")}`)));
 await e.waitForFunction(() => document.querySelectorAll("#files .sico img").length === 2, null, { timeout: 5000 }).catch(() => {});
 ok("a spreadsheet gets the Sheets icon and a document the Docs one", /docs_2020q4/.test(await e.$eval("#files li:nth-child(1) img", (i) => i.src).catch(() => "")) && /sheets_2020q4/.test(await e.$eval("#files li:nth-child(2) img", (i) => i.src).catch(() => "")));
+const gone = await g.ctx.newPage(); await gone.goto("https://example.com/closed-page"); await gone.waitForTimeout(300); await gone.close();
+await e.bringToFront();
+await e.waitForFunction(() => [...document.querySelectorAll("#closed .row")].some((r) => r.getAttribute("href") === "https://example.com/closed-page"), null, { timeout: 8000 }).catch(() => {});
+ok("with its permission, a tab you just closed is listed under Recently closed", !(await e.$("#closedPanel[hidden]")) && (await e.$$eval("#closed .row", (x) => x.map((r) => r.getAttribute("href")))).includes("https://example.com/closed-page"), await e.$$eval("#closed .row", (x) => x.map((r) => r.getAttribute("href"))));
+await e.click('#closed .row[href="https://example.com/closed-page"]');
+await e.waitForFunction(() => chrome.tabs.query({ url: "https://example.com/closed-page" }).then((t) => t.length === 1) && true).catch(() => {}); await e.waitForTimeout(800);
+ok("a click reopens it", (await g.sw.evaluate(async () => (await chrome.tabs.query({ url: "https://example.com/closed-page" })).length)) === 1);
+await e.bringToFront();
+ok("with its permission, Most visited draws without complaint (a new profile has none yet)", (await e.$$eval("#often .pin", (x) => x.length)) >= 0 && (await g.sw.evaluate(async () => Array.isArray(await chrome.topSites.get()))));
 await e.click("#extrasBtn"); await e.waitForSelector(".extra");
-ok("their switches read On", (await e.$$eval(".extra .btn", (x) => x.map((b) => b.textContent))).join() === "On,On");
+ok("their switches read On", (await e.$$eval(".extra .btn", (x) => x.map((b) => b.textContent))).join() === "On,On,On,On");
 ok("no page errors with the extras on", g.errs.length === 0, g.errs);
 await g.ctx.close();
 

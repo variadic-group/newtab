@@ -27,8 +27,9 @@
   <p id="empty" class="empty" hidden>Your bookmarks bar has no folders yet. Press “+ New space” at the top to start one, or make folders on the bookmarks bar yourself: each top folder is a tab here, each folder inside it a card of links. ⌘D (Ctrl+D) bookmarks the page you're on.</p>
   <section id="space" class="space" hidden>
     <div class="glance">
-      <button type="button" id="glance" class="gl-main" aria-label="Time, daylight, weather and radar. Opens Today.">
-        <span class="gl-time"><b id="glTime"></b><span id="glDate" class="cap"></span></span>
+      <div class="gl-main">
+        <a id="glCal" class="gl-time" href="https://calendar.google.com/" title="Opens your calendar"><b id="glTime"></b><span id="glDate" class="cap"></span></a>
+        <button type="button" id="glance" class="gl-rest" aria-label="Daylight, weather and radar. Opens Today.">
         <span id="glSun" class="gl-sun" hidden>
           <svg viewBox="0 0 132 54" aria-hidden="true">
             <path id="glArc" class="gl-arc" d="M8 40 A58 32 0 0 1 124 40"/>
@@ -44,13 +45,15 @@
           <span class="gl-lines"><span id="glText" class="gl-text"></span><span id="glHiLo" class="cap"></span></span>
         </span>
         <span id="glRadar" class="gl-radar" hidden><img id="glRadarImg" alt=""><span class="cap">Radar<br>Today ›</span></span>
-      </button>
+        </button>
+      </div>
       <div id="ask" class="ask" hidden>
         <div class="ask-text"><b>Where are you?</b><span class="cap">Daylight, the forecast and the radar show here once this page knows. It stays on this computer.</span></div>
         <div id="askForm"></div>
       </div>
       <a id="glMail" class="gl-chip" href="https://mail.google.com/mail/u/0/#inbox" title="Unread in your Gmail inbox" hidden><span aria-hidden="true">✉️</span><b id="glMailCount"></b><span class="cap">unread</span></a>
     </div>
+    <nav id="often" class="often" aria-label="Most visited" hidden></nav>
     <div id="collections" class="collections"></div>
     <aside class="side">
       <section id="nextPanel" class="panel" aria-labelledby="nextTitle">
@@ -65,13 +68,21 @@
         <ul id="tabs" class="rows"></ul>
         <p id="tabsEmpty" class="note">No other pages are open in this window.</p>
       </section>
+      <section id="closedPanel" class="panel" aria-labelledby="closedTitle" hidden>
+        <h2 id="closedTitle" title="Tabs you closed lately: click one to reopen it where it was. Below, the tabs open on your other devices.">Recently closed</h2>
+        <ul id="closed" class="rows"></ul>
+        <p id="closedEmpty" class="note">Tabs you close will show here, to reopen.</p>
+        <div id="devices"></div>
+      </section>
       <section id="filesPanel" class="panel" aria-labelledby="filesTitle" hidden>
         <h2 id="filesTitle" title="Google files you opened lately in this browser">Recent files</h2>
         <ul id="files" class="rows"></ul>
         <p id="filesEmpty" class="note">Google Docs, Sheets and Slides you open will show here.</p>
       </section>
       <section class="panel notes" aria-labelledby="notesTitle">
-        <h2 id="notesTitle">Notes <span id="noteState" class="n" role="status"></span></h2>
+        <h2 id="notesTitle">Notes <span id="noteState" class="n" role="status"></span>
+          <button type="button" id="noteBig" class="mini" aria-pressed="false" title="A bigger box for the same note. Esc puts it back.">Expand</button>
+        </h2>
         <textarea id="note" rows="5" maxlength="4000" aria-labelledby="notesTitle" placeholder="Jot something down. It saves as you type, on every computer signed in to this Chrome profile."></textarea>
       </section>
     </aside>
@@ -141,6 +152,14 @@
         <ol id="wxDays" class="wx-days"></ol>
       </article>
     </div>
+  </section>
+
+  <section id="tools" class="shortcuts" hidden>
+    <header class="sc-head">
+      <h1>Tools</h1>
+      <p>Checks for your connection and this browser. Nothing here reaches the network until you press it, and each card says who it asks.</p>
+    </header>
+    <div id="toolsBody" class="sc-body"></div>
   </section>
 
   <section id="shortcuts" class="shortcuts" hidden>

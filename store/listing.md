@@ -56,7 +56,7 @@ TYPE, DON'T CLICK
 • Add your own: any name to any address
 
 PICK UP WHERE YOU LEFT OFF
-• Up next: pages to come back to, saved with one click or Alt+Shift+S
+• Up next: pages to come back to, saved with one click, Alt+Shift+S or a right-click
 • Open tabs: switch, reorder, close, or file one into a collection
 • Notes: a scratch box that follows your Chrome profile
 
@@ -65,16 +65,20 @@ LOOK UP
 • The page turns dark when night falls where you are
 • Forecast, hourly chart, seven days and radar from the National Weather Service (United States)
 
+CHECK, WHEN YOU WANT TO
+• A Tools tab: your public address and where it exits, a WebRTC leak check, a quick speed reading, what any site can read about this browser, and one click into Chrome's privacy and security settings
+• Nothing on it reaches the network until you press it
+
 PRIVATE BY CONSTRUCTION
 • No account, no server, no analytics
 • Your links stay Chrome bookmarks
-• Two extras (unread mail count, recent Google files) are off until you switch them on
+• Four extras (unread mail count, recent Google files, closed tabs and other devices, most visited) are off until you switch them on
 
 Free and open source.
 ```
 
-**Screenshots** (1280×800, sample data): `2-space.png`, `4-today-day.png`, `6-today-dusk.png`,
-`7-today-night.png`, `10-shortcuts.png`.
+**Screenshots** (1280×800, sample data): `2-space.png`, `4-today-day.png`, `7-today-night.png`,
+`10-shortcuts.png`, `11-tools.png`.
 
 ## Privacy tab
 
@@ -88,6 +92,7 @@ Free and open source.
 | Permission | Reason |
 |---|---|
 | `bookmarks` | The page is drawn from the bookmarks bar, and dragging, renaming, adding or removing a tile changes the bookmark. "Up next" is a bookmarks folder. |
+| `contextMenus` | Adds "Add to Up next" to the right-click menu of a page or a link. |
 | `tabs` | Lists the window's open tabs so one can be switched to, closed, reordered or saved as a bookmark; opens a collection's links. |
 | `tabGroups` | "Open all" opens a collection as one named tab group. |
 | `webNavigation` | Notices when the user types one of their short links (for example `mail/`) in the address bar, to send the tab to the bookmark it names. No browsing data is stored or sent. |
@@ -96,6 +101,8 @@ Free and open source.
 | `geolocation` | On the first new tab and when the user clicks "Use this computer's location", to show sunrise, sunset and the local forecast. Chrome shows no location prompt on a new tab page, so the permission is declared. If the computer refuses, the page falls back to the city of the network connection (marked approximate), and the user can type a place instead. |
 | Host `api.weather.gov` | Fetches the forecast for the user's place from the National Weather Service. |
 | Optional `history` | Only if the user switches on "Recent files": lists the Google Docs, Sheets and Slides they opened lately. Read locally; nothing is sent. |
+| Optional `sessions` | Only if the user switches on "Closed tabs and other devices": lists recently closed tabs to reopen, and the tabs open on the user's other signed-in devices. Read locally; nothing is sent. |
+| Optional `topSites` | Only if the user switches on "Most visited": shows a row of the user's most visited sites. Read locally. |
 | Optional host `mail.google.com` | Only if the user switches on "Unread mail": reads the unread count from Gmail's inbox feed. Only the number is kept, locally. |
 
 **Remote code:** No. All code is in the package.
@@ -108,6 +115,10 @@ Free and open source.
 - *Web history:* only with the optional "Recent files" switch; read on the device, never sent.
 - *Personal communications:* only with the optional "Unread mail" switch; the count alone, kept
   on the device.
+- *User activity / web history:* also with the optional "Closed tabs and other devices" and
+  "Most visited" switches; read on the device, never sent.
+- The Tools tab's checks contact Cloudflare (and a STUN server) only when the user presses
+  them; the answers are shown and not stored.
 - Everything else: no.
 - Certify: not sold to third parties; not used for purposes unrelated to the single purpose; not
   used for creditworthiness or lending.

@@ -1,12 +1,15 @@
-// Two things this page shows only if you turn them on, each behind a permission Chrome asks you
-// for at that moment: your unread mail count, and the Google files you opened lately. Whether one
-// is on is simply whether its permission is held.
+// Things this page shows only if you turn them on, each behind a permission Chrome asks you for
+// at that moment: your unread mail count, the Google files you opened lately, the tabs you
+// closed and the ones open on your other devices, and the sites you visit most. Whether one is
+// on is simply whether its permission is held.
 import { $, el } from "./dom.js";
-import { siteIcon } from "./icons.js";
+import { siteIcon, host } from "./icons.js";
 
 const EXTRAS = {
   mail: { ask: { origins: ["https://mail.google.com/*"] }, label: "Unread mail", note: "How many unread messages are in your Gmail inbox, in the strip at the top. Chrome will ask to read mail.google.com." },
   docs: { ask: { permissions: ["history"] }, label: "Recent files", note: "The Google Docs, Sheets, Slides and Forms you opened lately, from this browser's history. Chrome will ask to read your history." },
+  closed: { ask: { permissions: ["sessions"] }, label: "Closed tabs and other devices", note: "Tabs you closed lately, to reopen, and the tabs open on your phone and other computers signed in to this Chrome profile. Chrome will ask to read your history on your signed-in devices." },
+  often: { ask: { permissions: ["topSites"] }, label: "Most visited", note: "A row of the sites you go to most, above your collections. Chrome will ask to read your most visited sites." },
 };
 const isOn = (name) => chrome.permissions.contains(EXTRAS[name].ask);
 
@@ -90,5 +93,58 @@ export async function renderFiles() {
     const li = el("li");
     li.append(a);
     return li;
+  }));
+}
+
+// ---------- closed tabs and other devices ----------
+const web = (tab) => !!tab && /^https?:/.test(tab.url || "");
+const row = (tab) => {
+  const a = el("a", "row");
+  a.href = tab.url;
+  a.title = tab.url;
+  a.append(siteIcon(tab.url, tab.title), el("span", "t", tab.title || tab.url), el("span", "h", host(tab.url)));
+  const li = el("li");
+  li.append(a);
+  return li;
+};
+
+let watchingSessions = false;
+export async function renderClosed() {
+  const on = await isOn("closed");
+  $("closedPanel").hidden = !on;
+  if (!on) return;
+  // The list changes as tabs close; the listener can only be added once the permission is held.
+  if (!watchingSessions) { watchingSessions = true; chrome.sessions.onChanged.addListener(renderClosed); }
+  const [closed, devices] = await Promise.all([chrome.sessions.getRecentlyClosed({ maxResults: 10 }), chrome.sessions.getDevices({ maxResults: 4 })]);
+  // A closed tab comes back where it was, with its history; a closed window comes back whole.
+  const items = closed.map((s) => {
+    const tabs = (s.window ? s.window.tabs : [s.tab]).filter(web);
+    if (!tabs.length) return null;
+    const li = row(s.window && tabs.length > 1 ? { ...tabs[0], title: `Window: ${tabs[0].title || host(tabs[0].url)} and ${tabs.length - 1} more` } : tabs[0]);
+    li.firstChild.onclick = (e) => { e.preventDefault(); chrome.sessions.restore((s.window || s.tab).sessionId); };
+    return li;
+  }).filter(Boolean).slice(0, 6);
+  $("closed").replaceChildren(...items);
+  $("closedEmpty").hidden = items.length > 0;
+  $("devices").replaceChildren(...devices.flatMap((d) => {
+    const tabs = d.sessions.flatMap((s) => (s.window ? s.window.tabs : [s.tab])).filter(web).slice(0, 6);
+    if (!tabs.length) return [];
+    const list = el("ul", "rows");
+    list.append(...tabs.map(row));
+    return [el("h3", null, d.deviceName), list];
+  }));
+}
+
+// ---------- most visited ----------
+export async function renderOften() {
+  const on = await isOn("often");
+  const sites = on ? (await chrome.topSites.get()).filter(web).slice(0, 8) : [];
+  $("often").hidden = !sites.length;
+  $("often").replaceChildren(...sites.map((s) => {
+    const a = el("a", "pin");
+    a.href = s.url;
+    a.title = s.title || s.url;
+    a.append(siteIcon(s.url, s.title), el("span", "t", host(s.url).replace(/^www\./, "")));
+    return a;
   }));
 }

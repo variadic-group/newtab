@@ -43,3 +43,17 @@ chrome.action.onClicked.addListener(async (tab) => {
   await chrome.action.setBadgeText({ tabId: tab.id, text: "✓" });
   setTimeout(() => chrome.action.setBadgeText({ tabId: tab.id, text: "" }), 1500);
 });
+
+// A right-click on a page, or on a link in one, offers the same. A link is filed under its
+// address, since its page hasn't been opened to give it a name.
+chrome.runtime.onInstalled.addListener(() => {
+  chrome.contextMenus.create({ id: "next", title: "Add to Up next", contexts: ["page", "link"] }, () => {
+    // Made again on an update, when it is already there: that is not a failure.
+    if (chrome.runtime.lastError && !/duplicate/i.test(chrome.runtime.lastError.message)) console.warn("menu:", chrome.runtime.lastError.message);
+  });
+});
+chrome.contextMenus.onClicked.addListener(async (info, tab) => {
+  const url = info.linkUrl || info.pageUrl || (tab && tab.url) || "";
+  if (info.menuItemId !== "next" || !/^https?:/.test(url)) return;
+  await addToNext(info.linkUrl ? { title: url.replace(/^https?:\/\/(www\.)?/, ""), url } : { title: tab.title, url });
+});

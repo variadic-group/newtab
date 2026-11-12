@@ -52,12 +52,12 @@ This page adds a face to that store and keeps nothing of its own:
   `claude/draft a reply to this`. Or type `claude`, press Tab, and ask.
 
 **Pick up where you left off**
-- **Up next:** pages to come back to, in order. One click on the toolbar button, or Alt+Shift+S.
-  It is a bookmarks folder, so it syncs too.
+- **Up next:** pages to come back to, in order. One click on the toolbar button, Alt+Shift+S,
+  or a right-click on any page or link. It is a bookmarks folder, so it syncs too.
 - **Open tabs:** switch to one, reorder the tab strip, close one (× or a middle click), or drag
   one into a collection.
   **Save all** files the whole window.
-- **Notes:** a scratch box that follows your Chrome profile.
+- **Notes:** a scratch box that follows your Chrome profile. Expand lifts it into a big one.
 
 **Look up**
 - **The sky, drawn to scale.** The sun's real path for today with solar noon in the middle, the
@@ -65,7 +65,16 @@ This page adds a face to that store and keeps nothing of its own:
   on the side that faces the sun.
 - **The page goes dark when night falls** where you are, and light again at dawn.
 - **Forecast and radar** from the National Weather Service: now, the next 24 hours, seven days,
-  and the radar loop. A strip across the top of every space carries the short version.
+  and the radar loop. A strip across the top of every space carries the short version; its
+  time and date open your calendar.
+
+**Check, when you want to**
+- **Tools** is a tab of checks for the connection and the browser, and nothing on it reaches
+  the network until you press it: the address the internet sees you at, where that is and
+  whether a VPN seems to be in the way; whether WebRTC shows sites an address your VPN was
+  meant to hide; a quick speed reading; what any site can read about this browser; and one
+  click into the Chrome settings pages where these things are changed. Tests that need servers
+  of their own (how unique your fingerprint is, where your DNS lookups go) are links.
 
 | Day | Dusk | Night |
 |---|---|---|
@@ -135,6 +144,7 @@ collection; a folder in a collection is a group, and one inside that shows as `F
 | Permission | What it is for |
 |---|---|
 | Bookmarks | The page *is* your bookmarks; edits here are edits to them |
+| Context menus | "Add to Up next" when you right-click a page or a link |
 | Tabs and tab groups | The Open tabs list; opening a collection as a group |
 | Web navigation | Noticing a typed short link. Chrome words this, with Tabs, as "read your browsing history"; nothing is stored or sent |
 | Search | Handing the words after a short name to whichever search engine Chrome is set to. It cannot read or change that setting |
@@ -145,12 +155,16 @@ collection; a folder in a collection is a group, and one inside that shows as `F
 Four services are called, each with the least it needs: the National Weather Service gets your
 place rounded to about a kilometre; BigDataCloud is asked which city your network is in, only
 when the computer won't give its location; OpenStreetMap's Nominatim gets what you type when you
-press Search; Google's icon service gets the host names of your bookmarks. The full account is
-in [PRIVACY.md](PRIVACY.md).
+press Search; Google's icon service gets the host names of your bookmarks. The checks on the
+Tools tab ask Cloudflare, and only when you press them. The full account is in
+[PRIVACY.md](PRIVACY.md).
 
 **Extras** (footer → Extras) are off until you switch them on, and Chrome asks at that moment:
-your Gmail unread count in the top strip, and a list of the Google Docs, Sheets and Slides you
-opened lately.
+
+- your Gmail unread count in the top strip;
+- the Google Docs, Sheets and Slides you opened lately;
+- the tabs you closed lately, to reopen, and the tabs open on your phone and other computers;
+- a row of the sites you visit most.
 
 ## Good to know
 
@@ -177,14 +191,15 @@ opened lately.
 
 ## What is deliberately not here
 
-A task manager, a search box (the address bar is already focused on a new tab), a list-or-grid
-switch, a most-visited row, page previews, themes. Each was tried or considered and left out to
-keep the page quiet.
+A task manager, a notes app, a news feed, a search box (the address bar is already focused on a
+new tab), a list-or-grid switch, page previews, themes. Each was tried or considered and left
+out to keep the page quiet. What only some people want is an extra, off until asked for, or
+sits on the Tools tab, away from the links.
 
 ## Next
 
 - **Today's events and tasks in the top strip.** Reading Google Calendar and Tasks needs a
-  Google sign-in for the extension, so it will be a third extra, off by default.
+  Google sign-in for the extension, so it will be another extra, off by default.
 - **Notes and Up next in Chrome's side panel,** beside whatever page you are on.
 - **Forecasts outside the United States.**
 
@@ -195,7 +210,7 @@ No build step. The extension is the `extension` folder as it stands.
 ```
 npm install
 npx playwright install chromium
-npm test            # 13 astronomy checks in Node, then 138 checks in a real Chromium
+npm test            # 13 astronomy checks in Node, then 152 checks in a real Chromium
 npm run shots       # the screenshots in store/screenshots
 npm run zip         # newtab.zip, ready to upload or release
 ```

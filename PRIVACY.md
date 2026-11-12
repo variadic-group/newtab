@@ -21,6 +21,7 @@ Last updated 2026-11-11.
 | National Weather Service (`api.weather.gov`, `radar.weather.gov`) | Your rounded location, then the radar station nearest it | When the forecast is more than 20 minutes old and you open a new tab |
 | BigDataCloud (`api.bigdatacloud.net`) | Nothing but the request itself: it answers with the city your IP address appears to be in | Only when the computer won't give its location: on the first new tab, when you press "Use this computer's location", and at most every six hours while the place is still an estimate. Never once you have typed a place |
 | OpenStreetMap's Nominatim (`nominatim.openstreetmap.org`) | What you typed: a city, a ZIP code or an address | Only when you press Search in the location form |
+| Cloudflare (`speed.cloudflare.com`, `1.1.1.1`, `stun.cloudflare.com`) and Google's STUN server (`stun.l.google.com`) | The requests themselves: Cloudflare answers with the address it sees you at, where that is and whose network it is; the speed check sends and receives filler data; the STUN servers are asked what address they see | Only when you press Check or Run on the Tools tab. Nothing is kept after the tab closes |
 | Your search engine, whichever Chrome is set to | The words you typed after a bookmark's short name, with `site:` and that bookmark's site | Only when you type words after a short name that has no search of its own (`stripe/refund policy`) |
 | Google's icon service (`google.com/s2/favicons`, `gstatic.com`) | The host names of your bookmarks, one at a time | The first time a site's icon is needed; the answer is remembered |
 
@@ -45,12 +46,17 @@ Removing the extension deletes all of it. Your bookmarks stay, including the `‚è
 
 ## Extras you can switch on
 
-Both are off until you turn them on, and Chrome asks you for the permission at that moment.
+Each is off until you turn it on, and Chrome asks you for the permission at that moment.
 
 - **Unread mail** reads the count from Gmail's inbox feed (`mail.google.com`) using your
   browser's own sign-in. Only the number is kept, on this computer.
 - **Recent files** reads this browser's history for Google Docs, Sheets, Slides and Forms you
   opened in the last 30 days, to list them. Nothing is sent anywhere.
+- **Closed tabs and other devices** reads Chrome's list of tabs you closed lately and of tabs
+  open on the other devices signed in to this Chrome profile, to list them. Nothing is sent
+  anywhere, and nothing is kept.
+- **Most visited** reads Chrome's list of the sites you visit most, to show eight of them.
+  Their host names go to Google's icon service for their icons, as your bookmarks' do.
 
 ## Contact
 

@@ -1,14 +1,16 @@
 import { $, el } from "./dom.js";
 import { loadIcons, siteIcon, tabIcon, host } from "./icons.js";
-import { barChildren, bookmarkBars, leaves, aliasTable, aliasFor, nextFolder, addToNext } from "./shared.js";
+import { BUILTIN, claims, barChildren, bookmarkBars, leaves, aliasTable, aliasFor, nextFolder, addToNext } from "./shared.js";
 import { renderShortcuts, aliasPill } from "./shortcuts.js";
 import { renderToday, tickToday, tickTheme, renderGlance, warmWeather } from "./today.js";
 import { placeForm, getPlace, leftBehind, keepPlace } from "./place.js";
-import { renderExtras, renderMail, renderFiles } from "./extras.js";
+import { renderExtras, renderMail, renderFiles, renderClosed, renderOften } from "./extras.js";
+import { renderTools } from "./tools.js";
 
 const TODAY = "today";
 const KEYS = "shortcuts";
-const isPage = (id) => id === TODAY || id === KEYS;
+const TOOLS = "tools";
+const isPage = (id) => id === TODAY || id === KEYS || id === TOOLS;
 let current = null;
 let pendingRename = null;
 
@@ -118,17 +120,21 @@ async function render() {
 
   $("spaces").replaceChildren(...all.map((s) => tabFor(s.id, s.title, s)), newSpaceTab(!all.length));
   renameNew($("spaces"));
-  $("pages").replaceChildren(tabFor(TODAY, "☀️ Today"), tabFor(KEYS, "⌨️ Shortcuts"));
+  $("pages").replaceChildren(tabFor(TODAY, "☀️ Today"), tabFor(KEYS, "⌨️ Shortcuts"), tabFor(TOOLS, "🛠️ Tools"));
   $("today").hidden = current !== TODAY;
   $("shortcuts").hidden = current !== KEYS;
+  $("tools").hidden = current !== TOOLS;
   $("space").hidden = isPage(current);
   $("edit").hidden = isPage(current);
   $("empty").hidden = all.length > 0;
   if (current === TODAY) return renderToday();
   if (current === KEYS) return renderShortcuts($("scBody"), render);
+  if (current === TOOLS) return renderTools($("toolsBody"));
+  // The time and date open your calendar: your own Calendar bookmark if you keep one.
+  $("glCal").href = (await claims()).get("cal") || BUILTIN.cal.url;
   const space = all.find((s) => s.id === current);
   if (space) await renderSpace(space);
-  await Promise.all([renderGlance(), renderNext(), renderTabs(), renderMail(), renderFiles()]);
+  await Promise.all([renderGlance(), renderNext(), renderTabs(), renderMail(), renderFiles(), renderClosed(), renderOften()]);
 }
 
 function show(id) {
@@ -535,6 +541,15 @@ note.oninput = () => {
 };
 note.onblur = saveNote;
 addEventListener("pagehide", saveNote);
+// The same note in a bigger box, for when it is more than a line or two.
+const bigNote = (on) => {
+  note.closest(".notes").classList.toggle("big", on);
+  $("noteBig").textContent = on ? "Shrink" : "Expand";
+  $("noteBig").setAttribute("aria-pressed", String(on));
+  if (on) note.focus();
+};
+$("noteBig").onclick = () => bigNote($("noteBig").getAttribute("aria-pressed") !== "true");
+note.addEventListener("keydown", (e) => { if (e.key === "Escape") bigNote(false); });
 
 // ---------- wiring ----------
 $("edit").onclick = () => {
@@ -568,7 +583,7 @@ $("todayAskForm").append(placeForm(placed));
 $("placeBtn").onclick = () => changePlace();
 
 // Extras are switched on and off from the footer; each is a permission Chrome asks for.
-const drawExtras = () => { renderExtras(drawExtras); if (!isPage(current)) { renderMail(); renderFiles(); } };
+const drawExtras = () => { renderExtras(drawExtras); if (!isPage(current)) { renderMail(); renderFiles(); renderClosed(); renderOften(); } };
 $("extrasBtn").onclick = () => {
   const open = $("extras").hidden;
   $("extras").hidden = !open;
@@ -603,7 +618,7 @@ for (const ev of ["onCreated", "onRemoved", "onChanged", "onMoved", "onChildrenR
   if (chrome.bookmarks[ev]) chrome.bookmarks[ev].addListener(() => rerender());
 }
 // The sky and the forecast are drawn from what is saved, so a new place or forecast redraws them.
-const redrawSky = () => { if (current === TODAY) renderToday(); else if (current === KEYS) tickTheme(); else renderGlance(); };
+const redrawSky = () => { if (current === TODAY) renderToday(); else if (isPage(current)) tickTheme(); else renderGlance(); };
 chrome.storage.onChanged.addListener((changes, area) => {
   if (area === "sync" && (changes.aliases || changes.links)) rerender();
   if (area === "sync" && changes.note) loadNote();
@@ -624,7 +639,7 @@ function retabs() {
 }
 for (const ev of ["onCreated", "onRemoved", "onUpdated", "onMoved", "onAttached", "onDetached"]) chrome.tabs[ev].addListener(retabs);
 
-setInterval(() => { if (current === TODAY) tickToday(); else if (current === KEYS) tickTheme(); else renderGlance(); }, 10000);
+setInterval(() => { if (current === TODAY) tickToday(); else if (isPage(current)) tickTheme(); else renderGlance(); }, 10000);
 await loadIcons();
 await loadNote();
 await render();
