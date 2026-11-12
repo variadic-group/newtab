@@ -1,25 +1,28 @@
-# Pushing a tag like v3.0.0 zips the extension folder and publishes it as a release, so the
-# install steps in the README always have a file to point at.
+# Each push to main releases the manifest's version if it has no release yet: the extension
+# folder zipped, under a tag v<version>. So raising "version" in extension/manifest.json is
+# what cuts a release, and the README's install steps always have a file to point at.
 name: release
 on:
   push:
-    tags: ["v*"]
+    branches: [main]
 permissions:
   contents: write
 jobs:
   release:
     runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
     steps:
-      - name: Fetch the tagged source
-        run: git clone --depth 1 --branch "$GITHUB_REF_NAME" "https://github.com/$GITHUB_REPOSITORY.git" .
-      - name: Check the tag is the manifest's version
-        run: test "v$(jq -r .version extension/manifest.json)" = "$GITHUB_REF_NAME"
-      - name: Zip the extension
-        run: cd extension && zip -qr "../newtab-${GITHUB_REF_NAME#v}.zip" . -x '.*'
-      - name: Publish the release
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: >
-          gh release create "$GITHUB_REF_NAME" "newtab-${GITHUB_REF_NAME#v}.zip"
-          --title "New Tab ${GITHUB_REF_NAME#v}"
-          --notes "Download the zip, unzip it, then load the folder from chrome://extensions with Developer mode on. The README has the steps."
+      - name: Fetch the source
+        run: git clone --depth 1 "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" .
+      - name: Release this version if it has none yet
+        run: |
+          version="$(jq -r .version extension/manifest.json)"
+          if gh release view "v$version" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "v$version is already released."
+            exit 0
+          fi
+          (cd extension && zip -qr "../newtab-$version.zip" . -x '.*')
+          gh release create "v$version" "newtab-$version.zip" --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" \
+            --title "New Tab $version" \
+            --notes "Download the zip, unzip it, then load the folder from chrome://extensions with Developer mode on. The README has the steps."

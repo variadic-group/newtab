@@ -11,7 +11,8 @@ Everything to paste into the Developer Dashboard. Sources checked 2026-11-11:
 1. Open the [Developer Dashboard](https://chrome.google.com/webstore/devconsole) signed in as the
    account that should own the listing. Registering means accepting the developer agreement and
    paying the one-time registration fee; the account's email can't be changed later.
-2. **Add new item** → upload `newtab-<version>.zip` (`npm run zip` makes it from `extension/`).
+2. **Add new item** → upload `newtab-<version>.zip` from the repository's latest release
+   (`npm run zip` makes the same file from `extension/`).
 3. **Store listing:** paste the text below; upload the five screenshots from
    `store/screenshots/` and `store/promo-440x280.png`.
 4. **Privacy:** paste the single purpose, the permission reasons and the data answers below.
@@ -21,7 +22,8 @@ Everything to paste into the Developer Dashboard. Sources checked 2026-11-11:
 6. After it is approved: put the store link in the README's Install section. For a team, force
    install it by its ID in the Google Admin console (Chrome → Apps & extensions).
 
-To update: raise `version` in `extension/manifest.json`, zip, upload, submit.
+To update: raise `version` in `extension/manifest.json`, push, download the new release's zip,
+upload it, submit.
 
 ## Store listing
 

@@ -159,6 +159,9 @@ npm run shots       # the screenshots in store/screenshots
 npm run zip         # newtab.zip, ready to upload or release
 ```
 
+To release, raise `version` in `extension/manifest.json` and push to `main`: a workflow zips the
+folder and publishes it under that version.
+
 `extension/sky.js` is the astronomy: pure functions, no browser, tested against dates whose
 answers are public record (a solstice sunrise in New York, the April 2024 eclipse). The browser
 tests load the extension unpacked and exercise the real `chrome.*` APIs with every outside
