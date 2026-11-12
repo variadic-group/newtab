@@ -39,8 +39,9 @@ These are not bundled; the page asks them for data. What each one receives is in
   radar images: United States government data, in the public domain.
 - [BigDataCloud's free client-side reverse geocoding API](https://www.bigdatacloud.com/docs/api/free-reverse-geocode-to-city-api),
   asked without coordinates for the city this network connection appears to be in, only when
-  the computer won't give its own location. No key; client-side use only, under its fair use
-  policy (checked 2026-11-11).
+  the computer won't give its own location; and asked with a city's coordinates for that
+  city's time zone, when you add the city on Today. No key; client-side use only, under its
+  fair use policy (checked 2026-11-11).
 - [ipleak.net](https://ipleak.net/), run by AirVPN, for the Tools tab's check: its keyless API
   says what address it sees, where that is and whose network it is, and its DNS detection says
   which DNS servers looked up a name made for the purpose. Its data is partly MaxMind's. Called

@@ -5,6 +5,8 @@
 (function () {
   var dark = matchMedia("(prefers-color-scheme: dark)").matches;
   try {
+    var accent = localStorage.getItem("accent");
+    if (accent) document.documentElement.dataset.accent = accent;
     var pick = localStorage.getItem("theme");
     if (pick === "light" || pick === "dark") { document.documentElement.dataset.theme = pick; return; }
     var night = JSON.parse(localStorage.getItem("night") || "null");

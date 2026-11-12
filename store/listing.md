@@ -46,6 +46,7 @@ Every folder on your bookmarks bar becomes a tab; every folder inside it becomes
 
 LAUNCH
 • Spaces, collections and groups, straight from the bookmarks bar; make and rename them on the page
+• Starting from nothing? Add a starter set, choose a bookmarks file from another browser, or copy a prompt that has your assistant interview you and write one
 • Drag to reorder links, cards and tabs; the bookmarks bar changes with you
 • Open a whole collection as one named tab group
 
@@ -59,26 +60,29 @@ TYPE, DON'T CLICK
 PICK UP WHERE YOU LEFT OFF
 • Up next: pages to come back to, saved with one click, Alt+Shift+S or a right-click
 • Open tabs: switch, reorder, close, or file one into a collection
-• Notes: a scratch box that follows your Chrome profile
+• Notes: a few pages of scratch text that follow your Chrome profile; copy one or download it
 
 LOOK UP
 • The sun's real path across the day, the three twilights, and the moon in its true phase
-• The page turns dark when night falls where you are
-• Forecast, hourly chart, seven days and radar from the National Weather Service (United States)
+• Drag along the next 24 hours and the whole page moves to that moment: the clock, the sun, that hour's forecast
+• A map of where it is day right now, with the clocks of the cities you add, which follow the drag: what time a call lands for everyone
+• The page turns dark when night falls where you are; or hold it light or dark, and pick an accent
+• Forecast, seven days and radar from the National Weather Service (United States)
 
 CHECK, WHEN YOU WANT TO
 • A Tools tab that shows how you look from outside: where your traffic comes out and whether your clock agrees, a WebRTC leak check, whose servers answer your DNS lookups, a speed reading, the fingerprint a tracking script would give this browser, and how Chrome's own privacy switches are set
+• Written for people who have never heard those words: each answer says what it is, what was found, what it means and what to do, which is often nothing
 • Opening that tab runs the check; no other part of the page makes those calls
 
 PRIVATE BY CONSTRUCTION
-• No account, no server, no analytics
+• No account, no server, no analytics, no ads, no affiliate links
 • Your links stay Chrome bookmarks
 • Four extras (unread mail count, recent Google files, closed tabs and other devices, most visited) are off until you switch them on
 
 Free and open source.
 ```
 
-**Screenshots** (1280×800, sample data): `2-space.png`, `4-today-day.png`, `7-today-night.png`,
+**Screenshots** (1280×800, sample data): `2-space.png`, `4-today-day.png`, `12-today-dragged.png`,
 `10-shortcuts.png`, `11-tools.png`.
 
 ## Privacy tab
@@ -98,7 +102,7 @@ Free and open source.
 | `tabGroups` | "Open all" opens a collection as one named tab group. |
 | `webNavigation` | Notices when the user types one of their short links (for example `mail/`) in the address bar, to send the tab to the bookmark it names. No browsing data is stored or sent. |
 | `search` | When the user types words after a bookmark's short name (for example `stripe/refund policy`), runs that search on the user's own default search engine through `chrome.search.query`. It does not read or change the search setting. |
-| `storage` | Keeps the user's short names, their own shortcuts, their note, the place they set and a cache of the forecast and icons. |
+| `storage` | Keeps the user's short names, their own shortcuts, their notes, the cities they added, their choice of light, dark and accent, the place they set and a cache of the forecast and icons. |
 | `geolocation` | On the first new tab and when the user clicks "Use this computer's location", to show sunrise, sunset and the local forecast. Chrome shows no location prompt on a new tab page, so the permission is declared. If the computer refuses, the page falls back to the city of the network connection (marked approximate), and the user can type a place instead. |
 | Host `api.weather.gov` | Fetches the forecast for the user's place from the National Weather Service. |
 | Optional `history` | Only if the user switches on "Recent files": lists the Google Docs, Sheets and Slides they opened lately. Read locally; nothing is sent. |

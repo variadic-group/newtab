@@ -9,19 +9,12 @@
 // https://ipleak.net/ (API section, checked 2026-11-12)
 import { el } from "./dom.js";
 import { getPlace, offsetOf } from "./place.js";
-import { LAND } from "./land.js";
+import { CELLS, MAP, dots, spot, svg } from "./world.js";
 
 const CF = "https://speed.cloudflare.com";
 const within = (ms) => ({ cache: "no-store", signal: AbortSignal.timeout(ms) });
 const str = (v) => (typeof v === "string" || typeof v === "number" ? String(v) : "");
 const num = (v) => (typeof v === "number" && Number.isFinite(v) ? v : null);
-const NS = "http://www.w3.org/2000/svg";
-const svg = (tag, attrs = {}, text) => {
-  const n = document.createElementNS(NS, tag);
-  for (const [k, v] of Object.entries(attrs)) n.setAttribute(k, v);
-  if (text != null) n.textContent = text;
-  return n;
-};
 // A country's flag from its two-letter code, or nothing.
 const flag = (code) => (/^[A-Z]{2}$/.test(code) ? String.fromCodePoint(...[...code].map((c) => 0x1f1a5 + c.charCodeAt(0))) : "");
 const many = (n, one, more = `${one}s`) => `${n.toLocaleString()} ${n === 1 ? one : more}`;
@@ -140,19 +133,6 @@ async function check(say) {
 }
 
 // ---------- the map ----------
-// The world as dots, six units to a cell, with north at the top and 180° west at the left.
-const CELL = 6;
-const MAP = { w: LAND.cols * CELL, h: LAND.rows * CELL };
-const spot = ({ lat, lon }) => [((lon + 180) / 360) * MAP.w, ((LAND.top - lat) / (LAND.rows * LAND.step)) * MAP.h];
-function land() {
-  const bytes = Uint8Array.from(atob(LAND.bits), (c) => c.charCodeAt(0));
-  let d = "";
-  for (let i = 0; i < LAND.cols * LAND.rows; i++) {
-    if ((bytes[i >> 3] >> (i & 7)) & 1) d += `M${(i % LAND.cols) * CELL + CELL / 2} ${Math.floor(i / LAND.cols) * CELL + CELL / 2}h0`;
-  }
-  return d;
-}
-
 // The shortest way round the globe from one place to another, as a path on the flat map. Where
 // it leaves one edge and comes back at the other, the line breaks.
 function route(a, b) {
@@ -188,7 +168,7 @@ function pin(cls, at, name, note, other) {
 function worldMap() {
   const art = svg("svg", { viewBox: `0 0 ${MAP.w} ${MAP.h}`, role: "img", "aria-label": "A map of the world" });
   const over = svg("g");
-  art.append(svg("path", { class: "land", d: land() }), over);
+  art.append(svg("path", { class: "land", d: dots(CELLS) }), over);
   return {
     art,
     // Where you are set to be, where your traffic comes out, and the way between them.
@@ -208,11 +188,14 @@ function worldMap() {
 }
 
 // ---------- what the check found, as one sentence, the map, and four answers ----------
-function way(name, kind, say, why) {
+// Each answer reads the same way: what was looked at, in plain words; what was found; what
+// that means; and what to do about it, which is often nothing, and says so.
+function way(name, kind, say, why, todo = "Nothing to do.") {
   const box = el("div", `way ${kind}`);
   const head = el("p", "way-say");
   head.append(mark(kind), el("b", null, say));
-  box.append(el("span", "way-name", name), head, ...[].concat(why).map((w) => (typeof w === "string" ? el("p", "way-why", w) : w)));
+  const doing = el("p", "way-do", todo);
+  box.append(el("span", "way-name", name), head, ...[].concat(why).map((w) => (typeof w === "string" ? el("p", "way-why", w) : w)), doing);
   return box;
 }
 
@@ -231,33 +214,40 @@ function act(label, run, go) {
 function answers({ v4, v6, at, rtc, dns }, away, limitWebrtc) {
   const known = [v4 && v4.ip, v6 && v6.ip].filter(Boolean);
 
-  const network = way("Network", "plain", at.isp || "Unknown", [
-    at.as ? `Its number on the internet is AS${at.as}.` : "",
-    v6 ? `You also have an IPv6 address, ${v6.ip}.` : "No IPv6 address on this network.",
-  ].filter(Boolean));
+  const network = way("Your provider", "plain", at.isp || "Unknown", [
+    away ? "The network your traffic comes out of. Sites see it in place of your own provider, and your own provider sees only that you are connected to it."
+      : "Who carries your traffic. They can see which sites you visit, though not what you do on one whose address starts with https.",
+    [at.as ? `Its number on the internet is AS${at.as}.` : "", v6 ? `You also have an IPv6 address, ${v6.ip}.` : "No IPv6 address on this network."].filter(Boolean).join(" "),
+  ]);
 
   // the clock: a site reads your time zone, and compares it with where your address is
   const mine = Intl.DateTimeFormat().resolvedOptions().timeZone;
   const there = at.zone ? offsetOf(at.zone) : null;
-  const clock = there === null ? way("Clock", "plain", "Can't compare", "The address has no time zone on record.")
-    : there === -new Date().getTimezoneOffset() ? way("Clock", away ? "good" : "plain", "Matches", `Your clock (${mine}) agrees with where your address is.`)
-      : way("Clock", "plain", "Differs from your address", `Your clock says ${mine}; your address says ${at.zone}. A site can tell you are not where your address is.`);
+  const clock = there === null ? way("Your clock", "plain", "Can't compare", "The address has no time zone on record.")
+    : there === -new Date().getTimezoneOffset() ? way("Your clock", away ? "good" : "plain", "Matches", `Your clock (${mine}) agrees with where your address is.`)
+      : way("Your clock", "plain", "Differs from your address", `Your clock says ${mine}; your address says ${at.zone}. A site can tell you are not where your address is.`,
+        "It only matters if you want to pass for being there. If you do, set this computer's time zone to match; if not, leave it.");
 
+  const calls = "Video calls (WebRTC)";
+  const what = "Calls in the browser connect two computers directly, so the browser will tell a site your address if asked.";
   let webrtc;
-  if (!rtc) webrtc = way("WebRTC", "plain", "Couldn't run", "The check couldn't run in this browser.");
+  if (!rtc) webrtc = way(calls, "plain", "Couldn't run", "The check couldn't run in this browser.");
   else {
     const open = [...rtc.open];
     const strays = open.filter((a) => !known.includes(a));
     const local = rtc.local.size ? `Your address on the local network is visible to sites: ${[...rtc.local].join(", ")}.` : rtc.hidden ? "Your address on the local network is hidden behind a random name." : "";
-    webrtc = !open.length ? way("WebRTC", away ? "good" : "plain", "Shows nothing", ["No public address came back: it is blocked or limited here.", local].filter(Boolean))
-      : strays.length ? way("WebRTC", "bad", "Shows another address", [`Sites can see ${strays.join(" and ")} through it, not the address above. On a VPN, that is your real address getting past it.`, local].filter(Boolean))
-        : way("WebRTC", away ? "good" : "plain", away ? "No leak" : "Same address", ["It shows sites the same address as your browsing.", local].filter(Boolean));
+    const narrow = "The button narrows it to the route your browsing takes. Chrome will ask first. Calls keep working on most networks.";
+    webrtc = !open.length ? way(calls, away ? "good" : "plain", "Shows nothing", [what, "No public address came back: it is blocked or limited here.", local].filter(Boolean), rtc.local.size ? narrow : undefined)
+      : strays.length ? way(calls, "bad", "Shows another address", [what, `Sites can see ${strays.join(" and ")} through it, not the address above. On a VPN, that is your real address getting past it.`, local].filter(Boolean), narrow)
+        : way(calls, away ? "good" : "plain", away ? "No leak" : "Same address", [what, "It shows sites the same address as your browsing.", local].filter(Boolean), rtc.local.size ? narrow : undefined);
     // What WebRTC gives away can be narrowed from here: the one Chrome setting with no switch.
     if (strays.length || rtc.local.size) webrtc.append(act("Limit WebRTC to your browsing's route", limitWebrtc));
   }
 
+  const names = "Name lookups (DNS)";
+  const asks = "Before it opens a site, your browser asks a server where that site is. Whoever runs the server sees the name of every site you look up.";
   let lookups;
-  if (!dns || !dns.length) lookups = way("DNS", "plain", "Couldn't see", "The servers that answer your lookups couldn't be seen this time.");
+  if (!dns || !dns.length) lookups = way(names, "plain", "Couldn't see", [asks, "The servers that answer your lookups couldn't be seen this time."]);
   else {
     const lands = [...new Set(dns.map((g) => g.country).filter(Boolean))];
     const same = lands.length > 0 && lands.every((c) => c === at.country);
@@ -269,16 +259,29 @@ function answers({ v4, v6, at, rtc, dns }, away, limitWebrtc) {
       li.append(el("span", "fl", flag(g.code) || "🌐"), el("span", null, `${g.isp}, ${many(g.n, "server")}`));
       list.append(li);
     }
-    lookups = way("DNS", kind, own ? "Your own network" : same ? `Answered in ${at.country}` : lands.length ? `Answered in ${lands[0]}` : dns[0].isp, [
+    lookups = way(names, kind, own ? "Your own network" : same ? `Answered in ${at.country}` : lands.length ? `Answered in ${lands[0]}` : dns[0].isp, [
+      asks,
       list,
-      own ? "Lookups are answered by the network your traffic comes out of."
-        : same ? "Lookups are answered where your traffic comes out. Whoever runs these servers sees every name you look up."
+      own ? "Yours are answered by the network your traffic comes out of."
+        : same ? "Yours are answered where your traffic comes out."
           : lands.length ? `Not in ${at.country || "the country"} where your traffic comes out. On a VPN, that means lookups are going around it.`
-            : "Whoever runs these servers sees every name you look up.",
-    ]);
-    if (kind === "warn") lookups.append(act("Choose your DNS in Chrome", null, "chrome://settings/security"));
+            : "",
+    ].filter(Boolean), kind === "warn" ? "Turn on DNS or leak protection in your VPN's own app if it has it. Or pick who answers your lookups yourself, in Chrome, under “Use secure DNS”."
+      : away ? undefined : "Nothing needs doing. If you would rather your provider didn't see every name, Chrome can send lookups to a service you pick, encrypted, under “Use secure DNS”.");
+    if (kind === "warn" || !away) lookups.append(act("Choose your DNS in Chrome", null, "chrome://settings/security"));
   }
   return [network, clock, webrtc, lookups];
+}
+
+// The one line over the four answers: whether anything needs doing, counted from their signs.
+function verdict(ways, away) {
+  const wrong = ways.filter((w) => w.matches(".bad, .warn")).length;
+  const p = el("p", "hero-do");
+  p.id = "heroDo";
+  if (wrong) p.append(mark(ways.some((w) => w.matches(".bad")) ? "bad" : "warn"), el("b", null, `${many(wrong, "thing")} to fix.`), ` ${wrong === 1 ? "It is" : "They are"} marked below, with what to do.`);
+  else if (away) p.append(mark("good"), el("b", null, "Nothing is getting around it."), " Your address, your video calls and your lookups all go the same way.");
+  else p.append(el("b", null, "Nothing here needs fixing."), " Without a VPN your provider can see which sites you visit and sites can see roughly where you are. That is how most people browse; the four answers below say what each part gives away.");
+  return p;
 }
 
 function heroPanel() {
@@ -298,8 +301,10 @@ function heroPanel() {
   top.append(say, world);
   const ways = el("div", "ways");
   ways.setAttribute("role", "status");
+  const doing = el("div", "hero-verdict");
+  doing.setAttribute("role", "status");
   const box = el("section", "hero");
-  box.append(top, ways);
+  box.append(top, doing, ways);
 
   // The sentence and the map as soon as the address is known; the four answers when DNS is in.
   let away = false;
@@ -327,13 +332,16 @@ function heroPanel() {
     world.classList.add("busy");
     world.classList.remove("landed");
     try {
-      const found = await check((at, place) => { landed(at, place); ways.replaceChildren(el("p", "way-why", "Looking for the servers that answer your lookups…")); });
-      ways.replaceChildren(...answers(found, away, limitWebrtc));
+      const found = await check((at, place) => { landed(at, place); doing.replaceChildren(); ways.replaceChildren(el("p", "way-why", "Looking for the servers that answer your lookups…")); });
+      const all = answers(found, away, limitWebrtc);
+      doing.replaceChildren(verdict(all, away));
+      ways.replaceChildren(...all);
     } catch (err) {
       console.warn("check:", err.message);
       line.textContent = "Couldn't find where you come out.";
       sub.textContent = `${err.message[0].toUpperCase()}${err.message.slice(1)}. You may be offline, or something is blocking it.`;
       address.replaceChildren();
+      doing.replaceChildren();
       ways.replaceChildren();
       world.classList.remove("busy");
     }
@@ -373,12 +381,13 @@ async function speed(say, down, up) {
   }
   // The first one also opens the connection, so it is left out.
   const rest = pings.slice(1).sort((a, b) => a - b);
+  const read = { down: 0, up: 0 };
   say("Measuring download…");
   for (const bytes of [1e5, 1e6, 1e7, 2.5e7]) {
     const t0 = performance.now();
     const got = (await (await fetch(`${CF}/__down?bytes=${bytes}`, within(20000))).arrayBuffer()).byteLength;
     const ms = performance.now() - t0;
-    down.set(mbps(got, ms));
+    down.set(read.down = mbps(got, ms));
     if (ms > 1000) break;
   }
   say("Measuring upload…");
@@ -387,10 +396,23 @@ async function speed(say, down, up) {
     const r = await fetch(`${CF}/__up`, { method: "POST", body: new Uint8Array(bytes), ...within(20000) });
     if (!r.ok) throw new Error(`Cloudflare answered ${r.status} to the upload`);
     const ms = performance.now() - t0;
-    up.set(mbps(bytes, ms));
+    up.set(read.up = mbps(bytes, ms));
     if (ms > 1000) break;
   }
-  return { delay: rest[Math.floor(rest.length / 2)], spread: rest.at(-1) - rest[0] };
+  return { ...read, delay: rest[Math.floor(rest.length / 2)], spread: rest.at(-1) - rest[0] };
+}
+
+// What a reading is good for, in a household's terms, and what to try when it is poor.
+function speedMeans({ down, up, delay }) {
+  const says = [down >= 100 ? "Fast. Several people can stream in 4K, call and download at once."
+    : down >= 25 ? "Good. Enough for 4K video and for a household's calls at the same time."
+      : down >= 10 ? "Fine for HD video and video calls for one or two people."
+        : down >= 3 ? "Slow. One HD stream at a time, and video calls may stutter."
+          : "Very slow. Pages will load; video will stop to buffer."];
+  if (up < 3) says.push("Upload is low, which is what makes your own picture choppy on calls.");
+  if (delay > 100) says.push("The delay is long, which is what makes people talk over each other on calls.");
+  const poor = down < 10 || up < 3 || delay > 100;
+  return { says: says.join(" "), tries: poor ? "Worth trying, one at a time, then Run again: move nearer the router or plug in a cable; pause other downloads; turn a VPN off; restart the router. If it stays well under what you pay for, that is one for your provider." : "" };
 }
 
 function speedCard() {
@@ -401,20 +423,26 @@ function speedCard() {
   const delay = el("p", "sc-note");
   delay.setAttribute("role", "status");
   delay.textContent = "Measured to Cloudflare when you press Run. It uses up to 40 MB of data, so it waits for you.";
+  const means = el("p", "sp-means"), tries = el("p", "way-do");
+  means.id = "speedMeans";
   const go = el("button", "btn", "Run");
   go.type = "button";
   go.onclick = async () => {
     go.disabled = true;
     delay.textContent = "Measuring the delay…";
+    means.textContent = tries.textContent = "";
     try {
       const d = await speed((t) => { delay.textContent = t; }, down, up);
       delay.textContent = `Delay ${Math.round(d.delay)} ms, give or take ${Math.round(d.spread / 2)}. A quick reading over one connection.`;
+      const m = speedMeans(d);
+      means.textContent = m.says;
+      tries.textContent = m.tries;
     } catch (err) { console.warn("speed:", err.message); delay.textContent = `That didn't work: ${err.message}.`; }
     go.disabled = false;
     go.textContent = "Run again";
   };
   box.firstChild.append(go);
-  box.append(down.box, up.box, scale, delay);
+  box.append(down.box, up.box, scale, means, delay, tries);
   return box;
 }
 
@@ -576,7 +604,8 @@ async function fingerprintCard() {
   const ami = el("a", null, "Am I Unique");
   ami.href = "https://amiunique.org/";
   wider.append(loose.length ? `A site can also read your ${loose.map((s) => `${s.name.toLowerCase().replace(", by chrome's guess", "")} (${s.value})`).join(" and ")}, which change too often to know you by. ` : "", "How rare this mark is takes a great many other browsers to say: ", eff, " and ", ami, " have that sample.");
-  box.append(top, tiers, wider);
+  const todo = el("p", "way-do", "What to do: there is no switch for this in Chrome, and clearing cookies or opening a private window doesn't change it. What helps is keeping the scripts that read it from following you: block third-party cookies in the switches on this page, and consider an extension that blocks trackers.");
+  box.append(top, tiers, wider, todo);
   return box;
 }
 

@@ -2,10 +2,14 @@ import { $, el } from "./dom.js";
 import { loadIcons, siteIcon, tabIcon, host } from "./icons.js";
 import { BUILTIN, claims, barChildren, bookmarkBars, leaves, aliasTable, aliasFor, nextFolder, addToNext } from "./shared.js";
 import { renderShortcuts, aliasPill } from "./shortcuts.js";
-import { renderToday, tickToday, tickTheme, renderGlance, warmWeather } from "./today.js";
+import { renderToday, tickToday, tickTheme, renderGlance, warmWeather, scrubTo, stripMinutes } from "./today.js";
+import { wireZones } from "./zones.js";
 import { placeForm, getPlace, leftBehind, keepPlace } from "./place.js";
 import { renderExtras, renderMail, renderFiles, renderClosed, renderOften } from "./extras.js";
 import { renderTools } from "./tools.js";
+import { loadNotes, wireNotes, bigNote, noteIsBig } from "./notes.js";
+import { setupRows } from "./setup.js";
+import { saveCopy, restoreCopy } from "./backup.js";
 
 const TODAY = "today";
 const KEYS = "shortcuts";
@@ -142,6 +146,7 @@ function show(id) {
   current = id;
   // Editing belongs to a space; leaving for Today or Shortcuts ends it.
   if (isPage(id) && editing()) $("edit").click();
+  if (id !== TODAY) scrubTo(0);
   // A new tab reopens on the last space, never on Today or Shortcuts.
   if (!isPage(id)) chrome.storage.local.set({ space: id });
   render();
@@ -400,6 +405,7 @@ function tileFor(link, table) {
 // shows its whole path; only its own name is edited. `cancelled` runs if nothing was changed.
 function startRename(h, cancelled) {
   const was = h.dataset.name ?? h.textContent;
+  const folder = h.matches("#spaces .tab, .card-head h2, .group-head h3");
   const input = el("input", "rename");
   input.value = was;
   input.setAttribute("aria-label", "Name");
@@ -407,12 +413,42 @@ function startRename(h, cancelled) {
   input.focus(); input.select();
   const done = async (save) => {
     input.onblur = null;
+    document.querySelector(".emoji-pick")?.remove();
     const v = input.value.trim();
     if (save && v && v !== was) { input.blur(); await chrome.bookmarks.update(h.dataset.id, { title: v }); }
     else { input.replaceWith(h); if (cancelled) cancelled(); }
   };
   input.onkeydown = (e) => { if (e.key === "Enter") done(true); if (e.key === "Escape") done(false); };
   input.onblur = () => done(true);
+  // A folder's name can lead with an emoji, which is what a narrow top bar keeps of it.
+  if (folder) emojiFor(input);
+}
+
+// A row of emoji under a folder's name while it is being typed: one press puts it at the front,
+// in place of any that was there. It stays out of the way of the typing: the box keeps the focus.
+const EMOJI_SET = ["🏠", "💼", "🏢", "🧪", "📈", "💰", "🧾", "⚖️", "🏛️", "🛠️", "📚", "🎓", "✉️", "📅", "🗂️", "📝", "🤖", "🔎", "🛒", "✈️", "🍳", "🎬", "🎵", "🏃", "❤️", "⭐", "🔒", "🌐", "📦", "🎨", "📣", "🧑‍💻"];
+function emojiFor(input) {
+  document.querySelector(".emoji-pick")?.remove();
+  const pick = el("div", "emoji-pick");
+  pick.setAttribute("role", "group");
+  pick.setAttribute("aria-label", "Start the name with an emoji");
+  for (const e of EMOJI_SET) {
+    const b = el("button", null, e);
+    b.type = "button";
+    b.tabIndex = -1;
+    b.onclick = () => {
+      const m = EMOJI.exec(input.value);
+      input.value = `${e} ${m ? m[2] : input.value.trim()}`;
+      input.focus();
+    };
+    pick.append(b);
+  }
+  pick.addEventListener("mousedown", (e) => e.preventDefault());
+  const r = input.getBoundingClientRect();
+  pick.style.left = `${Math.max(8, Math.min(r.left, innerWidth - 300))}px`;
+  pick.style.top = `${r.bottom + 6}px`;
+  document.body.append(pick);
+  input.addEventListener("blur", () => pick.remove(), { once: true });
 }
 
 function openAddForm(card, parentId) {
@@ -552,45 +588,6 @@ async function saveTabs(space) {
 
 dropTarget($("nextPanel"), ["tab"], (d) => addToNext(d.tab));
 
-// Notes are one synced value. Chrome caps a synced value at about 8 KB, so a save can be refused.
-const note = $("note");
-let noteTimer;
-let noteDirty = false;
-async function loadNote() {
-  if (noteDirty || document.activeElement === note) return;
-  const { note: saved = "" } = await chrome.storage.sync.get("note");
-  note.value = saved;
-}
-async function saveNote() {
-  clearTimeout(noteTimer);
-  if (!noteDirty) return;
-  noteDirty = false;
-  try {
-    await chrome.storage.sync.set({ note: note.value });
-    $("noteState").textContent = "saved";
-  } catch (err) {
-    console.error("note", err);
-    $("noteState").textContent = "too long to save: shorten it";
-  }
-}
-note.oninput = () => {
-  noteDirty = true;
-  $("noteState").textContent = "";
-  clearTimeout(noteTimer);
-  noteTimer = setTimeout(saveNote, 1200);
-};
-note.onblur = saveNote;
-addEventListener("pagehide", saveNote);
-// The same note in a bigger box, for when it is more than a line or two.
-const bigNote = (on) => {
-  note.closest(".notes").classList.toggle("big", on);
-  $("noteBig").textContent = on ? "Shrink" : "Expand";
-  $("noteBig").setAttribute("aria-pressed", String(on));
-  if (on) note.focus();
-};
-$("noteBig").onclick = () => bigNote($("noteBig").getAttribute("aria-pressed") !== "true");
-note.addEventListener("keydown", (e) => { if (e.key === "Escape") bigNote(false); });
-
 // ---------- wiring ----------
 $("edit").onclick = () => {
   const on = !editing();
@@ -624,16 +621,44 @@ $("askForm").append(asking);
 $("todayAskForm").append(placeForm(placed));
 $("placeBtn").onclick = () => changePlace();
 
-// Extras are switched on and off from the footer; each is a permission Chrome asks for.
+// Settings is a sheet lifted over the page. Extras are switched on and off in it; each is a
+// permission Chrome asks for.
 const drawExtras = () => { renderExtras(drawExtras); if (!isPage(current)) { renderMail(); renderFiles(); renderClosed(); renderOften(); } };
-$("extrasBtn").onclick = () => {
-  const open = $("extras").hidden;
+const settings = (open) => {
   $("extras").hidden = !open;
   $("extrasBtn").setAttribute("aria-expanded", String(open));
   if (open) drawExtras();
 };
+$("extrasBtn").onclick = () => settings($("extras").hidden);
+$("extrasClose").onclick = () => settings(false);
 chrome.permissions.onAdded.addListener(drawExtras);
 chrome.permissions.onRemoved.addListener(drawExtras);
+// The first folders to arrive on a bare bookmarks bar are opened, in place of Today.
+const brought = { toast, opened: async () => { const [first] = await spaces(); if (first) show(first.id); } };
+$("setupBody").append(...setupRows(brought));
+$("emptyWays").append(...setupRows(brought));
+
+// Anything lifted over the page goes away with Esc, or with a press anywhere outside it.
+const LIFTED = [
+  { open: () => !$("extras").hidden, within: "#extras, #extrasBtn", shut: () => settings(false) },
+  { open: noteIsBig, within: ".notes", shut: () => bigNote(false) },
+];
+document.addEventListener("pointerdown", (e) => {
+  if (e.target.closest("#toast")) return;
+  for (const l of LIFTED) if (l.open() && !e.target.closest(l.within)) l.shut();
+});
+document.addEventListener("keydown", (e) => { if (e.key === "Escape") for (const l of LIFTED) if (l.open()) l.shut(); });
+
+// A copy of what this page keeps, out to a file and back.
+$("copySave").onclick = async () => { await saveCopy(); toast("Saved a copy of your settings to your downloads."); };
+$("copyRestore").onclick = () => $("copyFile").click();
+$("copyFile").onchange = async () => {
+  const [file] = $("copyFile").files;
+  $("copyFile").value = "";
+  if (!file) return;
+  try { const n = await restoreCopy(file); toast(`Restored ${n} thing${n === 1 ? "" : "s"} from ${file.name}.`); render(); }
+  catch (err) { console.warn("restore:", err.message); toast(`That file wasn't restored: ${err.message}.`, null, { ms: 10000 }); }
+};
 
 // The footer says how to type a short link and leads to the full list. Chrome's own pages can't
 // be shown inside this one, so a button marked data-go sends this tab to one.
@@ -663,6 +688,27 @@ $("themePick").onchange = () => { applyPick($("themePick").value); chrome.storag
 chrome.storage.sync.get("theme").then(({ theme }) => applyPick(theme));
 chrome.storage.onChanged.addListener((changes, area) => { if (area === "sync" && changes.theme) applyPick(changes.theme.newValue); });
 
+// The accent travels the same way: one of four, each with its own light and dark.
+const ACCENTS = [["teal", "Teal"], ["blue", "Blue"], ["violet", "Violet"], ["rose", "Rose"]];
+const applyAccent = (pick) => {
+  const name = ACCENTS.some(([a]) => a === pick) ? pick : "teal";
+  if (name === "teal") { localStorage.removeItem("accent"); delete document.documentElement.dataset.accent; }
+  else { localStorage.setItem("accent", name); document.documentElement.dataset.accent = name; }
+  for (const b of $("accentPick").children) b.setAttribute("aria-checked", String(b.dataset.accent === name));
+};
+for (const [name, label] of ACCENTS) {
+  const b = el("button", "swatch");
+  b.type = "button";
+  b.dataset.accent = name;
+  b.setAttribute("role", "radio");
+  b.setAttribute("aria-label", label);
+  b.title = label;
+  b.onclick = () => { applyAccent(name); chrome.storage.sync.set({ accent: name }); };
+  $("accentPick").append(b);
+}
+chrome.storage.sync.get("accent").then(({ accent }) => applyAccent(accent));
+chrome.storage.onChanged.addListener((changes, area) => { if (area === "sync" && changes.accent) applyAccent(changes.accent.newValue); });
+
 // Redrawing replaces the text boxes, so a change from outside (another tab, sync) waits while one
 // of them is being typed in.
 const typing = () => !!document.activeElement && document.activeElement.matches("#spaces input, #collections input, #scBody input");
@@ -675,7 +721,6 @@ for (const ev of ["onCreated", "onRemoved", "onChanged", "onMoved", "onChildrenR
 const redrawSky = () => { if (current === TODAY) renderToday(); else if (isPage(current)) tickTheme(); else renderGlance(); };
 chrome.storage.onChanged.addListener((changes, area) => {
   if (area === "sync" && (changes.aliases || changes.links)) rerender();
-  if (area === "sync" && changes.note) loadNote();
   if (area === "local" && changes.place) warmWeather();
   if (area === "local" && (changes.wx || changes.place)) redrawSky();
 });
@@ -694,8 +739,25 @@ function retabs() {
 for (const ev of ["onCreated", "onRemoved", "onUpdated", "onMoved", "onAttached", "onDetached"]) chrome.tabs[ev].addListener(retabs);
 
 setInterval(() => { if (current === TODAY) tickToday(); else if (isPage(current)) tickTheme(); else renderGlance(); }, 10000);
+
+// Dragging the day on Today. The strip takes the pointer; the range under it is the same value
+// for the keyboard and for screen readers. Letting go within ten minutes of now is now.
+const scrub = $("scrub"), dayStrip = $("strip");
+const dragTo = (minutes) => scrubTo((minutes < 10 ? 0 : minutes) * 60e3);
+scrub.oninput = () => dragTo(+scrub.value);
+dayStrip.addEventListener("pointerdown", (e) => {
+  if (e.button || e.target.closest("button")) return;
+  dayStrip.setPointerCapture(e.pointerId);
+  dragTo(stripMinutes(e.clientX));
+  scrub.focus({ preventScroll: true });
+});
+dayStrip.addEventListener("pointermove", (e) => { if (dayStrip.hasPointerCapture(e.pointerId)) dragTo(stripMinutes(e.clientX)); });
+$("scrubNow").onclick = () => scrubTo(0);
+wireZones();
+chrome.storage.onChanged.addListener((changes, area) => { if (area === "sync" && changes.zones && current === TODAY) renderToday(); });
 await loadIcons();
-await loadNote();
+wireNotes(toast);
+await loadNotes();
 await render();
 warmWeather();
 

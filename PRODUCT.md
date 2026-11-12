@@ -4,7 +4,7 @@ The reasoning behind the product: who it serves, what they are trying to do at t
 tab opens, and how each of those moments goes. Read it before adding a feature. The README says
 what the product does; this says why, and what it refuses to become.
 
-Last walked through end to end at 3.7.0 (2026-11-12).
+Last walked through end to end at 3.8.0 (2026-11-12).
 
 ## Who it is for
 
@@ -57,13 +57,36 @@ its own tab, Tools, so it costs the main page nothing.
 
 The one-line position: **the launcher that has no library of its own.**
 
+## Why someone picks this one
+
+Asked as "what would make a person keep it after the first day", in the order it matters:
+
+1. **Nothing to lose and nothing to learn.** It shows the bookmarks they already have, in the
+   folders they already made, and removing it puts nothing at risk. Every other organised new
+   tab starts by asking for an import and an account.
+2. **Typing beats clicking, with no setup.** Short names come from the bookmarks themselves.
+   Go-link tools give this to companies; nothing gives it to one person for free.
+3. **It answers real questions on the page.** How much daylight is left, what the weather does
+   at six, what time that is in Tokyo, whether the VPN is leaking and what to do about it.
+   Each is one look, drawn here, with no site to visit and nothing to buy.
+4. **It is plainly honest.** No account, no server, no tracking, no upsell, open source, and
+   each permission that reads something personal is off until asked for.
+
+What is deliberately not done to earn money from it: affiliate links (to VPNs or anything
+else), sponsored tiles, a paid tier. A recommendation the page is paid for would undo point 4.
+
 ## Each flow, as the person meets it
 
 **First run.** A new tab opens on their own bookmarks, already arranged; there is no setup
 screen. The page asks the computer where it is, without a prompt to dismiss. If the computer
 refuses, it uses the network's city, says so, and says how to get the exact spot. If that fails,
-or the network is in another time zone (a VPN), it asks for a city, ZIP or address. With no folders on the bar, the page says so and offers
-"+ New space". *Held to:* something useful on screen before any question is answered.
+or the network is in another time zone (a VPN), it asks for a city, ZIP or address. With no
+folders on the bar, the page says so and offers three ways to bring links in: a starter set in
+one press, a bookmarks file from another browser, or a prompt to paste into an assistant, which
+interviews the person and writes that file. "+ New space" is still there to build by hand.
+*Held to:* something useful on screen before any question is answered; a file is read as
+untrusted (web links only, nothing added twice, one Undo for all of it); the page itself never
+calls a model.
 
 **Go somewhere.** Click a tile, or type its short name and Enter. Names are shown on the tiles
 while editing and listed on the Shortcuts page. *Held to:* no name ever has to be set up, and
@@ -89,21 +112,33 @@ Undo. Folders are deleted only when empty; the bookmark manager, one click away,
 work. *Held to:* one click never removes more than one link or one empty folder.
 
 **Glance.** The strip across every space has the time, the sun's arc, the temperature and a
-radar still; Today has the whole sky, the hourly forecast and seven days. The page turns dark
+radar still; Today has the whole sky over the next 24 hours as a strip, and the week. The strip
+is the handle on the day: dragging it moves the clock, the sun, the forecast for that hour, and
+beside the sky a map of where it is day, with the clocks of the cities the person added. That
+is the "what time is it there, then" question answered without arithmetic. The page turns dark
 at dusk where the person is. On a trip, a place taken from the computer follows it (at once
 when the time zone changes); a typed place is never moved, only asked about. *Held to:* drawn
 at once from what is saved; the network is never waited on.
 
-**Jot.** One synced scratch box, which expands when a thought is longer. It is not a notes
-app; `keep/` is one keystroke away.
+**Jot.** A synced scratch box, which expands when a thought is longer and can be a few pages
+(eight at most), each named by its first line. A page can be copied or downloaded as a text
+file. It is still not a notes app: no folders, no formatting, no search; `keep/` is one
+keystroke away.
+
+**Make it yours.** Settings, at the top right, is one sheet: light and dark, one of four
+accents, the three ways to bring links in, the extras, and a copy of what the page keeps as a
+file. Esc or a press outside puts it away, as it does the expanded note. *Held to:* no
+wallpaper, no layout switches; a choice has to earn its row.
 
 **Check.** The Tools tab answers "how do I look from outside" on the page itself: where the
 traffic comes out, whether the clock agrees, what WebRTC and DNS give away, a speed reading,
 the fingerprint a tracking script would compute, and how Chrome's own privacy switches are set.
 *Held to:* opening the tab is the asking, so the check runs then and lands as one sentence and a
 map; nothing else on the page makes these calls, and what spends data (speed) waits for a
-press; a check is done here and drawn here, or
-it is left out. A list of links to other people's test pages is not a feature. The one thing
+press; a check is done here and drawn here, or it is left out. Every finding is written for
+someone who has never heard the word: what was looked at, what was found, what it means, and
+what to do, which is often nothing and says so. A sign (red, amber, green) is only given to
+what matters and can be acted on. A list of links to other people's test pages is not a feature. The one thing
 pointed elsewhere is how rare a fingerprint is, which needs a sample of other browsers.
 
 **What only some want.** Unread mail, recent files, closed tabs and other devices, most
@@ -114,8 +149,8 @@ about.
 
 ## What it refuses to be
 
-A task manager, a notes app, a search box, a news feed, a wallpaper, a theme picker, a sessions
-database, a team product. Each is a real want that something else serves better, and each would make the page
+A task manager, a notes app, a search box, a news feed, a wallpaper, a sessions database, a
+team product, a shop window. Each is a real want that something else serves better, and each would make the page
 slower to read. When a request arrives, the test is whether it serves one of the four moments
 without adding a second library, an account or a wait.
 

@@ -95,7 +95,7 @@ export async function launch({ ext = shipped, icons = "stub", locate = true, vie
     ...(locate ? { geolocation: { latitude: 40.7128, longitude: -74.006 }, permissions: ["geolocation"] } : {}),
   });
   // `at` moves the stubbed forecast to a moment; `titles` names stubbed pages by a piece of their address.
-  const net = { weatherDown: false, estimateDown: false, estimateAs: null, estimates: 0, tools: [], exitNear: false, dnsHome: false, points: [], searches: [], holdPage: false, unread: 7, at: null, titles: { "docs.google.com/spreadsheets": "Q4 plan - Google Sheets", "docs.google.com/document": "Launch notes - Google Docs" } };
+  const net = { weatherDown: false, estimateDown: false, estimateAs: null, estimates: 0, tools: [], zones: [], exitNear: false, dnsHome: false, points: [], searches: [], holdPage: false, unread: 7, at: null, titles: { "docs.google.com/spreadsheets": "Q4 plan - Google Sheets", "docs.google.com/document": "Launch notes - Google Docs" } };
   await ctx.route("**/*", async (route) => {
     const u = route.request().url();
     if (u.startsWith("chrome-extension://")) {
@@ -143,6 +143,13 @@ export async function launch({ ext = shipped, icons = "stub", locate = true, vie
       if (url.pathname === "/__up") return route.fulfill({ body: "", headers: open });
     }
     // The network's city, as the estimate service answers it (its name for the country and all).
+    if (url.hostname === "api.bigdatacloud.net" && url.searchParams.has("latitude")) {
+      // Asked with a spot, it says which time zone that spot is in.
+      const lon = +url.searchParams.get("longitude");
+      net.zones.push(`${url.searchParams.get("latitude")},${lon}`);
+      const zone = lon > 100 ? "Asia/Tokyo" : lon > -20 ? "Europe/Paris" : "America/Los_Angeles";
+      return route.fulfill({ json: { localityInfo: { informative: [{ name: zone, description: "time zone" }] } }, headers: { "access-control-allow-origin": "*" } });
+    }
     if (url.hostname === "api.bigdatacloud.net") {
       net.estimates++;
       if (net.estimateDown) return route.abort();

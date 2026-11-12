@@ -38,7 +38,12 @@ This page adds a face to that store and keeps nothing of its own:
   holds everywhere.
 - **Open all** opens a collection as one named tab group.
 - **The pencil** (top right) turns on editing: add a space, a collection, a group or a link;
-  click a name to rename any of them; remove in place, with Undo.
+  click a name to rename any of them; remove in place, with Undo. Naming a folder offers a row
+  of emoji to lead it with, which is what a crowded top bar keeps of the name.
+- **Three ways to bring links in,** on a bare bookmarks bar and in Settings any time: a starter
+  set; a bookmarks file from another browser; or a prompt to paste into the assistant you use,
+  which asks what you do and writes that file for you. Only web links are taken from a file,
+  and nothing already there is added twice.
 
 **Type, don't click**
 - **Every bookmark gets a short name** from its own name, the moment it is bookmarked:
@@ -62,30 +67,39 @@ This page adds a face to that store and keeps nothing of its own:
 - **Open tabs:** switch to one, reorder the tab strip, close one (× or a middle click), or drag
   one into a collection.
   **Save all** files the whole window.
-- **Notes:** a scratch box that follows your Chrome profile. Expand lifts it into a big one.
+- **Notes:** a scratch box that follows your Chrome profile, in up to eight pages named by
+  their first line. Expand lifts one into a big box; Copy and Download take it elsewhere.
 
 **Look up**
 - **The sky, drawn to scale.** The sun's real path for today with solar noon in the middle, the
   civil, nautical and astronomical twilights under the horizon, and the moon where it stands, lit
   on the side that faces the sun.
-- **The page goes dark when night falls** where you are, and light again at dawn.
-- **Forecast and radar** from the National Weather Service: now, the next 24 hours, seven days,
-  and the radar loop. A strip across the top of every space carries the short version; its
+- **Drag the day.** Under the sky runs the next 24 hours: night shaded, the temperature along
+  it, rain under it. Press or drag anywhere on it and the whole page moves to that moment: the
+  clock, the sun and moon, that hour's forecast.
+- **The world at the same moment,** beside the sky: a map with daylight on the land the sun is
+  over, your clock, and the clocks of any cities you add. They follow the drag too, which
+  answers "what time is that for everyone" before a call is booked.
+- **The page goes dark when night falls** where you are, and light again at dawn. Settings can
+  hold it light or dark, and has four accent colours.
+- **Forecast and radar** from the National Weather Service: now, seven days, and the radar
+  loop of the last hour. A strip across the top of every space carries the short version; its
   time and date open your calendar.
 
 **Check, when you want to**
 - **Tools** is a tab that shows how this connection and this browser look from outside. Opening
   it runs the check; no other part of the page makes these calls.
   - **Where you come out**, as a sentence and a map: your place, the city your traffic leaves
-    from, and the way round the world between them. Under it, four plain answers: whose network
-    you are on, whether your clock agrees with that address, what WebRTC shows a site, and
-    whose servers answer your DNS lookups. A sign is kept for what matters and can be acted
-    on: red for your real address getting out, amber for something going around a VPN, each
-    with the thing to do about it beside it.
+    from, and the way round the world between them. Then one line that counts what needs
+    fixing, and four answers in plain words: your provider, your clock, video calls (WebRTC)
+    and name lookups (DNS). Each says what it is, what was found, what that means, and what
+    to do, which is often nothing and says so. A sign is kept for what matters and can be
+    acted on: red for your real address getting out, amber for something going around a VPN.
   - **Fingerprint** draws the mark a tracking script would know this browser by, worked out on
-    your computer, and lists what it is made of in plain words, by how far each thing narrows
-    you down.
-  - **Speed** reads download, upload and delay onto bars. It waits for a press, because it
+    your computer, lists what it is made of in plain words, by how far each thing narrows
+    you down, and says what can and can't be done about it.
+  - **Speed** reads download, upload and delay onto bars, says what that is good for in a
+    household's terms, and what to try when it is poor. It waits for a press, because it
     spends data.
   - **Chrome's privacy switches** reads how Chrome itself is set, puts what is worth a look
     first, and takes you to the page that changes each one. It can also narrow the route WebRTC
@@ -126,13 +140,15 @@ New Tab is built and tested on Chrome 120 and later. Other Chromium browsers are
    uses the city your network connection appears to be in, marks it approximate, and says how
    to make it exact. Or type a city, a ZIP code or an address. If the network can't be placed,
    or is plainly elsewhere (a VPN), it asks; no place is ever assumed.
-2. **Shape the bar.** Press the pencil: **+** after the tabs makes a space, **New collection**
+2. **Bring your links in,** if the bar is bare: the page offers a starter set, a bookmarks
+   file, or a prompt for an assistant to write one. Settings (top right) has the same three.
+3. **Shape the bar.** Press the pencil: **+** after the tabs makes a space, **New collection**
    a card, **Add group** a headed group inside a card. They are folders on your bookmarks bar,
    so Chrome's bookmark manager (linked beside the pencil) does the same, and bulk moves.
    Emoji in the names read well as tabs: `🏢 Work`, `✉️ Mail and calendar`, `💵 Money`.
-3. **Learn three short links.** `mail/`, `cal/`, and the short name of the site you open most.
+4. **Learn three short links.** `mail/`, `cal/`, and the short name of the site you open most.
    The Shortcuts page lists them all.
-4. **Pin the toolbar button** (puzzle icon → pin). Clicking it on any page saves that page to
+5. **Pin the toolbar button** (puzzle icon → pin). Clicking it on any page saves that page to
    Up next.
 
 ## How a new bookmark gets its place, icon and names
@@ -218,8 +234,9 @@ WebRTC route, when you choose to.
 ## What is deliberately not here
 
 A task manager, a notes app, a news feed, a search box (the address bar is already focused on a
-new tab), a list-or-grid switch, page previews, themes. Each was tried or considered and left
-out to keep the page quiet. What only some people want is an extra, off until asked for, or
+new tab), a list-or-grid switch, page previews, wallpapers. Each was tried or considered and
+left out to keep the page quiet. Nothing on the page calls a language model: the one prompt it
+offers is text you paste into an assistant yourself. What only some people want is an extra, off until asked for, or
 sits on the Tools tab, away from the links.
 
 ## Next

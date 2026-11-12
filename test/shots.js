@@ -15,7 +15,10 @@ await sw.evaluate(async () => {
   const next = await chrome.bookmarks.create({ parentId: "2", title: "⏭️ Next" });
   await chrome.bookmarks.create({ parentId: next.id, title: "Paper weights compared", url: "https://example.net/paper" });
   await chrome.bookmarks.create({ parentId: next.id, title: "Quarterly estimate", url: "https://tax.example.gov/estimate" });
-  await chrome.storage.sync.set({ note: "Ask the printer about paper weight\nRenew the domain by Friday" });
+  await chrome.storage.sync.set({
+    note: "Ask the printer about paper weight\nRenew the domain by Friday", notePages: ["note", "note:trip"], "note:trip": "Trip ideas\nLisbon in May",
+    zones: [{ name: "London, England, United Kingdom", lat: 51.51, lon: -0.13, zone: "Europe/London" }, { name: "Tokyo, Japan", lat: 35.68, lon: 139.69, zone: "Asia/Tokyo" }],
+  });
 });
 const shot = async (page, name) => { await page.mouse.move(640, 790); await page.waitForTimeout(500); await page.screenshot({ path: path.join(out, `${name}.png`) }); console.log(name); };
 const view = async (at, tab) => {
@@ -38,7 +41,11 @@ await page.close();
 await sw.evaluate(() => chrome.storage.local.set({ place: { lat: 40.71, lon: -74.01, source: "device", at: Date.now() } }));
 page = await view(DAY); await shot(page, "2-space");
 await page.click("#edit"); await shot(page, "3-edit"); await page.close();
-page = await view(DAY, "Today"); await shot(page, "4-today-day"); await page.close();
+page = await view(DAY, "Today"); await shot(page, "4-today-day");
+// The same day dragged on to the evening: the sky, that hour's forecast and the world follow.
+const strip = await page.locator("#stripArt").boundingBox();
+await page.mouse.move(strip.x + strip.width * 0.1, strip.y + 30); await page.mouse.down(); await page.mouse.move(strip.x + strip.width * 0.262, strip.y + 30, { steps: 6 }); await page.mouse.up();
+await shot(page, "12-today-dragged"); await page.close();
 page = await view(GOLDEN, "Today"); await shot(page, "5-today-golden-hour"); await page.close();
 page = await view(DUSK, "Today"); await shot(page, "6-today-dusk"); await page.close();
 page = await view(NIGHT, "Today"); await shot(page, "7-today-night"); await page.close();

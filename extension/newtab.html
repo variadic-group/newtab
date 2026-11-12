@@ -19,12 +19,19 @@
         <svg class="when-off" viewBox="0 0 20 20" aria-hidden="true"><path d="M3.2 16.8l.9-3.9L14.3 2.7a1.6 1.6 0 0 1 2.2 0l.8.8a1.6 1.6 0 0 1 0 2.2L7.1 15.9z"/><path d="M12.4 4.6l3 3"/></svg>
         <svg class="when-on" viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10.6l4 4 8-9.2"/></svg>
       </button>
+      <button type="button" id="extrasBtn" class="icon-btn" aria-expanded="false" aria-controls="extras" aria-label="Settings" title="Settings">
+        <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 6h7M14 6h3M3 14h3M10 14h7"/><circle cx="12" cy="6" r="2"/><circle cx="8" cy="14" r="2"/></svg>
+      </button>
     </div>
   </div>
 </header>
 
 <main class="wrap">
-  <p id="empty" class="empty" hidden>Your bookmarks bar has no folders yet. Press “+ New space” at the top to start one, or make folders on the bookmarks bar yourself: each top folder is a tab here, each folder inside it a card of links. ⌘D (Ctrl+D) bookmarks the page you're on.</p>
+  <section id="empty" class="empty" aria-labelledby="emptyTitle" hidden>
+    <h1 id="emptyTitle">Bring in your links</h1>
+    <p>This page is your bookmarks bar, laid out: each top folder is a tab here, and each folder inside it a card of links. Yours has no folders yet. Start one of these ways, or press “+ New space” at the top and build it by hand.</p>
+    <div id="emptyWays" class="setup"></div>
+  </section>
   <section id="space" class="space" hidden>
     <div class="glance">
       <div class="gl-main">
@@ -81,9 +88,16 @@
       </section>
       <section class="panel notes" aria-labelledby="notesTitle">
         <h2 id="notesTitle">Notes <span id="noteState" class="n" role="status"></span>
-          <button type="button" id="noteBig" class="mini" aria-pressed="false" title="A bigger box for the same note. Esc puts it back.">Expand</button>
+          <button type="button" id="noteBig" class="mini" aria-pressed="false" title="A bigger box for the same note. Esc, or a click outside it, puts it back.">Expand</button>
         </h2>
+        <div id="notePages" class="note-pages" role="tablist" aria-label="Pages of notes" hidden></div>
         <textarea id="note" rows="5" maxlength="4000" aria-labelledby="notesTitle" placeholder="Jot something down. It saves as you type, on every computer signed in to this Chrome profile."></textarea>
+        <div class="note-acts">
+          <button type="button" id="noteNew" class="mini" title="Another page of notes, up to eight">New page</button>
+          <button type="button" id="noteCopy" class="mini">Copy</button>
+          <button type="button" id="noteSave" class="mini" title="Downloads this page as a text file">Download</button>
+          <button type="button" id="noteDelete" class="mini danger">Clear</button>
+        </div>
       </section>
     </aside>
   </section>
@@ -96,8 +110,8 @@
       <div id="todayAskForm"></div>
     </article>
     <div id="todayGrid" class="today-grid">
-      <div class="t-now">
-        <article id="sky" class="sky" aria-label="Time, sun and moon">
+      <article class="day" aria-label="Today, here and around the world">
+        <div id="sky" class="sky">
           <header class="sky-head">
             <div>
               <div id="bigTime" class="big-time"></div>
@@ -109,6 +123,7 @@
             <defs>
               <linearGradient id="skyFill" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="0" y2="196"><stop class="sk-top" offset="0"/><stop class="sk-horizon" offset="1"/></linearGradient>
               <linearGradient id="dayFill" gradientUnits="userSpaceOnUse" x1="0" y1="26" x2="0" y2="196"><stop class="df-a" offset="0"/><stop class="df-b" offset="1"/></linearGradient>
+              <linearGradient id="hcFill" gradientUnits="userSpaceOnUse" x1="0" y1="20" x2="0" y2="72"><stop class="hc-a" offset="0"/><stop class="hc-b" offset="1"/></linearGradient>
               <radialGradient id="glowFill"><stop class="gw-a" offset="0"/><stop class="gw-b" offset="1"/></radialGradient>
               <clipPath id="above"><rect x="0" y="0" width="640" height="196"/></clipPath>
               <clipPath id="below"><rect x="0" y="196" width="640" height="94"/></clipPath>
@@ -128,17 +143,29 @@
             <circle id="sunGlow" class="sun-glow" r="30"/>
             <circle id="sunDot" class="sun-dot" r="9.5"/>
           </svg>
+          <div id="strip" class="strip">
+            <svg id="stripArt" viewBox="0 0 640 100" role="img"></svg>
+            <input id="scrub" type="range" min="0" max="1440" step="5" value="0" aria-label="The moment shown, from now to 24 hours from now">
+            <p class="strip-say"><output id="thenLine" for="scrub"></output><button type="button" id="scrubNow" class="mini" hidden>Back to now</button></p>
+          </div>
           <footer class="sky-foot">
             <div><span class="cap">Sunrise</span><b id="rise"></b><span id="riseSub" class="cap"></span></div>
             <div class="mid"><b id="daylight"></b><span id="moonLine" class="cap"></span></div>
             <div class="end"><span class="cap">Sunset</span><b id="set"></b><span id="setSub" class="cap"></span></div>
           </footer>
-        </article>
-        <figure id="radarCard" class="radar" hidden>
-          <figcaption><b>Radar</b><a id="radarLink" href="https://radar.weather.gov/">weather.gov</a></figcaption>
-          <img id="radarImg" alt="Weather radar loop for your area">
-        </figure>
-      </div>
+        </div>
+        <div class="elsewhere">
+          <h2 id="worldSay"></h2>
+          <svg id="worldMap" viewBox="0 0 720 276" role="img"><path id="worldNight" class="land night"/><path id="worldDay" class="land day"/><g id="worldPins"></g></svg>
+          <ul id="zones" class="zones"></ul>
+          <p id="zoneHint" class="cap">Add the cities you deal with. Their clocks follow as you drag the day, so you can see what time a call lands for everyone.</p>
+          <form id="zoneForm">
+            <input id="zoneInput" type="text" autocomplete="off" placeholder="Add a city" aria-label="Add a city to see its time">
+            <button type="submit" class="btn">Add</button>
+            <span id="zoneNote" class="cap" role="status"></span>
+          </form>
+        </div>
+      </article>
       <article class="wx" aria-label="Forecast">
         <div class="wx-main">
           <header class="wx-head">
@@ -146,10 +173,13 @@
             <span id="updated" class="cap"></span>
           </header>
           <div id="wxNow" class="wx-now"></div>
-          <div id="wxHours" class="wx-hours"></div>
           <p id="wxNote" class="note" hidden></p>
         </div>
         <ol id="wxDays" class="wx-days"></ol>
+        <figure id="radarCard" class="radar" hidden>
+          <figcaption><b>Radar, the last hour</b><a id="radarLink" href="https://radar.weather.gov/">weather.gov</a></figcaption>
+          <img id="radarImg" alt="Weather radar loop for your area">
+        </figure>
       </article>
     </div>
   </section>
@@ -180,31 +210,50 @@
 
 <footer class="foot">
   <p id="hint" class="hint"></p>
-  <nav aria-label="Settings">
-    <button type="button" id="extrasBtn" class="mini" aria-expanded="false" aria-controls="extras">Settings</button>
-    <span id="version" class="cap"></span>
-  </nav>
-  <section id="extras" class="extras" aria-label="Settings" hidden>
-    <div class="extra">
-      <div><b>Light and dark</b><p class="cap">Following the sun, the page turns dark at dusk where you are, and whenever your computer is set to dark.</p></div>
-      <select id="themePick" aria-label="Light and dark">
-        <option value="sun">Follow the sun</option>
-        <option value="light">Always light</option>
-        <option value="dark">Always dark</option>
-      </select>
-    </div>
-    <h3>Extras, off until you switch them on</h3>
-    <div id="extrasBody"></div>
-    <h3>Kept in Chrome</h3>
-    <div class="in-chrome">
-      <button type="button" class="chip" id="selfPage">This extension, to reload or remove it</button>
-      <button type="button" class="chip" data-go="chrome://extensions/shortcuts">Its keyboard shortcut</button>
-      <button type="button" class="chip" data-go="chrome://bookmarks/">Bookmarks</button>
-      <button type="button" class="chip" data-go="chrome://settings/searchEngines">Search engines</button>
-      <button type="button" class="chip" data-go="chrome://settings/syncSetup">Sync</button>
-    </div>
-  </section>
+  <span id="version" class="cap"></span>
 </footer>
+
+<section id="extras" class="extras" role="dialog" aria-labelledby="extrasTitle" hidden>
+  <header class="extras-head">
+    <h2 id="extrasTitle">Settings</h2>
+    <button type="button" id="extrasClose" class="mini">Close</button>
+  </header>
+  <h3>Look</h3>
+  <div class="extra">
+    <div><b>Light and dark</b><p class="cap">Following the sun, the page turns dark at dusk where you are, and whenever your computer is set to dark.</p></div>
+    <select id="themePick" aria-label="Light and dark">
+      <option value="sun">Follow the sun</option>
+      <option value="light">Always light</option>
+      <option value="dark">Always dark</option>
+    </select>
+  </div>
+  <div class="extra">
+    <div><b>Accent</b><p class="cap">The colour of the things you press and the names you type.</p></div>
+    <div id="accentPick" class="swatches" role="radiogroup" aria-label="Accent colour"></div>
+  </div>
+  <h3>Bring in your links</h3>
+  <div id="setupBody"></div>
+  <h3>Extras, off until you switch them on</h3>
+  <div id="extrasBody"></div>
+  <h3>What this page keeps</h3>
+  <div class="extra">
+    <div><b>A copy of your settings</b><p class="cap">Short names, your own shortcuts, notes, cities and the look already travel with your Chrome profile. This saves them as a file as well, or brings one back. Bookmarks are Chrome's own and sync with it.</p></div>
+    <div class="setup-acts">
+      <button type="button" id="copySave" class="btn">Save a copy</button>
+      <button type="button" id="copyRestore" class="btn">Restore</button>
+      <input type="file" id="copyFile" accept=".json,application/json" hidden>
+    </div>
+  </div>
+  <h3>Kept in Chrome</h3>
+  <div class="in-chrome">
+    <button type="button" class="chip" id="selfPage">This extension, to reload or remove it</button>
+    <button type="button" class="chip" data-go="chrome://extensions/shortcuts">Its keyboard shortcut</button>
+    <button type="button" class="chip" data-go="chrome://bookmarks/">Bookmarks</button>
+    <button type="button" class="chip" data-go="chrome://settings/importData">Import from another browser</button>
+    <button type="button" class="chip" data-go="chrome://settings/searchEngines">Search engines</button>
+    <button type="button" class="chip" data-go="chrome://settings/syncSetup">Sync</button>
+  </div>
+</section>
 
 <div id="toast" class="toast" role="status" hidden></div>
 <script type="module" src="newtab.js"></script>
