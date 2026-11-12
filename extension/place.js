@@ -1,6 +1,6 @@
 // Where you are. It is never assumed. The first new tab asks the computer; if the computer won't
 // say, the city is estimated from the network connection and the page says so; if that fails
-// too, the page asks you. The place stays in this browser's local storage, rounded to about a
+// too, or the network is plainly somewhere else (a VPN), the page asks you. The place stays in this browser's local storage, rounded to about a
 // kilometre.
 import { el } from "./dom.js";
 
@@ -34,15 +34,39 @@ function exact() {
   });
 }
 
+// How far a named time zone's clock is from UTC right now, in minutes, or null for a name this
+// browser doesn't know.
+function offsetOf(zone) {
+  try {
+    const text = new Intl.DateTimeFormat("en-US", { timeZone: zone, timeZoneName: "longOffset" }).formatToParts(new Date()).find((p) => p.type === "timeZoneName").value;
+    const m = /^GMT(?:([+-])(\d{1,2})(?::(\d{2}))?)?$/.exec(text);
+    if (!m) return null;
+    return m[1] ? (m[1] === "-" ? -1 : 1) * (+m[2] * 60 + +(m[3] || 0)) : 0;
+  } catch { return null; } // an unknown zone name: nothing to compare with
+}
+
 // The city this network connection appears to be in. BigDataCloud's free client-side API needs
 // no key and, given no coordinates, places the caller by IP address.
 // https://www.bigdatacloud.com/docs/api/free-reverse-geocode-to-city-api (checked 2026-11-11)
+// A VPN puts the connection somewhere you are not. The answer names its time zone, so when that
+// zone's clock differs from this computer's the city is not used: `say` is what to tell you.
 async function estimate() {
-  const r = await fetch("https://api.bigdatacloud.net/data/reverse-geocode-client?localityLanguage=en", { signal: AbortSignal.timeout(8000) });
-  if (!r.ok) throw new Error(`the estimate answered ${r.status}`);
-  const d = await r.json();
-  if (typeof d.latitude !== "number" || typeof d.longitude !== "number") throw new Error("the estimate had no position in it");
-  const name = [d.city || d.locality, d.principalSubdivision, d.countryCode === "US" ? "" : (d.countryName || "").replace(/ \(the\)$/, "")].filter(Boolean).join(", ");
+  let d;
+  try {
+    const r = await fetch("https://api.bigdatacloud.net/data/reverse-geocode-client?localityLanguage=en", { signal: AbortSignal.timeout(8000) });
+    if (!r.ok) throw new Error(`the estimate answered ${r.status}`);
+    d = await r.json();
+    if (typeof d.latitude !== "number" || typeof d.longitude !== "number") throw new Error("the estimate had no position in it");
+  } catch (err) {
+    throw Object.assign(err, { say: "Its network couldn't be placed either, so type a place." });
+  }
+  const city = d.city || d.locality;
+  const name = [city, d.principalSubdivision === city ? "" : d.principalSubdivision, d.countryCode === "US" ? "" : (d.countryName || "").replace(/ \(the\)$/, "")].filter(Boolean).join(", ");
+  const zone = ((d.localityInfo || {}).informative || []).find((x) => x && x.description === "time zone");
+  const there = zone ? offsetOf(zone.name) : null;
+  if (there !== null && there !== -new Date().getTimezoneOffset()) {
+    throw Object.assign(new Error(`the network is in ${zone.name}, not this computer's time zone`), { say: `Its network looks like it is in ${name || "another time zone"}, which isn't this computer's time zone (a VPN does that), so type a place.` });
+  }
   return { lat: round(d.latitude), lon: round(d.longitude), name, source: "network" };
 }
 
@@ -57,7 +81,7 @@ async function thisComputer() {
       return { ...(await estimate()), why: refused.message };
     } catch (err) {
       console.warn("location estimate:", err.message);
-      throw new Error(`${refused.message} Its network couldn't be placed either, so type a place.`);
+      throw new Error(`${refused.message} ${err.say}`);
     }
   }
 }

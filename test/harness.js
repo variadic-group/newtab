@@ -85,7 +85,8 @@ const PLACES = {
 // icons: "stub" answers the icon services the way they answer (a miss is 16 px), "letters"
 // misses everything so every tile shows its initial, which is what the screenshots use.
 // locate: false leaves the browser with no way to find itself, as on a computer whose location
-// service is off; the page then falls back to the stubbed network estimate.
+// service is off; the page then falls back to the stubbed network estimate, which is in
+// America/Los_Angeles unless net.estimateAs says otherwise.
 export async function launch({ ext = shipped, icons = "stub", locate = true, viewport = { width: 1360, height: 900 }, ...context } = {}) {
   const profile = fs.mkdtempSync(path.join(os.tmpdir(), "newtab-profile-"));
   const ctx = await chromium.launchPersistentContext(profile, {
@@ -94,7 +95,7 @@ export async function launch({ ext = shipped, icons = "stub", locate = true, vie
     ...(locate ? { geolocation: { latitude: 40.7128, longitude: -74.006 }, permissions: ["geolocation"] } : {}),
   });
   // `at` moves the stubbed forecast to a moment; `titles` names stubbed pages by a piece of their address.
-  const net = { weatherDown: false, estimateDown: false, estimates: 0, points: [], searches: [], holdPage: false, unread: 7, at: null, titles: { "docs.google.com/spreadsheets": "Q4 plan - Google Sheets", "docs.google.com/document": "Launch notes - Google Docs" } };
+  const net = { weatherDown: false, estimateDown: false, estimateAs: null, estimates: 0, points: [], searches: [], holdPage: false, unread: 7, at: null, titles: { "docs.google.com/spreadsheets": "Q4 plan - Google Sheets", "docs.google.com/document": "Launch notes - Google Docs" } };
   await ctx.route("**/*", async (route) => {
     const u = route.request().url();
     if (u.startsWith("chrome-extension://")) {
@@ -117,7 +118,9 @@ export async function launch({ ext = shipped, icons = "stub", locate = true, vie
     if (url.hostname === "api.bigdatacloud.net") {
       net.estimates++;
       if (net.estimateDown) return route.abort();
-      return route.fulfill({ json: { latitude: 37.7749, longitude: -122.4194, lookupSource: "ip geolocation", city: "San Francisco", locality: "San Francisco", principalSubdivision: "California", countryCode: "US", countryName: "United States of America (the)" }, headers: { "access-control-allow-origin": "*" } });
+      const at = { latitude: 37.7749, longitude: -122.4194, city: "San Francisco", principalSubdivision: "California", countryCode: "US", countryName: "United States of America (the)", zone: "America/Los_Angeles", ...net.estimateAs };
+      const { zone, ...where } = at;
+      return route.fulfill({ json: { ...where, lookupSource: "ip geolocation", locality: where.city, localityInfo: { informative: [{ name: "North America", description: "continent in the Americas" }, { name: zone, description: "time zone" }, { name: "06", description: "FIPS code" }, { name: "x" }] } }, headers: { "access-control-allow-origin": "*" } });
     }
     if (url.hostname === "nominatim.openstreetmap.org") {
       const q = url.searchParams.get("q");

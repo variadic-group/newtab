@@ -311,7 +311,7 @@ ok("no page errors with the extras on", g.errs.length === 0, g.errs);
 await g.ctx.close();
 
 // ---------- nothing bookmarked, and a computer that can't say where it is ----------
-const n = await launch({ locate: false });
+const n = await launch({ locate: false, timezoneId: "America/Los_Angeles" });
 const local = (key) => n.sw.evaluate(async (k) => (await chrome.storage.local.get(k))[k], key);
 const f = await n.open();
 await f.waitForFunction(() => /network's city/.test(document.getElementById("toast").textContent), null, { timeout: 15000 }).catch(() => {});
@@ -328,12 +328,27 @@ await f.click("#spaces .add-space"); await f.waitForSelector("#spaces .rename");
 ok("the first space is made from the page, opens, and leaves Edit on to fill it", (await n.tree()).children[0].children.map((c) => c.title).join() === "🏠 Home" && (await f.evaluate(() => document.body.classList.contains("editing"))) && !(await f.isVisible("#empty")) && (await f.isVisible(".tile.add")));
 await f.close();
 
+// on a VPN the network is somewhere else: its city is not used, and the page says why and asks
+n.net.estimateAs = { latitude: 59.3293, longitude: 18.0686, city: "Stockholm", principalSubdivision: "Stockholm", countryCode: "SE", countryName: "Sweden", zone: "Europe/Stockholm" };
+await n.sw.evaluate(() => chrome.storage.local.remove(["place", "placeTried", "wx"]));
+const fv = await n.open(); await fv.waitForSelector(".card");
+await fv.waitForFunction(() => /type a place/.test(document.querySelector("#askForm .note").textContent), null, { timeout: 15000 }).catch(() => {});
+ok("a network in another time zone (a VPN) is not taken for where you are: the page says so and asks", !(await local("place")) && !(await fv.$("#ask[hidden]")) && n.net.points.length === 1 && / Its network looks like it is in Stockholm, Sweden, which isn't this computer's time zone \(a VPN does that\), so type a place\.$/.test(await text(fv, "#askForm .note")), await text(fv, "#askForm .note"));
+await fv.fill("#askForm input", "94103"); await fv.press("#askForm input", "Enter"); await fv.waitForSelector("#askForm .place-hits button"); await fv.click("#askForm .place-hits button");
+await fv.waitForFunction(() => /^\d+°$/.test(document.getElementById("glTemp").textContent), null, { timeout: 8000 }).catch(() => {});
+n.net.estimateAs = null;
+await n.sw.evaluate(async () => { const { place } = await chrome.storage.local.get("place"); await chrome.storage.local.set({ place: { ...place, at: Date.now() - 7 * 3600e3 } }); });
+const asked1 = n.net.estimates;
+const fw = await n.open(); await fw.waitForSelector(".card"); await fw.waitForTimeout(1500);
+ok("a place typed on a VPN stays put: hours later nothing asks the computer or the network again", (await local("place")).source === "typed" && (await local("place")).name === "San Francisco, California" && n.net.estimates === asked1);
+await fv.close(); await fw.close();
+
 // the estimate unreachable too: nothing is assumed, and the page asks
 n.net.estimateDown = true;
 await n.sw.evaluate(() => chrome.storage.local.remove(["place", "placeTried", "wx"]));
 const f1 = await n.open(); await f1.waitForSelector(".card");
 await f1.waitForFunction(() => /type a place/.test(document.querySelector("#askForm .note").textContent), null, { timeout: 15000 }).catch(() => {});
-ok("with no location and no estimate it says why, asks, and looks nothing up", !(await f1.$("#ask[hidden]")) && !!(await f1.$("#glSun[hidden]")) && n.net.points.length === 1 && /(couldn't work out|isn't allowed|took too long).* Its network couldn't be placed either, so type a place\.$/.test(await text(f1, "#askForm .note")) && /\d/.test(await text(f1, "#glTime")), await text(f1, "#askForm .note"));
+ok("with no location and no estimate it says why, asks, and looks nothing up", !(await f1.$("#ask[hidden]")) && !!(await f1.$("#glSun[hidden]")) && n.net.points.length === 2 && /(couldn't work out|isn't allowed|took too long).* Its network couldn't be placed either, so type a place\.$/.test(await text(f1, "#askForm .note")) && /\d/.test(await text(f1, "#glTime")), await text(f1, "#askForm .note"));
 await f1.close();
 const f2 = await n.open(); await f2.waitForSelector(".card"); await f2.waitForTimeout(1200);
 ok("it asks the computer once, not on every new tab", (await text(f2, "#askForm .note")) === "" && !(await f2.$("#ask[hidden]")));

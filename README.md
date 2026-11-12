@@ -100,8 +100,8 @@ New Tab is built and tested on Chrome 120 and later. Other Chromium browsers are
 1. **Check where you are.** The first new tab asks the computer for its location. If the
    computer won't say (on a Mac, Chrome needs Location Services switched on for it), the page
    uses the city your network connection appears to be in, marks it approximate, and says how
-   to make it exact. Or type a city, a ZIP code or an address. If none of that works it asks;
-   no place is ever assumed.
+   to make it exact. Or type a city, a ZIP code or an address. If the network can't be placed,
+   or is plainly elsewhere (a VPN), it asks; no place is ever assumed.
 2. **Shape the bar.** Press the pencil: **+** after the tabs makes a space, **New collection**
    a card, **Add group** a headed group inside a card. They are folders on your bookmarks bar,
    so Chrome's bookmark manager (linked beside the pencil) does the same, and bulk moves.
@@ -158,8 +158,10 @@ opened lately.
   Weather Service. Everywhere else the sun, moon and twilights still work.
 - **A short link with spaces** (`claude/what should I ask`) reaches Chrome as a search, which the
   extension redirects. With hyphens, or with `claude` then Tab, nothing is searched at all.
-- **An approximate place** comes from your network connection, so a VPN moves it. Turn on
-  location for Chrome, or type a place, and it stops guessing.
+- **On a VPN** your network is somewhere you are not. When its city is in a different time zone
+  from this computer's clock, the page doesn't use it and asks instead. The computer's own
+  location (the button) is not affected by a VPN, and a place you type always wins and never
+  changes. A VPN exit in your own time zone can still pass as your city, marked approximate.
 - **Deleting is for empty things.** A link has an ×; a group, a collection or a space can be
   deleted here once it is empty. Chrome's bookmark manager removes a full one.
 - **Chrome's own site-search shortcuts** can't be read or changed by an extension; the Shortcuts
@@ -187,7 +189,7 @@ No build step. The extension is the `extension` folder as it stands.
 ```
 npm install
 npx playwright install chromium
-npm test            # 13 astronomy checks in Node, then 129 checks in a real Chromium
+npm test            # 13 astronomy checks in Node, then 131 checks in a real Chromium
 npm run shots       # the screenshots in store/screenshots
 npm run zip         # newtab.zip, ready to upload or release
 ```

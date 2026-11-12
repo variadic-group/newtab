@@ -4,7 +4,7 @@ The reasoning behind the product: who it serves, what they are trying to do at t
 tab opens, and how each of those moments goes. Read it before adding a feature. The README says
 what the product does; this says why, and what it refuses to become.
 
-Last walked through end to end at 3.3.0 (2026-11-11).
+Last walked through end to end at 3.3.1 (2026-11-11).
 
 ## Who it is for
 
@@ -57,8 +57,8 @@ The one-line position: **the launcher that has no library of its own.**
 
 **First run.** A new tab opens on their own bookmarks, already arranged; there is no setup
 screen. The page asks the computer where it is, without a prompt to dismiss. If the computer
-refuses, it uses the network's city, says so, and says how to get the exact spot. If that fails
-it asks for a city, ZIP or address. With no folders on the bar, the page says so and offers
+refuses, it uses the network's city, says so, and says how to get the exact spot. If that fails,
+or the network is in another time zone (a VPN), it asks for a city, ZIP or address. With no folders on the bar, the page says so and offers
 "+ New space". *Held to:* something useful on screen before any question is answered.
 
 **Go somewhere.** Click a tile, or type its short name and Enter. Names are shown on the tiles
@@ -108,4 +108,5 @@ without adding a second library, an account or a wait.
   sign-in for the extension; it is planned as an extra that is off by default.
 - **Eight short names are reserved** for Google's apps and Claude. A bookmark called "Docs"
   that is something else has to be named by hand.
-- **The network estimate follows a VPN.**
+- **A VPN exit in your own time zone passes as your city**, marked approximate. One in another
+  time zone is caught, and the page asks instead.
