@@ -61,6 +61,12 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
 .btn { border: 1px solid var(--line); background: var(--card); border-radius: 9px; padding: 6px 12px; cursor: pointer; font-weight: 500; font-size: 13px; }
 .btn:hover { border-color: var(--muted); }
 .btn[aria-pressed="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+/* Edit is a pencil; while editing it is a tick on the accent colour. */
+.icon-btn { display: grid; place-items: center; width: 34px; height: 34px; padding: 0; border: 1px solid var(--line); border-radius: 10px; background: var(--card); color: var(--muted); cursor: pointer; }
+.icon-btn:hover { color: var(--ink); border-color: var(--muted); }
+.icon-btn svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+.icon-btn[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.icon-btn[aria-pressed="false"] .when-on, .icon-btn[aria-pressed="true"] .when-off { display: none; }
 .wrap { max-width: 1240px; margin: 0 auto; padding: 22px 24px 28px; }
 body:not(.editing) .edit-only { display: none; }
 
@@ -135,6 +141,9 @@ body:not(.editing) .card:not(:hover):not(:focus-within) .act { opacity: 0; }
 .mini:disabled { opacity: 0.4; cursor: default; }
 .mini.danger { color: var(--danger); }
 .rename { font: 600 15px var(--display); border: 1px solid var(--accent); border-radius: 6px; padding: 2px 6px; background: var(--bg); color: var(--ink); width: 100%; }
+.tile .rename { font: 12px var(--body); text-align: center; padding: 1px 3px; }
+body.editing .tile .name { cursor: text; border-radius: 4px; }
+body.editing .tile .name:hover { background: var(--accent-soft); }
 
 .tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(76px, 1fr)); gap: 2px; }
 .tile { position: relative; display: grid; justify-items: center; align-content: start; gap: 7px; padding: 10px 4px 9px; border-radius: 12px; color: var(--ink); text-decoration: none; text-align: center; min-width: 0; }
@@ -183,7 +192,10 @@ button.key { cursor: text; }
 .rows .mini { display: none; flex: none; }
 .rows li:hover .mini, .rows li:focus-within .mini { display: block; }
 .rows li:hover .h, .rows li:focus-within .h { display: none; }
-.rows .close { font-size: 15px; line-height: 1; padding: 3px 7px; }
+/* Closing a tab is always on show; "Up next" joins it when the row is pointed at. */
+.rows .close { display: block; font-size: 15px; line-height: 1; padding: 3px 7px; opacity: 0.55; }
+.rows li:hover .close, .rows .close:focus-visible { opacity: 1; }
+.slot { display: contents; }
 .notes textarea { display: block; width: calc(100% - 8px); min-height: 96px; resize: vertical; margin: 2px 4px 4px; border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; background: var(--bg); font-size: 13px; line-height: 1.45; }
 
 /* ----- today ----- */
@@ -299,13 +311,15 @@ a.sc-what:hover .t { text-decoration: underline; }
 .sc-note.solo { margin: 8px 0 0; }
 .sc-add { display: grid; grid-template-columns: 96px minmax(0, 1fr) auto; gap: 6px; margin-top: 8px; }
 .sc-add input { font-size: 13px; border: 1px solid var(--line); border-radius: 7px; padding: 6px 8px; background: var(--bg); min-width: 0; }
-.sc-suggest { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 10px; }
+.sc-suggest { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 10px 0 8px; }
+.sc-card > .mini { margin-left: -6px; }
 .chip { border: 1px solid var(--line); background: none; border-radius: 999px; padding: 3px 10px; font-size: 12px; cursor: pointer; }
 .chip:hover { border-color: var(--accent); }
 
 /* ----- footer ----- */
 .foot { max-width: 1240px; margin: 0 auto; padding: 0 24px 28px; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 16px; color: var(--muted); font-size: 12.5px; }
 .foot .hint { margin: 0; }
+.foot .hint .mini { color: var(--accent); font-weight: 600; }
 .foot code { font: 11.5px var(--mono); color: var(--accent); background: var(--accent-soft); border-radius: 5px; padding: 1px 5px; }
 .foot nav { margin-left: auto; display: flex; flex-wrap: wrap; gap: 2px; }
 .foot .mini[aria-expanded="true"] { color: var(--ink); background: var(--tile); }

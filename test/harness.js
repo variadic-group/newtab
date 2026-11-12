@@ -109,6 +109,8 @@ export async function launch({ ext = shipped, icons = "stub", viewport = { width
       return route.fulfill({ contentType: "image/png", body: png(miss ? 16 : 64, colour(d)) });
     }
     if (url.hostname === "radar.weather.gov") return route.fulfill({ contentType: "image/svg+xml", body: RADAR });
+    // A page that keeps changing its title, the way a mail tab or a build page does.
+    if (u.endsWith("/ticker")) return route.fulfill({ contentType: "text/html", body: '<title>tick 0</title><script>let n = 0; setInterval(() => { document.title = "tick " + ++n; }, 200);</script>' });
     if (route.request().resourceType() === "document") {
       const named = Object.keys(net.titles).find((k) => u.includes(k));
       return route.fulfill({ contentType: "text/html", body: `<title>${named ? net.titles[named] : "Stub " + url.hostname}</title><p>stub</p>` });
@@ -148,7 +150,7 @@ export function seed(sw) {
     const mk = (parentId, title, url) => chrome.bookmarks.create({ parentId, title, url });
     const fill = async (parentId, links) => { for (const [title, url] of links) await mk(parentId, title, url); };
     const work = await mk("1", "🏢 Work");
-    await fill((await mk(work.id, "✉️ Workspace")).id, [["Gmail", "https://mail.google.com/"], ["Calendar", "https://calendar.google.com/"], ["Drive", "https://drive.google.com/"], ["Keep", "https://keep.google.com/"], ["Admin console", "https://admin.google.com/"]]);
+    await fill((await mk(work.id, "✉️ Workspace")).id, [["Gmail", "https://mail.google.com/"], ["Calendar", "https://calendar.google.com/calendar/u/0/r"], ["Drive", "https://drive.google.com/"], ["Keep", "https://keep.google.com/"], ["Admin console", "https://admin.google.com/"]]);
     await fill((await mk(work.id, "💵 Money")).id, [["Stripe", "https://dashboard.stripe.com/"], ["Bank", "https://app.examplebank.com/"]]);
     const company = await mk(work.id, "🏢 Company");
     await fill(company.id, [["Todo list", "https://todo.example.com/"], ["GitHub", "https://github.com/"], ["Agent", "https://account.exampleagent.com/"]]);

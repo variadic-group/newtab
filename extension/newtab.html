@@ -14,7 +14,11 @@
     <nav id="spaces" class="tabs" role="tablist" aria-label="Spaces"></nav>
     <div class="right">
       <nav id="pages" class="tabs" role="tablist" aria-label="Pages"></nav>
-      <button type="button" id="edit" class="btn" aria-pressed="false">Edit</button>
+      <button type="button" class="mini edit-only" data-go="chrome://bookmarks/" title="Chrome's bookmark manager, for bulk moves and new folders">Bookmark manager ↗</button>
+      <button type="button" id="edit" class="icon-btn" aria-pressed="false" aria-label="Edit bookmarks" title="Edit: rename, add and remove">
+        <svg class="when-off" viewBox="0 0 20 20" aria-hidden="true"><path d="M3.2 16.8l.9-3.9L14.3 2.7a1.6 1.6 0 0 1 2.2 0l.8.8a1.6 1.6 0 0 1 0 2.2L7.1 15.9z"/><path d="M12.4 4.6l3 3"/></svg>
+        <svg class="when-on" viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10.6l4 4 8-9.2"/></svg>
+      </button>
     </div>
   </div>
 </header>
@@ -150,10 +154,7 @@
 
 <footer class="foot">
   <p id="hint" class="hint"></p>
-  <nav aria-label="Manage">
-    <button type="button" id="goShortcuts" class="mini">All shortcuts</button>
-    <button type="button" class="mini" data-go="chrome://bookmarks/">Bookmark manager</button>
-    <button type="button" class="mini" data-go="chrome://settings/searchEngines">Chrome's search shortcuts</button>
+  <nav aria-label="Settings">
     <button type="button" id="extrasBtn" class="mini" aria-expanded="false" aria-controls="extras">Extras</button>
     <button type="button" id="version" class="mini" data-go="chrome://extensions/" title="Opens Chrome's Extensions page, where ↻ loads a newer copy."></button>
   </nav>

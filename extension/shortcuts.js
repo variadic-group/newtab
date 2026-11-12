@@ -1,7 +1,7 @@
 // The Shortcuts page: every short link the address bar understands, and where each one goes.
 import { el } from "./dom.js";
 import { siteIcon, host } from "./icons.js";
-import { BUILTIN, barChildren, leaves, aliasTable, aliasFor, customAliases, customLinks, slug } from "./shared.js";
+import { BUILTIN, barChildren, leaves, aliasTable, aliasFor, claims, customAliases, customLinks, slug } from "./shared.js";
 
 // Turns a link's short name into a text box; an empty name goes back to the automatic one.
 export function editAlias(pill, link, done) {
@@ -42,11 +42,13 @@ function row(key, what, note) {
   return r;
 }
 
+// A bookmark that carries a built-in name also carries that name's note on searching.
 function linkRow(link, table, done) {
   const what = el("a", "sc-what");
   what.href = link.url;
   what.append(siteIcon(link.url, link.title), el("span", "t", link.title || host(link.url)), el("span", "h", host(link.url)));
-  return row(aliasPill(link, table, done), what);
+  const builtin = BUILTIN[aliasFor(link, table)];
+  return row(aliasPill(link, table, done), what, builtin && builtin.example);
 }
 
 // Shortcuts worth a click to add. Each address is the site's own search or ask page.
@@ -92,6 +94,10 @@ async function ownCard(done) {
     done();
   };
   card.append(form, el("p", "sc-note solo", "Example: name hn, address https://hn.algolia.com/?q=%s, then hn/rust searches it."));
+  const chromes = el("button", "mini", "Chrome's own search shortcuts ↗");
+  chromes.type = "button";
+  chromes.dataset.go = "chrome://settings/searchEngines";
+  chromes.title = "Chrome keeps its own list, which an extension can't read or change";
   const more = Object.entries(SUGGEST).filter(([key]) => !links[key]);
   if (more.length) {
     const row = el("div", "sc-suggest");
@@ -105,6 +111,7 @@ async function ownCard(done) {
     }
     card.append(row);
   }
+  card.append(chromes);
   return card;
 }
 
@@ -112,9 +119,12 @@ export async function renderShortcuts(root, done) {
   const table = await aliasTable();
   const cards = [];
 
+  // A built-in name that one of your bookmarks carries is listed once, with that bookmark.
+  const carried = await claims();
   const built = el("article", "sc-card");
   built.append(el("h2", null, "Always there"));
   for (const [name, b] of Object.entries(BUILTIN)) {
+    if (carried.has(name) && table.get(name) === carried.get(name)) continue;
     const what = el("a", "sc-what");
     what.href = b.url;
     what.append(siteIcon(b.url, b.label), el("span", "t", b.label));

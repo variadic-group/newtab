@@ -2,11 +2,13 @@
 // short link (mail/, cal/, claude/what-to-ask) resolves to an address.
 
 // The short links that exist whatever is bookmarked. Each one with `search` also takes words.
+// One marked `site` is a whole site: if you have bookmarked that site, your bookmark carries the
+// short name (and is where it opens), rather than getting a second name of its own.
 export const BUILTIN = {
-  mail: { url: "https://mail.google.com", search: "https://mail.google.com/mail/u/0/#search/%s", label: "Gmail", example: "mail/invoice searches your mail" },
-  cal: { url: "https://calendar.google.com", label: "Google Calendar" },
-  drive: { url: "https://drive.google.com", search: "https://drive.google.com/drive/search?q=%s", label: "Google Drive", example: "drive/contract searches Drive" },
-  keep: { url: "https://keep.google.com", search: "https://keep.google.com/#search/text=%s", label: "Google Keep, for notes", example: "keep/idea searches your notes" },
+  mail: { site: true, url: "https://mail.google.com", search: "https://mail.google.com/mail/u/0/#search/%s", label: "Gmail", example: "mail/invoice searches your mail" },
+  cal: { site: true, url: "https://calendar.google.com", label: "Google Calendar" },
+  drive: { site: true, url: "https://drive.google.com", search: "https://drive.google.com/drive/search?q=%s", label: "Google Drive", example: "drive/contract searches Drive" },
+  keep: { site: true, url: "https://keep.google.com", search: "https://keep.google.com/#search/text=%s", label: "Google Keep, for notes", example: "keep/idea searches your notes" },
   g: { url: "https://www.google.com", search: "https://www.google.com/search?q=%s", label: "Google search", example: "g/best-pizza searches Google" },
   claude: { url: "https://claude.ai/new", search: "https://claude.ai/new?q=%s", label: "Ask Claude", example: "claude/draft a reply to this, or type claude, press Tab, then the question" },
 };
@@ -46,10 +48,29 @@ export async function customAliases() {
   return aliases;
 }
 
-// Every bookmark's short links: its own alias if set, its first word when no other bookmark
-// shares it ("admin" for "Admin console"), and its whole name squashed ("adminconsole").
+const hostOf = (url) => (URL.canParse(url) ? new URL(url).hostname : "");
+async function allLinks() {
+  return (await barChildren()).flatMap((n) => (n.url ? [n] : leaves(n)));
+}
+
+// Which bookmark carries each built-in name: the first one on the bar that is that site.
+function claimsIn(links) {
+  const claims = new Map();
+  for (const [name, b] of Object.entries(BUILTIN)) {
+    const mine = b.site && links.find((l) => hostOf(l.url) === hostOf(b.url));
+    if (mine) claims.set(name, mine.url);
+  }
+  return claims;
+}
+export async function claims() {
+  return claimsIn(await allLinks());
+}
+
+// Every bookmark's short links, in the order they are shown: a name you set, a built-in name it
+// carries, its first word when no other bookmark shares it ("admin" for "Admin console"), and
+// its whole name squashed ("adminconsole").
 export async function aliasTable() {
-  const links = (await barChildren()).flatMap((n) => (n.url ? [n] : leaves(n)));
+  const links = await allLinks();
   const custom = await customAliases();
   const table = new Map();
   const firstCount = new Map();
@@ -58,6 +79,7 @@ export async function aliasTable() {
     const own = custom[l.url];
     if (own && !table.has(own)) table.set(own, l.url);
   }
+  for (const [name, url] of claimsIn(links)) if (!table.has(name)) table.set(name, url);
   for (const l of links) {
     const f = firstWord(l.title);
     if (f && firstCount.get(f) === 1 && !table.has(f)) table.set(f, l.url);
@@ -101,7 +123,8 @@ export async function resolve(name, rest, plain = false) {
   const custom = await customAliases();
   if (Object.values(custom).includes(key) && table.has(key)) return table.get(key);
   const b = BUILTIN[key];
-  if (b) return query && b.search ? b.search.replace("%s", encodeURIComponent(query)) : b.url;
+  if (b && query && b.search) return b.search.replace("%s", encodeURIComponent(query));
+  if (b) return (await claims()).get(key) || b.url;
   if (table.has(key)) return table.get(key);
   if (plain) return null;
   const hits = [...table.keys()].filter((a) => a.startsWith(key));

@@ -31,9 +31,10 @@ function toast(text, undo) {
 let dragged = null;
 const takes = (accepts) => dragged && accepts.includes(dragged.kind);
 
+// `what` describes the thing dragged, or is a function that does when the drag starts.
 function drags(node, what, mark = node) {
   node.draggable = true;
-  node.addEventListener("dragstart", () => { dragged = { ...what, el: mark }; mark.classList.add("dragging"); });
+  node.addEventListener("dragstart", () => { dragged = { ...(typeof what === "function" ? what() : what), el: mark }; mark.classList.add("dragging"); });
 }
 document.addEventListener("dragend", () => {
   dragged = null;
@@ -124,6 +125,8 @@ async function render() {
 
 function show(id) {
   current = id;
+  // Editing belongs to a space; leaving for Today or Shortcuts ends it.
+  if (isPage(id) && editing()) $("edit").click();
   // A new tab reopens on the last space, never on Today or Shortcuts.
   if (!isPage(id)) chrome.storage.local.set({ space: id });
   render();
@@ -263,7 +266,17 @@ function tileFor(link, table) {
   a.href = link.url;
   const alias = aliasFor(link, table);
   a.title = alias ? `${alias}/  ·  ${host(link.url)}` : host(link.url);
-  a.append(siteIcon(link.url, link.title), el("span", "name", label(link)), aliasPill(link, table, render));
+  const name = el("span", "name", label(link));
+  name.dataset.id = link.id;
+  // In Edit, a click on the name renames the bookmark. The tile stops being draggable meanwhile,
+  // or the mouse couldn't select text in the box.
+  name.onclick = (e) => {
+    if (!editing()) return;
+    e.preventDefault();
+    a.draggable = false;
+    startRename(name, () => { a.draggable = true; });
+  };
+  a.append(siteIcon(link.url, link.title), name, aliasPill(link, table, render));
   const x = el("button", "x", "×");
   x.type = "button";
   x.setAttribute("aria-label", "Remove " + label(link));
@@ -280,18 +293,20 @@ function tileFor(link, table) {
   return a;
 }
 
-// A group's heading shows its whole path; only its own name is edited.
-function startRename(h) {
+// Turns a card's title, a group's heading or a tile's name into a text box. A group's heading
+// shows its whole path; only its own name is edited. `cancelled` runs if nothing was changed.
+function startRename(h, cancelled) {
   const was = h.dataset.name ?? h.textContent;
   const input = el("input", "rename");
   input.value = was;
+  input.setAttribute("aria-label", "Name");
   h.replaceWith(input);
   input.focus(); input.select();
   const done = async (save) => {
     input.onblur = null;
     const v = input.value.trim();
     if (save && v && v !== was) { input.blur(); await chrome.bookmarks.update(h.dataset.id, { title: v }); }
-    else input.replaceWith(h);
+    else { input.replaceWith(h); if (cancelled) cancelled(); }
   };
   input.onkeydown = (e) => { if (e.key === "Enter") done(true); if (e.key === "Escape") done(false); };
   input.onblur = () => done(true);
@@ -358,37 +373,69 @@ async function otherTabs() {
   return (await chrome.tabs.query({ currentWindow: true })).filter((t) => /^https?:/.test(t.url || "") && (!me || t.id !== me.id));
 }
 
+// Open tabs change all the time: a title, an icon, a page loading somewhere. Each change asks
+// for a redraw, and a row that was rebuilt between pressing its button and letting go never got
+// the click. So a tab keeps its row for as long as it is open, and the row is updated in place.
+const tabRows = new Map();
+
+function tabRow(first) {
+  const row = { tab: first, li: el("li") };
+  const a = el("a", "row");
+  const icon = el("span", "slot"), title = el("span", "t"), where = el("span", "h");
+  a.append(icon, title, where);
+  const shut = async () => {
+    const { id, url, index, title: name } = row.tab;
+    await chrome.tabs.remove(id);
+    toast(`Closed ${name || url}`, () => chrome.tabs.create({ url, index, active: false }));
+  };
+  a.onclick = (e) => { e.preventDefault(); chrome.tabs.update(row.tab.id, { active: true }); };
+  // A middle click closes it, as it does on the tab strip.
+  a.onauxclick = (e) => { if (e.button === 1) { e.preventDefault(); shut(); } };
+  const add = el("button", "mini", "Up next");
+  add.type = "button";
+  add.title = "Keep this page under Up next";
+  add.onclick = async () => toast((await addToNext(row.tab)) ? "Added to Up next." : "Already in Up next.");
+  const close = el("button", "mini close", "×");
+  close.type = "button";
+  close.title = "Close this tab";
+  close.onclick = shut;
+  row.li.append(a, add, close);
+  drags(row.li, () => ({ kind: "tab", tab: { id: row.tab.id, index: row.tab.index, title: row.tab.title, url: row.tab.url } }));
+  // tabs.move counts the index after the tab has left its old place, unlike bookmarks.move.
+  orderTarget(row.li, ["tab"], "y", (d, before) => {
+    const to = before ? row.tab.index : row.tab.index + 1;
+    return chrome.tabs.move(d.tab.id, { index: d.tab.index < to ? to - 1 : to });
+  });
+  let drawn = null;
+  row.update = (tab) => {
+    row.tab = tab;
+    const name = tab.title || tab.url;
+    if (title.textContent !== name) title.textContent = name;
+    if (where.textContent !== host(tab.url)) where.textContent = host(tab.url);
+    a.href = tab.url;
+    a.title = tab.url;
+    close.setAttribute("aria-label", "Close " + name);
+    const picture = `${tab.favIconUrl || ""} ${host(tab.url)}`;
+    if (picture !== drawn) { drawn = picture; icon.replaceChildren(tabIcon(tab)); }
+  };
+  row.update(first);
+  return row;
+}
+
 async function renderTabs() {
   const tabs = await otherTabs();
   $("tabCount").textContent = tabs.length ? String(tabs.length) : "";
   $("tabsEmpty").hidden = tabs.length > 0;
   $("saveTabs").disabled = !tabs.length;
-  $("tabs").replaceChildren(...tabs.map((tab) => {
-    const li = el("li");
-    const title = tab.title || tab.url;
-    const a = rowLink(tab.url, title, tabIcon(tab));
-    a.onclick = (e) => { e.preventDefault(); chrome.tabs.update(tab.id, { active: true }); };
-    const add = el("button", "mini", "Up next");
-    add.type = "button";
-    add.title = "Keep this page under Up next";
-    add.onclick = async () => toast((await addToNext(tab)) ? "Added to Up next." : "Already in Up next.");
-    const close = el("button", "mini close", "×");
-    close.type = "button";
-    close.title = "Close this tab";
-    close.setAttribute("aria-label", "Close " + title);
-    close.onclick = async () => {
-      await chrome.tabs.remove(tab.id);
-      toast(`Closed ${title}`, () => chrome.tabs.create({ url: tab.url, index: tab.index, active: false }));
-    };
-    li.append(a, add, close);
-    drags(li, { kind: "tab", tab: { id: tab.id, index: tab.index, title: tab.title, url: tab.url } });
-    // tabs.move counts the index after the tab has left its old place, unlike bookmarks.move.
-    orderTarget(li, ["tab"], "y", (d, before) => {
-      const to = before ? tab.index : tab.index + 1;
-      return chrome.tabs.move(d.tab.id, { index: d.tab.index < to ? to - 1 : to });
-    });
-    return li;
-  }));
+  const open = new Set(tabs.map((tab) => tab.id));
+  for (const [id, row] of tabRows) if (!open.has(id)) { row.li.remove(); tabRows.delete(id); }
+  const rows = tabs.map((tab) => {
+    if (tabRows.has(tab.id)) tabRows.get(tab.id).update(tab); else tabRows.set(tab.id, tabRow(tab));
+    return tabRows.get(tab.id).li;
+  });
+  // The list is only rearranged when its order is wrong: moving a row would end a press on it.
+  const list = $("tabs");
+  if (list.children.length !== rows.length || rows.some((li, i) => list.children[i] !== li)) list.replaceChildren(...rows);
 }
 
 async function saveTabs(space) {
@@ -437,7 +484,7 @@ $("edit").onclick = () => {
   const on = !editing();
   document.body.classList.toggle("editing", on);
   $("edit").setAttribute("aria-pressed", String(on));
-  $("edit").textContent = on ? "Done" : "Edit";
+  $("edit").title = on ? "Done editing" : "Edit: rename, add and remove";
 };
 $("glance").onclick = () => show(TODAY);
 
@@ -458,13 +505,20 @@ $("extrasBtn").onclick = () => {
 chrome.permissions.onAdded.addListener(drawExtras);
 chrome.permissions.onRemoved.addListener(drawExtras);
 
-// The footer: the short links, and the Chrome pages this page can't show inside itself.
+// The footer says how to type a short link and leads to the full list. Chrome's own pages can't
+// be shown inside this one, so a button marked data-go sends this tab to one.
 const hint = $("hint");
-hint.append("In the address bar: ");
+hint.append("Type in the address bar: ");
 for (const name of Object.keys(BUILTIN)) hint.append(el("code", null, `${name}/`), " ");
-hint.append("or any link's short name; ", el("code", null, "claude"), " then Tab asks Claude.");
-$("goShortcuts").onclick = () => show(KEYS);
-for (const b of document.querySelectorAll("[data-go]")) b.onclick = () => chrome.tabs.update({ url: b.dataset.go });
+const all = el("button", "mini", "All shortcuts ›");
+all.type = "button";
+all.id = "goShortcuts";
+all.onclick = () => show(KEYS);
+hint.append("or any link's short name. ", all);
+document.addEventListener("click", (e) => {
+  const go = e.target.closest("[data-go]");
+  if (go) chrome.tabs.update({ url: go.dataset.go });
+});
 $("version").textContent = `v${chrome.runtime.getManifest().version}`;
 
 // Redrawing replaces the text boxes, so a change from outside (another tab, sync) waits while one
@@ -485,8 +539,16 @@ chrome.storage.onChanged.addListener((changes, area) => {
 });
 matchMedia("(prefers-color-scheme: dark)").addEventListener("change", redrawSky);
 
-let tabsQueued;
-const retabs = () => { clearTimeout(tabsQueued); tabsQueued = setTimeout(() => { if (!isPage(current)) renderTabs(); }, 150); };
+// One redraw at most every 150 ms however many tab events arrive, and none in the middle of a drag.
+let tabsQueued = null;
+function retabs() {
+  if (tabsQueued) return;
+  tabsQueued = setTimeout(() => {
+    tabsQueued = null;
+    if (dragged) return retabs();
+    if (!isPage(current)) renderTabs();
+  }, 150);
+}
 for (const ev of ["onCreated", "onRemoved", "onUpdated", "onMoved", "onAttached", "onDetached"]) chrome.tabs[ev].addListener(retabs);
 
 setInterval(() => { if (current === TODAY) tickToday(); else if (current === KEYS) tickTheme(); else renderGlance(); }, 10000);

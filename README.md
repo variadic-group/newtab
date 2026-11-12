@@ -37,12 +37,14 @@ This page adds a face to that store and keeps nothing of its own:
 - **Drag to reorder** tiles, cards and space tabs. It is your bookmarks moving, so the order
   holds everywhere.
 - **Open all** opens a collection as one named tab group.
-- **Edit** to rename, add and remove in place, with Undo.
+- **The pencil** (top right) turns on editing: click a name to rename a link, a card or a
+  group; add and remove in place, with Undo.
 
 **Type, don't click**
 - `mail/` `cal/` `drive/` `keep/` `g/` `claude/` work from the address bar.
-- **Every bookmark gets a short name** from its own name: `stripe/`, `github/`. Click one on the
-  Shortcuts page to change it.
+- **Every bookmark gets a short name** from its own name, the moment it is bookmarked:
+  `stripe/`, `github/`. Click one on the Shortcuts page to change it. A bookmark of Gmail,
+  Calendar, Drive or Keep carries the built-in name, so each place has one short name.
 - **Add words to search:** `mail/invoice from the printer`, `drive/contract`,
   `claude/draft a reply to this`. Or type `claude`, press Tab, and ask.
 - **Your own shortcuts:** any name to any address, with `%s` where the words go. `gpt/`, `yt/`,
@@ -51,7 +53,8 @@ This page adds a face to that store and keeps nothing of its own:
 **Pick up where you left off**
 - **Up next:** pages to come back to, in order. One click on the toolbar button, or Alt+Shift+S.
   It is a bookmarks folder, so it syncs too.
-- **Open tabs:** switch to one, reorder the tab strip, close one, or drag one into a collection.
+- **Open tabs:** switch to one, reorder the tab strip, close one (× or a middle click), or drag
+  one into a collection.
   **Save all** files the whole window.
 - **Notes:** a scratch box that follows your Chrome profile.
 
@@ -95,7 +98,7 @@ New Tab is built and tested on Chrome 120 and later. Other Chromium browsers are
 
 1. **Say where you are.** The strip at the top asks once: this computer's location, or a city.
    Until you answer, nothing is assumed and nothing is looked up.
-2. **Shape the bar.** In Chrome's bookmark manager (the footer links to it), make one folder on
+2. **Shape the bar.** In Chrome's bookmark manager (the pencil offers a link to it), make one folder on
    the bookmarks bar per area of work, and folders inside for collections. Emoji in the names
    read well as tabs: `🏢 Work`, `✉️ Mail and calendar`, `💵 Money`.
 3. **Learn three short links.** `mail/`, `cal/`, and the short name of the site you open most.
@@ -129,8 +132,8 @@ opened lately.
   Weather Service. Everywhere else the sun, moon and twilights still work.
 - **A short link with spaces** (`claude/what should I ask`) reaches Chrome as a search, which the
   extension redirects. With hyphens, or with `claude` then Tab, nothing is searched at all.
-- **Chrome's own site-search shortcuts** can't be read or changed by an extension; the footer
-  links to that settings page.
+- **Chrome's own site-search shortcuts** can't be read or changed by an extension; the Shortcuts
+  page links to that settings page.
 - **Signed in to Chrome with sync on**, bookmarks live in the account's own bookmarks bar. The
   page reads every bar it finds.
 
@@ -154,7 +157,7 @@ No build step. The extension is the `extension` folder as it stands.
 ```
 npm install
 npx playwright install chromium
-npm test            # 13 astronomy checks in Node, then 90 checks in a real Chromium
+npm test            # 13 astronomy checks in Node, then 101 checks in a real Chromium
 npm run shots       # the screenshots in store/screenshots
 npm run zip         # newtab.zip, ready to upload or release
 ```

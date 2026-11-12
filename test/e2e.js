@@ -32,7 +32,8 @@ ok("\"Use this computer's location\" saves a rounded place and the forecast foll
 ok("tabs: spaces, then Today and Shortcuts", true, [await p.$$eval("#spaces .tab", (x) => x.map((e) => e.textContent)), await p.$$eval("#pages .tab", (x) => x.map((e) => e.textContent))]);
 ok("the glance shows the time, the sun and the weather now", /\d/.test(await text(p, "#glTime")) && /↑ \d/.test(await text(p, "#glRise")) && /↓ \d/.test(await text(p, "#glSet")) && / in \d/.test(await text(p, "#glLeft")) && /^\d+°$/.test(await text(p, "#glTemp")) && /High|Low/.test(await text(p, "#glHiLo")), { time: await text(p, "#glTime"), sun: await text(p, "#glLeft"), now: [await text(p, "#glTemp"), await text(p, "#glText"), await text(p, "#glHiLo")] });
 ok("the glance has a radar still, not the loop", /_0\.gif/.test(await p.$eval("#glRadarImg", (i) => i.src)) && !(await p.$("#glRadar[hidden]")));
-ok("the footer names the short links, Chrome's managers and the version", /mail\/.*claude\/.*short name/.test(await text(p, "#hint")) && (await p.$$(".foot [data-go]")).length === 3 && (await text(p, "#version")) === "v" + manifest.version, await text(p, "#hint"));
+ok("the footer says how to type a short link, leads to them all, and holds Extras and the version", /mail\/.*claude\/.*short name/.test(await text(p, "#hint")) && !!(await p.$("#hint #goShortcuts")) && (await p.$$eval(".foot nav .mini", (x) => x.map((e) => e.id))).join() === "extrasBtn,version" && (await text(p, "#version")) === "v" + manifest.version, await text(p, "#hint"));
+ok("Edit is a pencil with a name for screen readers; the bookmark manager shows only while editing", (await p.getAttribute("#edit", "aria-label")) === "Edit bookmarks" && !!(await p.$("#edit svg")) && !(await p.isVisible('[data-go="chrome://bookmarks/"]')));
 await p.mouse.move(700, 4);
 ok("\"Open all\" waits for the pointer, and cards carry no count", (await p.$eval(".card .act", (e) => getComputedStyle(e).opacity)) === "0" && !(await p.$(".card-head .n")) && !(await p.$(".panel .sub")));
 
@@ -50,6 +51,7 @@ ok("found icons are remembered", await sw.evaluate(async () => { const { icons }
 
 // ---------- Up next and open tabs ----------
 ok("open tabs listed with their site", (await p.$$("#tabs li")).length === 2, await p.$$eval("#tabs .row", (x) => x.map((e) => e.textContent)));
+ok("each open tab's × is on show without pointing at the row", (await p.$$eval("#tabs .close", (x) => x.map((e) => getComputedStyle(e).display))).join() === "block,block");
 for (const n of [1, 2]) { await p.hover(`#tabs li:nth-child(${n})`); await p.click(`#tabs li:nth-child(${n}) .mini`); await p.waitForFunction((k) => document.querySelectorAll("#next li").length === k, n); }
 const next = find(await tree(), "⏭️ Next");
 ok("Up next is a bookmarks folder under Other bookmarks", !!next && next.parentId === "2" && next.children.length === 2);
@@ -96,6 +98,8 @@ await p.click(`.card[data-folder="${money.id}"] .tile:nth-child(2) .x`); await p
 ok("× removes a link", (await titles("💵 Money")).join() === "Bank", await titles("💵 Money"));
 await p.click("#toast button"); await p.waitForTimeout(300);
 ok("Undo restores it in its place", (await titles("💵 Money")).length === 2 && (await titles("💵 Money"))[0] === "Bank", await titles("💵 Money"));
+await p.click('.tile[href="https://app.examplebank.com/"] .name'); await p.fill(".tile .rename", "Checking"); await p.keyboard.press("Enter"); await p.waitForTimeout(300);
+ok("in Edit, a click on a tile's name renames the bookmark", (await titles("💵 Money"))[0] === "Checking", await titles("💵 Money"));
 await p.click(`.card[data-folder="${money.id}"] h2`); await p.fill(".rename", "💵 Banking"); await p.keyboard.press("Enter"); await p.waitForTimeout(300);
 ok("rename writes the bookmark folder", !!find(await tree(), "💵 Banking"));
 await p.click(`.group[data-folder="${federal.id}"] h3`); await p.fill(".rename", "Federal filings"); await p.keyboard.press("Enter"); await p.waitForTimeout(300);
@@ -114,8 +118,10 @@ ok("Open all makes one named tab group", groups.titles.join() === "✉️ Worksp
 
 // ---------- shortcuts page ----------
 await p.bringToFront(); await p.click('#pages .tab:has-text("Shortcuts")'); await p.waitForSelector(".sc-card");
-const keys = () => p.$$eval(".key", (x) => x.map((e) => e.textContent));
-ok("built-in shortcuts are listed", true, await p.$$eval(".key.fixed", (x) => x.map((e) => e.textContent)));
+const keys = () => p.$$eval("#scBody .key", (x) => x.map((e) => e.textContent));
+ok("built-in names with no bookmark of their own are listed under Always there", (await p.$$eval(".key.fixed", (x) => x.map((e) => e.textContent))).join() === "g/,claude/");
+ok("a bookmark of a built-in's site carries its name, once: Calendar is cal/, Gmail is mail/", (await keys()).filter((k) => k === "cal/").length === 1 && (await keys()).filter((k) => k === "mail/").length === 1 && !(await keys()).some((k) => ["calendar/", "gmail/"].includes(k)) && /mail\/invoice/.test(await text(p, '.sc-row:has-text("Gmail") .sc-note')), await keys());
+ok("Chrome's own search shortcuts are one click from the Shortcuts page", !!(await p.$('#scBody [data-go="chrome://settings/searchEngines"]')));
 ok("no tasks/ shortcut; todo/ comes from the Todo list bookmark", !(await keys()).includes("tasks/") && (await keys()).includes("todo/"));
 await p.locator(".sc-row", { hasText: "Stripe" }).locator(".key").click(); await p.fill(".alias-input", "pay"); await p.keyboard.press("Enter");
 await p.waitForFunction(() => [...document.querySelectorAll(".key")].some((k) => k.textContent === "pay/"));
@@ -132,6 +138,7 @@ await p.click('.sc-row:has-text("hn/") .mini'); await p.waitForFunction(() => ![
 ok("and removed again", !(await keys()).includes("hn/") && (await go("http://hn/")) === "http://hn/");
 ok("pay/ → Stripe (the name just set)", (await go("http://pay/")).startsWith("https://dashboard.stripe.com"));
 ok("mail/ → Gmail", (await go("http://mail/")).startsWith("https://mail.google.com"));
+ok("cal/ opens your Calendar bookmark's own address, and calendar/ still works", (await go("http://cal/")) === "https://calendar.google.com/calendar/u/0/r" && (await go("http://calendar/")) === "https://calendar.google.com/calendar/u/0/r");
 ok("admin/ → bookmark by first word", (await go("http://admin/")).startsWith("https://admin.google.com"));
 ok("todo/ → the Todo list bookmark", (await go("http://todo/")) === "https://todo.example.com/");
 ok("claude/what-is-x → Claude with the question", (await go("http://claude/what-is-x")) === "https://claude.ai/new?q=what%20is%20x");
@@ -220,9 +227,26 @@ ok("unread mail and recent files ship switched off, as optional permissions", !!
 await q.click("#extrasBtn"); await q.waitForSelector(".extra");
 ok("Extras in the footer lists them, both off", (await q.$$eval(".extra .btn", (x) => x.map((e) => `${e.getAttribute("aria-label")}:${e.textContent}`))).join() === "Unread mail:Off,Recent files:Off");
 
+// ---------- a busy tab ----------
+const before = (await q.$$("#tabs li")).length;
+const tk = await ctx.newPage(); await tk.goto("https://example.net/ticker"); await q.bringToFront();
+await q.waitForFunction(() => [...document.querySelectorAll("#tabs .t")].some((n) => /^tick \d+$/.test(n.textContent)), null, { timeout: 8000 });
+const was = await q.evaluate(() => { const li = [...document.querySelectorAll("#tabs li")].find((l) => /tick \d/.test(l.textContent)); li.dataset.same = "yes"; return li.querySelector(".t").textContent; });
+await q.waitForFunction((old) => { const li = document.querySelector("#tabs li[data-same]"); return li && li.querySelector(".t").textContent !== old; }, was, { timeout: 8000 }).catch(() => {});
+ok("a tab whose title keeps changing keeps its row, updated in place", await q.evaluate((old) => { const li = document.querySelector("#tabs li[data-same]"); return !!li && /^tick \d+$/.test(li.querySelector(".t").textContent) && li.querySelector(".t").textContent !== old; }, was), was);
+await q.click("#tabs li[data-same] .close"); await q.waitForFunction((n) => document.querySelectorAll("#tabs li").length === n, before);
+ok("and its × closes it while it is busy", tk.isClosed() && (await q.$$("#tabs li")).length === before);
+await q.click("#tabs li:nth-child(1) .row", { button: "middle" }); await q.waitForFunction((n) => document.querySelectorAll("#tabs li").length === n, before - 1);
+ok("a middle click on a row closes that tab", (await q.$$("#tabs li")).length === before - 1);
+
 await q.click("#goShortcuts"); await q.waitForSelector(".sc-card");
 ok("\"All shortcuts\" in the footer opens the Shortcuts page", (await q.getAttribute('#pages .tab:has-text("Shortcuts")', "aria-selected")) === "true");
-await q.click('.foot [data-go="chrome://bookmarks/"]'); await q.waitForURL(/^chrome:\/\/bookmarks/, { timeout: 5000 }).catch(() => {});
+await q.click('#spaces .tab:has-text("Work")'); await q.waitForSelector(".card"); await q.click("#edit");
+ok("while editing, the pencil is a tick and the bookmark manager is offered", (await q.getAttribute("#edit", "aria-pressed")) === "true" && (await q.isVisible('[data-go="chrome://bookmarks/"]')));
+await q.click('#pages .tab:has-text("Today")');
+ok("leaving for Today ends editing", (await q.evaluate(() => document.body.classList.contains("editing"))) === false);
+await q.click('#spaces .tab:has-text("Work")'); await q.waitForSelector(".card"); await q.click("#edit");
+await q.click('[data-go="chrome://bookmarks/"]'); await q.waitForURL(/^chrome:\/\/bookmarks/, { timeout: 5000 }).catch(() => {});
 ok("\"Bookmark manager\" opens Chrome's own", q.url().startsWith("chrome://bookmarks"), q.url());
 ok("no page errors", errs.length === 0, errs);
 await ctx.close();
