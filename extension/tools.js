@@ -207,6 +207,18 @@ function graphics() {
   } catch { return ""; } // no WebGL here: the row is left out
 }
 
+async function battery() {
+  if (!navigator.getBattery) return "";
+  const b = await navigator.getBattery().catch(() => null);
+  return b ? `${Math.round(b.level * 100)}%${b.charging ? ", charging" : ""}` : "";
+}
+
+// Chrome's own guess at the connection, which sites can read too.
+function network() {
+  const c = navigator.connection;
+  return c && c.effectiveType ? [c.effectiveType, c.downlink ? `about ${c.downlink} Mbps` : "", Number.isFinite(c.rtt) ? `${c.rtt} ms` : ""].filter(Boolean).join(", ") : "";
+}
+
 async function browser() {
   const ua = navigator.userAgentData;
   const more = ua ? await ua.getHighEntropyValues(["platformVersion", "architecture", "fullVersionList"]).catch(() => null) : null;
@@ -221,6 +233,8 @@ async function browser() {
     ["Graphics", graphics()],
     ["Processor threads", text(navigator.hardwareConcurrency)],
     ["Memory", navigator.deviceMemory ? `${navigator.deviceMemory} GB or more` : ""],
+    ["Battery", await battery()],
+    ["Network, by Chrome's guess", network()],
     ["Do Not Track", navigator.doNotTrack === "1" ? "sent" : "not sent"],
     ["Global Privacy Control", navigator.globalPrivacyControl ? "sent" : "not sent"],
   ].filter(([, v]) => v));
@@ -233,6 +247,7 @@ const CHROME = [
   ["Safe Browsing and secure DNS", "chrome://settings/security"],
   ["Third-party cookies", "chrome://settings/cookies"],
   ["Site permissions", "chrome://settings/content"],
+  ["Location for sites", "chrome://settings/content/location"],
   ["Delete browsing data", "chrome://settings/clearBrowserData"],
   ["Extensions", "chrome://extensions/"],
   ["Sync", "chrome://settings/syncSetup"],
@@ -240,16 +255,34 @@ const CHROME = [
   ["Version and paths", "chrome://version/"],
 ];
 
-const DEEPER = [
-  ["Fingerprint uniqueness", "https://coveryourtracks.eff.org/", "Cover Your Tracks, EFF"],
-  ["Everything a site can read", "https://browserleaks.com/", "BrowserLeaks"],
-  ["DNS leak test", "https://www.dnsleaktest.com/", "dnsleaktest.com"],
-  ["Mullvad connection check", "https://mullvad.net/check", "Mullvad"],
-  ["Full speed test", "https://speed.cloudflare.com/", "Cloudflare"],
-];
+// Where macOS decides whether Chrome may know where the computer is: the switch behind "Use
+// this computer's location". Chrome asks before it hands a link like this to another app.
+const MAC = /Mac/.test(navigator.userAgent);
+const MAC_LOCATION = "x-apple.systempreferences:com.apple.preference.security?Privacy_LocationServices";
+
+// Tests that need a site with servers of its own. Each name's title says what it is for.
+const DEEPER = {
+  "Your fingerprint": [
+    ["Cover Your Tracks", "https://coveryourtracks.eff.org/", "How unique this browser is, from the Electronic Frontier Foundation"],
+    ["Am I Unique", "https://amiunique.org/", "Your fingerprint against everyone else's"],
+    ["CreepJS", "https://abrahamjuliot.github.io/creepjs/", "What a determined script can work out, and whether you are hiding anything"],
+    ["Pixelscan", "https://pixelscan.net/", "Whether the fingerprint holds together, as a site that hunts bots would see it"],
+    ["iphey", "https://iphey.com/", "How trustworthy the browser and its address look to a site"],
+  ],
+  "This device": [
+    ["Device Info", "https://www.deviceinfo.me/", "Everything the device and browser report"],
+    ["BrowserLeaks", "https://browserleaks.com/", "Every leak, one test at a time"],
+  ],
+  "Leaks and speed": [
+    ["IPLeak", "https://ipleak.net/", "Addresses, DNS and torrent leaks on one page"],
+    ["Mullvad check", "https://mullvad.net/en/check", "Whether you are on Mullvad, with its DNS and WebRTC checks"],
+    ["DNS leak test", "https://www.dnsleaktest.com/", "Which resolvers see your lookups"],
+    ["Cloudflare speed test", "https://speed.cloudflare.com/", "A full speed test over several connections"],
+  ],
+};
 
 function linkCards() {
-  const settings = card("Chrome's settings", "The pages in Chrome where these things are changed.");
+  const settings = card("Chrome's settings", "The pages where these things are changed.");
   const list = el("div", "golinks");
   for (const [label, url] of CHROME) {
     const b = el("button", "chip", `${label} ↗`);
@@ -257,13 +290,23 @@ function linkCards() {
     b.dataset.go = url;
     list.append(b);
   }
+  if (MAC) {
+    const a = el("a", "chip", "Location Services on this Mac ↗");
+    a.href = MAC_LOCATION;
+    a.title = "Opens System Settings, where Chrome is allowed to know where this computer is";
+    list.append(a);
+  }
   settings.append(list);
   const deeper = card("Deeper tests", "These need a test site with servers of its own, so they are links.");
-  for (const [label, url, who] of DEEPER) {
-    const a = el("a", "sc-what");
-    a.href = url;
-    a.append(el("span", "t", label), el("span", "h", who));
-    deeper.append(a);
+  for (const [group, links] of Object.entries(DEEPER)) {
+    const row = el("div", "golinks");
+    for (const [label, url, what] of links) {
+      const a = el("a", "chip", label);
+      a.href = url;
+      a.title = what;
+      row.append(a);
+    }
+    deeper.append(el("h3", null, group), row);
   }
   return [settings, deeper];
 }

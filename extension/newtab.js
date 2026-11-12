@@ -120,6 +120,7 @@ async function render() {
 
   $("spaces").replaceChildren(...all.map((s) => tabFor(s.id, s.title, s)), newSpaceTab(!all.length));
   renameNew($("spaces"));
+  fitSpaces();
   $("pages").replaceChildren(tabFor(TODAY, "☀️ Today"), tabFor(KEYS, "⌨️ Shortcuts"), tabFor(TOOLS, "🛠️ Tools"));
   $("today").hidden = current !== TODAY;
   $("shortcuts").hidden = current !== KEYS;
@@ -155,8 +156,13 @@ function renameNew(scope) {
   startRename(h);
 }
 
+// A tab's name with its leading emoji apart, so a narrow bar can keep the emoji and drop the word.
+const EMOJI = /^((?:\p{Extended_Pictographic}|\p{Regional_Indicator})[\uFE0F\u200D\p{Extended_Pictographic}\p{Emoji_Modifier}\p{Regional_Indicator}]*)\s+(.+)$/u;
 function tabFor(id, title, space) {
-  const b = el("button", "tab", title);
+  const b = el("button", "tab");
+  const m = EMOJI.exec(title);
+  if (m) b.append(el("span", "e", m[1]), el("span", "l", ` ${m[2]}`)); else b.textContent = title;
+  b.title = title;
   b.type = "button";
   b.setAttribute("role", "tab");
   b.setAttribute("aria-selected", String(id === current));
@@ -172,6 +178,40 @@ function tabFor(id, title, space) {
   }
   return b;
 }
+
+// The bar is one row whatever is on it. Space tabs narrow to fit, down to their emoji; past that
+// the strip scrolls sideways, its ends fade where more is hidden, and the tab you are in is
+// brought into view. Today, Shortcuts, Tools and the pencil never move.
+const strip = $("spaces");
+function fades() {
+  const more = strip.scrollWidth - strip.clientWidth;
+  strip.classList.toggle("more-left", more > 1 && strip.scrollLeft > 1);
+  strip.classList.toggle("more-right", more > 1 && strip.scrollLeft < more - 1);
+}
+function fitSpaces() {
+  // A tab cut down to little more than its emoji shows the emoji alone, not half a word.
+  const tabs = [...strip.querySelectorAll(".tab[data-id]")];
+  for (const t of tabs) t.classList.remove("tight");
+  const cut = tabs.filter((t) => t.querySelector(".e") && t.clientWidth < 84 && t.scrollWidth > t.clientWidth + 1);
+  for (const t of cut) t.classList.add("tight");
+  const on = strip.querySelector('[aria-selected="true"]');
+  if (on) on.scrollIntoView({ block: "nearest", inline: "nearest" });
+  fades();
+}
+strip.addEventListener("scroll", fades, { passive: true });
+// Its room changes with the window, and when Edit adds to the right of the bar.
+new ResizeObserver(fitSpaces).observe(strip);
+// A mouse wheel turns the strip, and something dragged to either end of it does too, so a link
+// can still be dropped on a space that is out of sight.
+strip.addEventListener("wheel", (e) => {
+  if (strip.scrollWidth <= strip.clientWidth || Math.abs(e.deltaY) < Math.abs(e.deltaX)) return;
+  e.preventDefault();
+  strip.scrollLeft += e.deltaY;
+}, { passive: false });
+strip.addEventListener("dragover", (e) => {
+  const r = strip.getBoundingClientRect();
+  if (e.clientX < r.left + 36) strip.scrollLeft -= 14; else if (e.clientX > r.right - 36) strip.scrollLeft += 14;
+});
 
 // In Edit, a "+" after the spaces makes a new one: a folder on the bookmarks bar. With no space
 // yet it is the way in, so it shows without Edit, says what it is, and leaves Edit on.
@@ -557,6 +597,8 @@ $("edit").onclick = () => {
   document.body.classList.toggle("editing", on);
   $("edit").setAttribute("aria-pressed", String(on));
   $("edit").title = on ? "Done editing" : "Edit: rename, add and remove";
+  // Edit adds a + to the strip of spaces, so it is fitted again.
+  fitSpaces();
 };
 $("glance").onclick = () => show(TODAY);
 

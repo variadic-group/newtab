@@ -258,7 +258,7 @@ net.holdPage = false; await q.close(); await bare.close();
 // ---------- tools ----------
 await p.bringToFront(); await p.click('#pages .tab:has-text("Tools")'); await p.waitForSelector(".tool");
 ok("Tools has six cards, and nothing has reached the network before a press", (await p.$$eval(".tool h2", (x) => x.map((e) => e.textContent))).join() === "Connection,WebRTC,Speed,This browser,Chrome's settings,Deeper tests" && net.tools.length === 0, net.tools);
-ok("This browser lists what any site can read", /Browser.*(Chrom|HeadlessChrome).*Time zone.*Languages.*Screen/s.test(await text(p, '.tool:has(h2:text-is("This browser")) .facts')), await text(p, '.tool:has(h2:text-is("This browser")) .facts'));
+ok("This browser lists what any site can read", /Browser.*(Chrom|HeadlessChrome).*Time zone.*Languages.*Screen.*Network, by Chrome's guess/s.test(await text(p, '.tool:has(h2:text-is("This browser")) .facts')), await text(p, '.tool:has(h2:text-is("This browser")) .facts'));
 const tool = (name) => `.tool:has(h2:text-is("${name}"))`;
 const press = async (name) => { await p.click(`${tool(name)} .btn`); await p.waitForSelector(`${tool(name)} .btn:has-text("again"):not([disabled])`, { timeout: 20000 }); return text(p, `${tool(name)} .out`); };
 let shown = await press("Connection");
@@ -269,7 +269,7 @@ shown = await press("WebRTC");
 ok("WebRTC says what a site can see through it", /^(No public address came back through WebRTC|WebRTC shows sites)/.test(shown), shown);
 shown = await press("Speed");
 ok("Speed reads download, upload and delay", /Download[\d.]+ MbpsUpload[\d.]+ MbpsDelay\d+ ms/.test(shown) && net.tools.includes("__up") && net.tools.filter((x) => x === "__down").length >= 8, shown);
-ok("Chrome's settings and the deeper tests are one click away", (await p.$$eval(`${tool("Chrome's settings")} [data-go]`, (x) => x.map((e) => e.dataset.go))).includes("chrome://settings/security") && (await p.$$eval(`${tool("Deeper tests")} a`, (x) => x.map((e) => new URL(e.href).hostname))).join() === "coveryourtracks.eff.org,browserleaks.com,www.dnsleaktest.com,mullvad.net,speed.cloudflare.com");
+ok("Chrome's settings and the deeper tests are one click away", (await p.$$eval(`${tool("Chrome's settings")} [data-go]`, (x) => x.map((e) => e.dataset.go))).includes("chrome://settings/security") && (await p.$$eval(`${tool("Chrome's settings")} [data-go]`, (x) => x.map((e) => e.dataset.go))).includes("chrome://settings/content/location") && (await p.$$eval(`${tool("Deeper tests")} h3`, (x) => x.map((e) => e.textContent))).join() === "Your fingerprint,This device,Leaks and speed" && (await p.$$eval(`${tool("Deeper tests")} a`, (x) => x.map((e) => new URL(e.href).hostname))).join() === "coveryourtracks.eff.org,amiunique.org,abrahamjuliot.github.io,pixelscan.net,iphey.com,www.deviceinfo.me,browserleaks.com,ipleak.net,mullvad.net,www.dnsleaktest.com,speed.cloudflare.com" && (await p.$$eval(`${tool("Deeper tests")} a`, (x) => x.every((e) => e.title.length > 10))) && !(await p.$(`${tool("Chrome's settings")} a`)));
 await p.click('#pages .tab:has-text("Today")'); await p.click('#pages .tab:has-text("Tools")');
 ok("a result stays while the tab is open", /Download/.test(await text(p, `${tool("Speed")} .out`)));
 
@@ -346,7 +346,8 @@ await g.ctx.close();
 // ---------- nothing bookmarked, and a computer that can't say where it is ----------
 // In this browser a location request that has failed once takes ten seconds to fail again, so
 // each wait on one allows thirty.
-const n = await launch({ locate: false, timezoneId: "America/Los_Angeles" });
+// It says it is a Mac, where the switch for Chrome's location is in System Settings.
+const n = await launch({ locate: false, timezoneId: "America/Los_Angeles", userAgent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36" });
 const local = (key) => n.sw.evaluate(async (k) => (await chrome.storage.local.get(k))[k], key);
 // Waits for the saved place to pass a test. (waitForFunction can't: it takes a promise for a yes.)
 const placed = async (pass, ms = 30000) => { for (const end = Date.now() + ms; Date.now() < end; await new Promise((r) => setTimeout(r, 250))) if (pass((await local("place")) || {})) return true; return false; };
@@ -370,7 +371,7 @@ n.net.estimateAs = { latitude: 59.3293, longitude: 18.0686, city: "Stockholm", p
 await n.sw.evaluate(() => chrome.storage.local.remove(["place", "placeTried", "wx"]));
 const fv = await n.open(); await fv.waitForSelector(".card");
 await fv.waitForFunction(() => /type a place/.test(document.querySelector("#askForm .note").textContent), null, { timeout: 30000 }).catch(() => {});
-ok("a network in another time zone (a VPN) is not taken for where you are: the page says so and asks", !(await local("place")) && !(await fv.$("#ask[hidden]")) && n.net.points.length === 1 && / Its network looks like it is in Stockholm, Sweden, which isn't this computer's time zone \(a VPN does that\), so type a place\.$/.test(await text(fv, "#askForm .note")), await text(fv, "#askForm .note"));
+ok("a network in another time zone (a VPN) is not taken for where you are: the page says so and asks", !(await local("place")) && !(await fv.$("#ask[hidden]")) && n.net.points.length === 1 && / Its network looks like it is in Stockholm, Sweden, which isn't this computer's time zone \(a VPN does that\), so type a place\. Open Location Services$/.test(await text(fv, "#askForm .note")) && (await fv.getAttribute("#askForm .note a", "href")) === "x-apple.systempreferences:com.apple.preference.security?Privacy_LocationServices", await text(fv, "#askForm .note"));
 await fv.fill("#askForm input", "94103"); await fv.press("#askForm input", "Enter"); await fv.waitForSelector("#askForm .place-hits button"); await fv.click("#askForm .place-hits button");
 await fv.waitForFunction(() => /^\d+°$/.test(document.getElementById("glTemp").textContent), null, { timeout: 8000 }).catch(() => {});
 n.net.estimateAs = null;
@@ -415,7 +416,7 @@ n.net.estimateDown = true;
 await n.sw.evaluate(() => chrome.storage.local.remove(["place", "placeTried", "wx"]));
 const f1 = await n.open(); await f1.waitForSelector(".card");
 await f1.waitForFunction(() => /type a place/.test(document.querySelector("#askForm .note").textContent), null, { timeout: 30000 }).catch(() => {});
-ok("with no location and no estimate it says why, asks, and looks nothing up", !(await f1.$("#ask[hidden]")) && !!(await f1.$("#glSun[hidden]")) && /(couldn't work out|isn't allowed|took too long).* Its network couldn't be placed either, so type a place\.$/.test(await text(f1, "#askForm .note")) && /\d/.test(await text(f1, "#glTime")), await text(f1, "#askForm .note"));
+ok("with no location and no estimate it says why, asks, and looks nothing up", !(await f1.$("#ask[hidden]")) && !!(await f1.$("#glSun[hidden]")) && /(couldn't work out|isn't allowed|took too long).* Its network couldn't be placed either, so type a place\. Open Location Services$/.test(await text(f1, "#askForm .note")) && /\d/.test(await text(f1, "#glTime")), await text(f1, "#askForm .note"));
 await f1.close();
 const f2 = await n.open(); await f2.waitForSelector(".card"); await f2.waitForTimeout(1200);
 ok("it asks the computer once, not on every new tab", (await text(f2, "#askForm .note")) === "" && !(await f2.$("#ask[hidden]")));
@@ -439,6 +440,26 @@ await aged({ lat: 37.77, lon: -122.42, name: "San Francisco, California", source
 f3 = await n.open(); await f3.waitForSelector(".card");
 await placed((pl) => pl.source === "device");
 ok("an estimate becomes the exact place by itself once the computer will say where it is", (await local("place")).source === "device" && (await local("place")).lat === 40.71 && !(await local("place")).name && n.net.estimates === asked0, await local("place"));
+await f3.close();
+
+// ---------- more spaces than the bar has room for ----------
+await n.sw.evaluate(async () => { for (const t of ["🧪 Lab", "🎓 Courses", "🛒 Shopping", "✈️ Travel", "📚 Reading", "🎵 Music", "Plain name", "🧾 Taxes", "🏋️ Training", "🧑‍🍳 Recipes", "🗞️ News", "🏛️ Governance", "🧰 Platform"]) await chrome.bookmarks.create({ parentId: "1", title: t }); });
+const wide = await n.open(); await wide.waitForSelector(".card"); await wide.waitForTimeout(500);
+const topBar = (q) => q.evaluate(() => {
+  const s = document.getElementById("spaces"), box = (e) => e.getBoundingClientRect();
+  const on = s.querySelector('[aria-selected="true"]'), plus = s.querySelector(".add-space");
+  return { rows: Math.round(box(document.querySelector(".bar")).height), scrolls: s.scrollWidth > s.clientWidth + 1, faded: s.className.replace("tabs", "").trim(), tight: s.querySelectorAll(".tab.tight").length, pencilIn: box(document.getElementById("edit")).right <= innerWidth, pagesIn: box(document.getElementById("pages")).left >= box(s).right - 1, onIn: !!on && box(on).left >= box(s).left - 1 && box(on).right <= box(s).right + 1, on: on && on.textContent, clear: !plus || !on || getComputedStyle(plus).display === "none" || box(on).right <= box(plus).left + 1, plusIn: !!plus && box(plus).right <= box(s).right + 1 && box(plus).left >= box(s).left };
+});
+let b1 = await topBar(wide);
+ok("fourteen spaces stay on one row: the ones that don't fit narrow to their emoji, and Today, Shortcuts, Tools and the pencil keep their place", b1.rows < 64 && b1.tight >= 8 && b1.pencilIn && b1.pagesIn && b1.onIn && (await wide.getAttribute('#spaces .tab:has-text("Travel")', "title")) === "✈️ Travel", b1);
+await wide.setViewportSize({ width: 700, height: 800 }); await wide.waitForTimeout(300);
+await wide.click('#spaces .tab:has-text("Platform")', { force: true }).catch(() => {}); await wide.waitForTimeout(500);
+b1 = await topBar(wide);
+ok("in a narrow window the strip scrolls instead, fades where more is hidden, and brings the space you are in into view", b1.rows < 64 && b1.scrolls && b1.faded.includes("more-left") && b1.on === "🧰 Platform" && b1.onIn && b1.pencilIn && b1.pagesIn && (await wide.$eval("#pages .tab .l", (e) => getComputedStyle(e).display)) === "none", b1);
+await wide.click("#edit"); await wide.waitForTimeout(400);
+b1 = await topBar(wide);
+ok("in Edit the + stays in reach at the end of the strip without covering the tab you are in", b1.plusIn && b1.clear && b1.onIn, b1);
+await wide.close();
 ok("no page errors without a location", n.errs.length === 0, n.errs);
 await n.ctx.close();
 

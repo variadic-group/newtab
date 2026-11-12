@@ -73,8 +73,9 @@ This page adds a face to that store and keeps nothing of its own:
   the network until you press it: the address the internet sees you at, where that is and
   whether a VPN seems to be in the way; whether WebRTC shows sites an address your VPN was
   meant to hide; a quick speed reading; what any site can read about this browser; and one
-  click into the Chrome settings pages where these things are changed. Tests that need servers
-  of their own (how unique your fingerprint is, where your DNS lookups go) are links.
+  click into the Chrome settings pages where these things are changed (and, on a Mac, the
+  Location Services switch). Tests that need servers of their own (how unique your fingerprint
+  is, where your DNS lookups go) are links to the sites that do them well.
 
 | Day | Dusk | Night |
 |---|---|---|
@@ -172,6 +173,9 @@ Tools tab ask Cloudflare, and only when you press them. The full account is in
   Weather Service. Everywhere else the sun, moon and twilights still work.
 - **A short link with spaces** (`claude/what should I ask`) reaches Chrome as a search, which the
   extension redirects. With hyphens, or with `claude` then Tab, nothing is searched at all.
+- **Many spaces** stay on one row. Tabs that don't fit narrow to their emoji, which is one more
+  reason to start a folder's name with one; past that the strip scrolls sideways and fades
+  where more is hidden. Today, Shortcuts, Tools and the pencil keep their place.
 - **When you travel,** the clock is the computer's, so it follows by itself, and every time on
   the page is on that clock. A place taken from the computer or its network follows you: it is
   looked for again every six hours, and at once when the computer's time zone changes. A place
@@ -210,7 +214,7 @@ No build step. The extension is the `extension` folder as it stands.
 ```
 npm install
 npx playwright install chromium
-npm test            # 13 astronomy checks in Node, then 152 checks in a real Chromium
+npm test            # 13 astronomy checks in Node, then 155 checks in a real Chromium
 npm run shots       # the screenshots in store/screenshots
 npm run zip         # newtab.zip, ready to upload or release
 ```

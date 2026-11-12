@@ -4,7 +4,7 @@ The reasoning behind the product: who it serves, what they are trying to do at t
 tab opens, and how each of those moments goes. Read it before adding a feature. The README says
 what the product does; this says why, and what it refuses to become.
 
-Last walked through end to end at 3.4.0 (2026-11-11).
+Last walked through end to end at 3.4.1 (2026-11-11).
 
 ## Who it is for
 

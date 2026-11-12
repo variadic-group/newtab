@@ -4,6 +4,11 @@
 // kilometre.
 import { el } from "./dom.js";
 
+// On a Mac the switch that lets Chrome know where the computer is lives in System Settings.
+// Chrome asks before it hands a link like this to another app.
+const MAC = /Mac/.test(navigator.userAgent);
+const MAC_LOCATION = "x-apple.systempreferences:com.apple.preference.security?Privacy_LocationServices";
+
 const RELOCATE_MS = 6 * 3600e3;
 const RETRY_MS = 15 * 60e3;
 const round = (n) => +(+n).toFixed(2);
@@ -182,7 +187,15 @@ export function placeForm(onDone) {
   const msg = el("p", "note");
   msg.setAttribute("role", "status");
   const hits = el("ul", "place-hits");
-  const say = (text) => { msg.textContent = text; msg.hidden = !text; };
+  const say = (text, toSwitch) => {
+    msg.textContent = text;
+    msg.hidden = !text;
+    if (toSwitch && MAC) {
+      const a = el("a", null, "Open Location Services");
+      a.href = MAC_LOCATION;
+      msg.append(" ", a);
+    }
+  };
   say("");
   const choose = async (hit) => {
     hits.replaceChildren();
@@ -196,7 +209,7 @@ export function placeForm(onDone) {
   box.locate = async (byHand) => {
     hits.replaceChildren();
     say("Finding this computer…");
-    try { onDone(await useDevice(), !!byHand); say(""); } catch (err) { say(err.message); if (byHand) input.focus(); }
+    try { onDone(await useDevice(), !!byHand); say(""); } catch (err) { say(err.message, true); if (byHand) input.focus(); }
   };
   device.onclick = () => box.locate(true);
   form.onsubmit = async (e) => {
