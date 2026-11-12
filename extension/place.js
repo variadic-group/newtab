@@ -97,6 +97,13 @@ async function thisComputer() {
   }
 }
 
+// Could this place be where the computer is? One the computer gave is. One that was typed is
+// taken for it unless its sun time is hours off this computer's clock: Paris, on a clock set to
+// California, is somewhere that was looked up.
+// The clock's standard time is used, so summer time doesn't move the answer.
+const standardOffset = () => { const y = new Date().getFullYear(); return Math.max(new Date(y, 0, 1).getTimezoneOffset(), new Date(y, 6, 1).getTimezoneOffset()); };
+export const couldBeHere = (place) => place.source === "device" || Math.abs(place.lon / 15 + standardOffset() / 60) <= 3.5;
+
 export async function useDevice() {
   return save({ ...(await thisComputer()), at: Date.now() });
 }

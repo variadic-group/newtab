@@ -4,7 +4,7 @@ The reasoning behind the product: who it serves, what they are trying to do at t
 tab opens, and how each of those moments goes. Read it before adding a feature. The README says
 what the product does; this says why, and what it refuses to become.
 
-Last walked through end to end at 4.1.0 (2026-11-12).
+Last walked through end to end at 4.2.0 (2026-11-12).
 
 ## Who it is for
 
@@ -161,16 +161,23 @@ work. *Held to:* one click never removes more than one link or one empty folder.
 **Glance.** The strip across every space is one line: the time, the sun's arc with sunrise,
 sunset and the moon's phase, the temperature, a radar still. Today has the sky and the radar
 beside it at the top, because where the person is, now, is most of what they came for; then
-the forecast, with a map of where it is day under it. Under the sky the next 24 hours run as
-a strip that can be dragged to any hour, and the clock, the sun, that hour's forecast and the
-night on the map all move with it. The page is for one place, the person's own. Cities to add
-and pick between were tried at 3.8.0 and again at 4.0.0 and cut both times: a second place
-put a second clock in the strip, made it unclear which place a number was for, and nobody
-could say when another city's radar would matter. The page turns dark at dusk where the
-person is. On a trip, a place taken from the computer follows it (at once when the time zone
-changes); a typed place is never moved, only asked about, and typing one says what it
-replaced and offers the way back. *Held to:* drawn at once from what is saved; the network is
-never waited on.
+now, the next 24 hours and the week. That is how it stood at the Tools pass, and it is the
+layout that was put back at 4.2.0. What came between and was cut: a strip to drag the day
+along and a map of where it is day (3.8.0, 4.1.0), and cities to add and pick between (3.8.0,
+4.0.0). Each was a second thing to read on a page whose job is one glance, and the cities made
+it unclear which place a number was for. The page is for one place, the person's own, and it
+turns dark at dusk there. On a trip, a place taken from the computer follows it (at once when
+the time zone changes); a typed place is never moved, only asked about, and typing one says
+what it replaced and offers the way back. *Held to:* drawn at once from what is saved; the
+network is never waited on; and when there is no weather the strip says why, in the place the
+weather would be, so a missing forecast never looks like a broken page.
+
+**When the place is wrong.** If the page is set to somewhere this computer's clock isn't, the
+sky is that place's, the page may be light at night, and there is no forecast or radar. To the
+person it looks as if everything broke at once. So a notice across the top of every page says
+what the page is set to and why that matters, with "Use this computer's location" and "Keep
+it". *Why it exists:* this is exactly what happened in use, from one city typed to see what
+it would do.
 
 **Jot.** A synced scratch box. Expanded, it can be a few pages, copied or downloaded; small,
 it is only a box. It is not a notes app: no folders, no formatting; `keep/` is one keystroke
@@ -198,7 +205,8 @@ person is measured only from a place that can be where their computer is, so a c
 somewhere else is never read as a VPN. Every finding is written for
 someone who has never heard the word: what was looked at, what was found, what it means, and
 what to do, which is often nothing and says so. A sign (red, amber, green) is only given to
-what matters and can be acted on. A list of links to other people's test pages is not a feature. The one thing
+what matters and can be acted on. Chrome's privacy switches are counted out of eight, the
+ones with a private way to be set; only saving passwords is left as the person's call. A list of links to other people's test pages is not a feature. The one thing
 pointed elsewhere is how rare a fingerprint is, which needs a sample of other browsers.
 
 **What only some want.** Unread mail, recent files, closed tabs and other devices, most

@@ -73,10 +73,8 @@ PICK UP WHERE YOU LEFT OFF
 LOOK UP
 • The sun's real path across the day, the three twilights, and the moon in its true phase
 • Sunrise, sunset and the radar for where you are, at the top
-• Drag along the next 24 hours and the clock, the sun and that hour's forecast move with you
-• A map of where it is day right now, with you on it, that follows the drag
 • The page turns dark when night falls where you are; or hold it light or dark, and pick an accent
-• Forecast, seven days and radar from the National Weather Service (United States)
+• Forecast, hourly chart, seven days and radar from the National Weather Service (United States)
 
 CHECK, WHEN YOU WANT TO
 • A Tools tab that shows how you look from outside: where your traffic comes out and whether your clock agrees, a WebRTC leak check, whose servers answer your DNS lookups, a speed reading, the fingerprint a tracking script would give this browser, and how Chrome's own privacy switches are set
@@ -92,7 +90,7 @@ PRIVATE BY CONSTRUCTION
 Free and open source.
 ```
 
-**Screenshots** (1280×800, sample data): `2-space.png`, `13-bare.png`, `4-today-day.png`,
+**Screenshots** (1280×800, sample data): `2-space.png`, `13-bare.png`, `7-today-night.png`,
 `10-shortcuts.png`, `11-tools.png`.
 
 ## Privacy tab

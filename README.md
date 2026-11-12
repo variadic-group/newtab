@@ -79,16 +79,11 @@ This page adds a face to that store and keeps nothing of its own:
 - **The sky, drawn to scale.** The sun's real path for today with solar noon in the middle, the
   civil, nautical and astronomical twilights under the horizon, and the moon where it stands, lit
   on the side that faces the sun.
-- **Now, at the top:** the time, the sun's path with sunrise and sunset, and the radar beside
-  it. Under the sky runs the next 24 hours: night shaded, the temperature along it, rain under
-  it. Press or drag anywhere on it and the clock, the sun and that hour's forecast move to
-  that moment.
-- **Day and night.** Under the weather, a map with daylight on the land the sun is over and
-  you on it. It follows the drag too, so the night sweeps across as the hours go by.
 - **The page goes dark when night falls** where you are, and light again at dawn. Settings can
   hold it light or dark, and has four accent colours.
-- **Forecast and radar** from the National Weather Service: now, seven days, and the radar
-  loop. A strip across the top of every space carries the short version on one line: the
+- **Forecast and radar** from the National Weather Service: now, the next 24 hours, seven
+  days, and the radar loop beside the sky. A strip across the top of every space carries the
+  short version on one line: the
   time, the sun's arc with sunrise, sunset and the moon's phase, the temperature and a radar
   still. Its time and date open your calendar.
 
@@ -174,8 +169,7 @@ offers the ways in. Four things make it yours:
    under Up next. Tick it off when you have been back.
 
 Then, when you want them: the **search bar** at the top (or `/`) finds any link in any space,
-and takes short links too; **Today** has the sky, the radar, the forecast and a map of where
-it is day; **Tools** shows how your connection looks from outside and what to do about it;
+and takes short links too; **Today** has the sky, the radar, the next 24 hours and the week; **Tools** shows how your connection looks from outside and what to do about it;
 the **pencil** rearranges your links; **Settings and extras** (the gear, or the link at the
 foot of the page) has light and dark, an accent, tiles or a list, and four extras that are
 off until you switch them on.
@@ -250,8 +244,11 @@ WebRTC route, when you choose to.
   change it or keep it. A trip inside one time zone with a typed place is not noticed: click
   the place name on Today to change it.
 - **A place you type replaces the one before.** The page says so and offers "Go back", since a
-  city typed out of curiosity would otherwise become where you are. The page is for one place:
-  yours.
+  city typed out of curiosity would otherwise become where you are. If the page is set to
+  somewhere this computer's clock isn't (Paris, on a clock in California), the sky is that
+  place's, there is no forecast or radar, and it can look broken; so a notice across the top
+  of every page says what has happened, with "Use this computer's location" beside it. The
+  page is for one place: yours.
 - **On a VPN** your network is somewhere you are not. When its city is in a different time zone
   from this computer's clock, the page doesn't use it and asks instead. The computer's own
   location (the button) is not affected by a VPN, and a place you type always wins and never

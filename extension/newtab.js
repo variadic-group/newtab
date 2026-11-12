@@ -2,8 +2,8 @@ import { $, el } from "./dom.js";
 import { loadIcons, siteIcon, tabIcon, host } from "./icons.js";
 import { BUILTIN, claims, barChildren, bookmarkBars, leaves, aliasTable, aliasFor, nextFolder, addToNext } from "./shared.js";
 import { renderShortcuts, aliasPill } from "./shortcuts.js";
-import { renderToday, tickToday, tickTheme, renderGlance, warmWeather, scrubTo, stripMinutes } from "./today.js";
-import { placeForm, getPlace, leftBehind, keepPlace } from "./place.js";
+import { renderToday, tickToday, tickTheme, renderGlance, warmWeather } from "./today.js";
+import { placeForm, getPlace, leftBehind, keepPlace, useDevice, couldBeHere } from "./place.js";
 import { renderExtras, renderMail, renderFiles, renderClosed, renderOften } from "./extras.js";
 import { renderTools } from "./tools.js";
 import { loadNotes, wireNotes, bigNote, noteIsBig } from "./notes.js";
@@ -154,7 +154,6 @@ function show(id) {
   if (isPage(id) && editing()) $("edit").click();
   clearFind();
   current = id;
-  if (id !== TODAY) scrubTo(0);
   // A new tab reopens on the last space, never on Today or Shortcuts.
   if (!isPage(id)) chrome.storage.local.set({ space: id });
   scrollTo(0, 0);
@@ -630,10 +629,26 @@ function placed(place, byHand) {
 let undoing = false;
 function replaced({ oldValue: was, newValue: now }) {
   if (undoing) { undoing = false; return; }
-  if (!was || !now || now.source !== "typed" || (was.lat === now.lat && was.lon === now.lon)) return;
+  // One that can't be where the computer is gets the notice across the top instead.
+  if (!was || !now || now.source !== "typed" || !couldBeHere(now) || (was.lat === now.lat && was.lon === now.lon)) return;
   const before = was.name || (was.source === "typed" ? "the place before" : "this computer's location");
   toast(`The page is now set to ${now.name}, in place of ${before}.`, () => { undoing = true; chrome.storage.local.set({ place: was }); }, { label: "Go back", ms: 20000 });
 }
+// The page is for where you are. If it is set to somewhere this computer plainly isn't, the
+// sky is that place's and there is no forecast or radar, which looks like the page has broken.
+// So it says what has happened, across the top of every page, with the one press that mends it.
+async function placeOff() {
+  const place = await getPlace();
+  const off = !!place && !place.kept && !couldBeHere(place);
+  $("placeOff").hidden = !off;
+  if (off) $("placeOffSay").textContent = `This page is set to ${place.name || "a place"}, which isn't where this computer's clock is. The sky is drawn for there, and the forecast and radar only cover the United States.`;
+}
+$("placeOffFix").onclick = async () => {
+  $("placeOffFix").disabled = true;
+  try { placed(await useDevice(), true); } catch (err) { console.warn("location:", err.message); toast(err.message, null, { ms: 14000 }); }
+  $("placeOffFix").disabled = false;
+};
+$("placeOffKeep").onclick = async () => chrome.storage.local.set({ place: { ...(await getPlace()), kept: true } });
 const asking = placeForm(placed);
 $("askForm").append(asking);
 $("todayAskForm").append(placeForm(placed));
@@ -740,7 +755,8 @@ for (const ev of ["onCreated", "onRemoved", "onChanged", "onMoved", "onChildrenR
 const redrawSky = () => { if (current === TODAY) renderToday(); else if (isPage(current)) tickTheme(); else renderGlance(); };
 chrome.storage.onChanged.addListener((changes, area) => {
   if (area === "sync" && (changes.aliases || changes.links)) rerender();
-  if (area === "local" && changes.place) { warmWeather(); replaced(changes.place); }
+  if (area === "local" && changes.place) { warmWeather(); replaced(changes.place); placeOff(); }
+  if (area === "local" && changes.wxWhy) redrawSky();
   if (area === "local" && (changes.wx || changes.place)) redrawSky();
 });
 matchMedia("(prefers-color-scheme: dark)").addEventListener("change", redrawSky);
@@ -759,21 +775,9 @@ for (const ev of ["onCreated", "onRemoved", "onUpdated", "onMoved", "onAttached"
 
 setInterval(() => { if (current === TODAY) tickToday(); else if (isPage(current)) tickTheme(); else renderGlance(); }, 10000);
 
-// Dragging the day on Today. The strip takes the pointer; the range under it is the same value
-// for the keyboard and for screen readers. Letting go within ten minutes of now is now.
-const scrub = $("scrub"), dayStrip = $("strip");
-const dragTo = (minutes) => scrubTo((minutes < 10 ? 0 : minutes) * 60e3);
-scrub.oninput = () => dragTo(+scrub.value);
-dayStrip.addEventListener("pointerdown", (e) => {
-  if (e.button || e.target.closest("button")) return;
-  dayStrip.setPointerCapture(e.pointerId);
-  dragTo(stripMinutes(e.clientX));
-  scrub.focus({ preventScroll: true });
-});
-dayStrip.addEventListener("pointermove", (e) => { if (dayStrip.hasPointerCapture(e.pointerId)) dragTo(stripMinutes(e.clientX)); });
-$("scrubNow").onclick = () => scrubTo(0);
 wireFind();
 await loadIcons();
+placeOff();
 wireNotes(toast);
 await loadNotes();
 await render();

@@ -8,7 +8,7 @@
 // chrome.privacy, a permission asked for when its card is first opened.
 // https://ipleak.net/ (API section, checked 2026-11-12)
 import { el } from "./dom.js";
-import { getPlace, offsetOf, useDevice } from "./place.js";
+import { getPlace, offsetOf, useDevice, couldBeHere } from "./place.js";
 import { CELLS, MAP, dots, spot, svg } from "./world.js";
 
 const CF = "https://speed.cloudflare.com";
@@ -351,10 +351,7 @@ function heroPanel() {
 
   // The sentence and the map as soon as the address is known; the four answers when DNS is in.
   let away = false;
-  // The distance is measured from where you are. A place you typed is taken for that only if
-  // it could be: one whose sun time is hours off this computer's clock (Paris, on a clock set
-  // to California) is somewhere you looked up, not where you are, and nothing is measured from it.
-  const couldBeHere = (place) => place.source === "device" || Math.abs(place.lon / 15 + new Date().getTimezoneOffset() / 60) <= 3.5;
+  // The distance is measured from where you are, so only from a place that could be that.
   const landed = (at, set) => {
     const place = set && couldBeHere(set) ? set : null;
     const { km, near } = map.draw({ place, at });
@@ -673,9 +670,9 @@ const SWITCHES = [
   ["websites", "topicsEnabled", "Ad topics", "on", "off", false, "chrome://settings/adPrivacy", "Chrome works out your interests from your history and tells sites."],
   ["websites", "fledgeEnabled", "Site-suggested ads", "on", "off", false, "chrome://settings/adPrivacy", "Sites you visit can pick ads to show you elsewhere."],
   ["websites", "adMeasurementEnabled", "Ad measurement", "on", "off", false, "chrome://settings/adPrivacy", "Sites and advertisers measure how their ads did, using your browser."],
-  ["network", "networkPredictionEnabled", "Preload pages", "on", "off", null, "chrome://settings/performance", "Faster pages, at the cost that sites Chrome guesses you will visit see you arrive before you click."],
-  ["services", "searchSuggestEnabled", "Search suggestions", "on", "off", null, "chrome://settings/syncSetup", "Suggestions as you type, at the cost that what you type goes to your search engine before you press Enter."],
-  ["websites", "doNotTrackEnabled", "Do Not Track request", "sent", "not sent", null, "chrome://settings/cookies", "Asks sites not to track you. Most ignore it."],
+  ["network", "networkPredictionEnabled", "Preload pages", "on", "off", false, "chrome://settings/performance", "Faster pages, at the cost that sites Chrome guesses you will visit see you arrive before you click."],
+  ["services", "searchSuggestEnabled", "Search suggestions", "on", "off", false, "chrome://settings/syncSetup", "Suggestions as you type, at the cost that what you type goes to your search engine before you press Enter."],
+  ["websites", "doNotTrackEnabled", "Do Not Track request", "sent", "not sent", true, "chrome://settings/cookies", "Asks sites not to track you. Most ignore it."],
   ["services", "passwordSavingEnabled", "Offer to save passwords", "on", "off", null, "chrome://password-manager/settings", "Off is right if a password manager does this for you."],
 ];
 // WebRTC's route has no switch in Chrome's settings; an extension is the only way to set it.

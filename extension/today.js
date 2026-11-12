@@ -4,7 +4,6 @@
 import { $, el } from "./dom.js";
 import { getPlace, placeKey, placeMoved } from "./place.js";
 import { sunPosition, sunTimes, moonPosition, moonPhase, moonTimes, lightPhase, nextLight, nightSpan, skyColors } from "./sky.js";
-import { CELLS, dots, spot, svg as mapSvg } from "./world.js";
 
 const FRESH_MS = 20 * 60e3;
 const DAY_MS = 864e5;
@@ -94,7 +93,8 @@ async function cachedWeather(place) {
 export async function warmWeather() {
   const place = await getPlace();
   if (!place) return;
-  const quiet = (err) => console.warn("weather:", err.message);
+  // A failure here is kept with the place it was for, so the strip can say why it has no weather.
+  const quiet = (err) => { console.warn("weather:", err.message); chrome.storage.local.set({ wxWhy: { key: placeKey(place), abroad: err.status === 404, said: err.message } }); };
   const wx = await cachedWeather(place);
   if (!wx || Date.now() - wx.at > FRESH_MS) refreshWeather(place).catch(quiet);
   const moved = await placeMoved(place);
@@ -127,12 +127,8 @@ function buildSky() {
   for (let i = 1; i <= 46; i++) $("stars").append(svg("circle", { cx: ((i * 97.3) % W).toFixed(1), cy: (6 + ((i * 53.7) % 168)).toFixed(1), r: (0.5 + (i % 3) * 0.35).toFixed(2) }));
 }
 
-// The moment Today is drawn for: now, or as far ahead as the day has been dragged.
-let shift = 0;
-export const moment = () => new Date(Date.now() + shift);
-
 function drawClock() {
-  const now = moment();
+  const now = new Date();
   const parts = new Intl.DateTimeFormat(undefined, { hour: "numeric", minute: "2-digit" }).formatToParts(now);
   const digits = parts.filter((p) => p.type !== "dayPeriod").map((p) => p.value).join("").trim();
   const half = parts.find((p) => p.type === "dayPeriod");
@@ -144,7 +140,7 @@ function drawClock() {
 
 function drawSky(place) {
   if (!$("bands").childElementCount) buildSky();
-  const now = moment(), { lat, lon } = place;
+  const now = new Date(), { lat, lon } = place;
   const t = sunTimes(now, lat, lon), sun = sunPosition(now, lat, lon);
   const c = skyColors(sun.altitude, document.documentElement.dataset.theme === "dark");
   const card = $("sky");
@@ -245,77 +241,37 @@ function byDay(daily) {
   return [...days.values()].slice(0, 7);
 }
 
-// ---------- the next 24 hours ----------
-// One strip under the sky is both the hourly forecast and the handle on the day: night is shaded
-// where the sun is down, the temperature runs along it with rain under it where there is a
-// forecast, and dragging the knob moves the whole page to that moment. It is as wide as the sky
-// chart, so an hour here sits under nothing in particular: the sky is laid out by the sun's turn.
-const STRIP = { w: 640, pad: 28, top: 26, line: 58, floor: 72 };
-const stripX = (ms) => STRIP.pad + (Math.max(0, Math.min(DAY_MS, ms)) / DAY_MS) * (STRIP.w - 2 * STRIP.pad);
-// Where on the strip a pointer is, as minutes from now.
-export const stripMinutes = (clientX) => {
-  const r = $("stripArt").getBoundingClientRect();
-  const f = (((clientX - r.left) / r.width) * STRIP.w - STRIP.pad) / (STRIP.w - 2 * STRIP.pad);
-  return Math.max(0, Math.min(1440, Math.round((f * 1440) / 5) * 5));
-};
-
-function drawStrip(place, wx) {
-  const start = Date.now(), parts = [];
-  let from = null;
-  for (let m = 0; m <= 1440; m += 10) {
-    const down = sunPosition(new Date(start + m * 60e3), place.lat, place.lon).altitude < -0.833;
-    if (down && from === null) from = m;
-    if (from !== null && (!down || m === 1440)) {
-      const x = stripX(from * 60e3);
-      parts.push(svg("rect", { class: "st-night", x: x.toFixed(1), y: 0, width: (stripX(m * 60e3) - x).toFixed(1), height: STRIP.floor }));
-      from = null;
+function hourChart(hours) {
+  const width = 600, left = 24, right = 24, top = 30, bottom = 92, floor = 104;
+  const temps = hours.map((h) => h.temp);
+  const min = Math.min(...temps), max = Math.max(...temps);
+  const x = (i) => left + (i * (width - left - right)) / (hours.length - 1);
+  const y = (t) => (max === min ? (top + bottom) / 2 : bottom - ((t - min) / (max - min)) * (bottom - top));
+  const pts = hours.map((h, i) => [x(i), y(h.temp)]);
+  let line = `M${pts[0][0].toFixed(1)} ${pts[0][1].toFixed(1)}`;
+  for (let i = 0; i < pts.length - 1; i++) {
+    const p0 = pts[Math.max(0, i - 1)], p1 = pts[i], p2 = pts[i + 1], p3 = pts[Math.min(pts.length - 1, i + 2)];
+    const c1 = [p1[0] + (p2[0] - p0[0]) / 6, p1[1] + (p2[1] - p0[1]) / 6];
+    const c2 = [p2[0] - (p3[0] - p1[0]) / 6, p2[1] - (p3[1] - p1[1]) / 6];
+    line += ` C${c1[0].toFixed(1)} ${c1[1].toFixed(1)} ${c2[0].toFixed(1)} ${c2[1].toFixed(1)} ${p2[0].toFixed(1)} ${p2[1].toFixed(1)}`;
+  }
+  const area = `${line} L${pts[pts.length - 1][0].toFixed(1)} ${floor} L${pts[0][0].toFixed(1)} ${floor} Z`;
+  const wet = Math.max(...hours.map((h) => h.pop)) >= 15;
+  let marks = "";
+  hours.forEach((h, i) => {
+    if (wet && h.pop > 0) {
+      const bar = (h.pop / 100) * 18;
+      marks += `<rect class="hc-rain" x="${(x(i) - 5).toFixed(1)}" y="${(floor - bar).toFixed(1)}" width="10" height="${bar.toFixed(1)}" rx="2"/>`;
     }
-  }
-  parts.push(svg("line", { class: "st-floor", x1: 0, x2: STRIP.w, y1: STRIP.floor, y2: STRIP.floor }));
-
-  const hours = wx ? nowOf(wx).hours : [];
-  const at = (h, i) => (i ? Date.parse(h.start) - start : 0);
-  const y = (() => {
-    const temps = hours.map((h) => h.temp), min = Math.min(...temps), max = Math.max(...temps);
-    return (v) => (max === min ? (STRIP.top + STRIP.line) / 2 : STRIP.line - ((v - min) / (max - min)) * (STRIP.line - STRIP.top));
-  })();
-  if (hours.length > 3) {
-    const pts = hours.map((h, i) => [stripX(at(h, i)), y(h.temp)]);
-    let line = `M${pts[0][0].toFixed(1)} ${pts[0][1].toFixed(1)}`;
-    for (let i = 0; i < pts.length - 1; i++) {
-      const p0 = pts[Math.max(0, i - 1)], p1 = pts[i], p2 = pts[i + 1], p3 = pts[Math.min(pts.length - 1, i + 2)];
-      line += ` C${(p1[0] + (p2[0] - p0[0]) / 6).toFixed(1)} ${(p1[1] + (p2[1] - p0[1]) / 6).toFixed(1)} ${(p2[0] - (p3[0] - p1[0]) / 6).toFixed(1)} ${(p2[1] - (p3[1] - p1[1]) / 6).toFixed(1)} ${p2[0].toFixed(1)} ${p2[1].toFixed(1)}`;
-    }
-    const end = pts[pts.length - 1];
-    parts.push(svg("path", { class: "hc-area", d: `${line} L${end[0].toFixed(1)} ${STRIP.floor} L${pts[0][0].toFixed(1)} ${STRIP.floor} Z` }), svg("path", { class: "hc-line", d: line }));
-    if (Math.max(...hours.map((h) => h.pop)) >= 15) hours.forEach((h, i) => {
-      const bar = (h.pop / 100) * 20;
-      if (bar > 0.5) parts.push(svg("rect", { class: "hc-rain", x: (pts[i][0] - 5).toFixed(1), y: (STRIP.floor - bar).toFixed(1), width: 10, height: bar.toFixed(1), rx: 2 }));
-    });
-  }
-  // The handle goes under the names, so a name it passes stays readable.
-  const mark = svg("g", { id: "stripMark" });
-  mark.append(svg("line", { class: "st-then", x1: 0, x2: 0, y1: 4, y2: STRIP.floor }), svg("circle", { class: "st-knob", cx: 0, cy: STRIP.floor, r: 7.5 }));
-  parts.push(mark);
-  // A name every three hours by the clock, and the temperature over it where there is one.
-  const first = new Date(start);
-  first.setMinutes(0, 0, 0);
-  for (let k = 1; k <= 24; k++) {
-    const when = new Date(+first + k * 3600e3);
-    if (when.getHours() % 3 || +when - start > DAY_MS) continue;
-    const x = stripX(+when - start);
-    if (x < STRIP.pad + 34) continue;
-    parts.push(svg("text", { class: "hc-h", x: x.toFixed(1), y: STRIP.floor + 23 }, fmtHour(when)));
-    const h = hours.find((o) => Date.parse(o.start) === +when);
-    if (h && hours.length > 3) parts.push(svg("circle", { class: "hc-dot", cx: x.toFixed(1), cy: y(h.temp).toFixed(1), r: 2.5 }), svg("text", { class: "hc-t", x: x.toFixed(1), y: (y(h.temp) - 9).toFixed(1) }, `${h.temp}°`));
-  }
-  parts.push(svg("text", { class: "hc-h", x: STRIP.pad, y: STRIP.floor + 23 }, "Now"));
-  if (hours.length > 3) parts.push(svg("text", { class: "hc-t", x: STRIP.pad, y: (y(hours[0].temp) - 9).toFixed(1) }, `${hours[0].temp}°`));
-  $("stripArt").replaceChildren(...parts);
-  $("stripArt").setAttribute("aria-label", hours.length > 3 ? `Temperature for the next ${hours.length} hours` : "The next 24 hours");
-  placeMark();
+    if (i % 3) return;
+    marks += `<circle class="hc-dot" cx="${pts[i][0].toFixed(1)}" cy="${pts[i][1].toFixed(1)}" r="${i ? 2.5 : 4}"/>`;
+    marks += `<text class="hc-t" x="${pts[i][0].toFixed(1)}" y="${(pts[i][1] - 10).toFixed(1)}">${h.temp}°</text>`;
+    marks += `<text class="hc-h" x="${pts[i][0].toFixed(1)}" y="124">${i ? fmtHour(new Date(h.start)) : "Now"}</text>`;
+  });
+  return `<svg viewBox="0 0 ${width} 132" role="img" aria-label="Temperature for the next ${hours.length} hours">
+    <defs><linearGradient id="hcFill" x1="0" y1="0" x2="0" y2="1"><stop class="hc-a" offset="0"/><stop class="hc-b" offset="1"/></linearGradient></defs>
+    <path class="hc-area" d="${area}"/><path class="hc-line" d="${line}"/>${marks}</svg>`;
 }
-const placeMark = () => { const m = $("stripMark"); if (m) m.setAttribute("transform", `translate(${stripX(shift).toFixed(1)} 0)`); };
 
 // The hour we are in, the hours after it, and the days with their highs and lows.
 function nowOf(wx) {
@@ -334,7 +290,7 @@ function showPlace(place, wx) {
 function drawWeather(wx, place) {
   showPlace(place, wx);
   $("updated").textContent = `National Weather Service, ${fmtTime(new Date(wx.at))}`;
-  const { days, now, today } = nowOf(wx);
+  const { hours, days, now, today } = nowOf(wx);
 
   const facts = [];
   if (today.hi != null) facts.push(`High ${today.hi}°`);
@@ -345,9 +301,9 @@ function drawWeather(wx, place) {
   desc.append(el("div", "wx-text", now.text), el("div", "cap", facts.join(", ")));
   const picture = glyph(now.text, now.day, moonPhase(new Date()).emoji);
   $("wxNow").replaceChildren(el("div", "wx-glyph", picture), el("div", "wx-temp", `${now.temp}°`), desc);
-  sayThen(wx);
+  $("skyWx").textContent = `${picture} ${now.temp}° and ${now.text.toLowerCase()}`;
 
-  drawStrip(place, wx);
+  $("wxHours").innerHTML = hours.length > 3 ? hourChart(hours) : "";
 
   const lows = days.map((d) => (d.lo != null ? d.lo : d.hi)), highs = days.map((d) => (d.hi != null ? d.hi : d.lo));
   const min = Math.min(...lows), max = Math.max(...highs), range = max - min || 1;
@@ -388,7 +344,7 @@ function clearWeather(place, text) {
   $("updated").textContent = "";
   $("skyWx").textContent = "";
   $("wxNow").replaceChildren();
-  drawStrip(place, null);
+  $("wxHours").replaceChildren();
   $("wxDays").replaceChildren();
   $("radarCard").hidden = true;
   $("wxNote").textContent = text;
@@ -419,38 +375,6 @@ async function update(place, hadForecast) {
   }
 }
 
-// The line under the strip and the weather beside the clock, for the moment the page is showing.
-function sayThen(wx) {
-  const at = +moment();
-  const hour = wx && wx.hourly.find((h) => Date.parse(h.start) <= at && at < Date.parse(h.start) + 3600e3);
-  $("skyWx").textContent = hour ? `${glyph(hour.text, hour.day, moonPhase(new Date(at)).emoji)} ${hour.temp}° and ${hour.text.toLowerCase()}` : "";
-  const then = !!shift;
-  $("sky").classList.toggle("then", then);
-  $("scrubNow").hidden = !then;
-  $("scrub").value = String(Math.round(shift / 60e3));
-  $("scrub").setAttribute("aria-valuetext", then ? `${fmtTime(new Date(at))}, in ${span(shift)}` : "Now");
-  $("thenLine").textContent = !then ? "Drag along the day to see any hour of the next 24."
-    : `In ${span(shift)}${hour ? `: ${hour.temp}°, ${hour.text.toLowerCase()}${hour.pop >= 20 ? `, ${hour.pop}% chance of rain` : ""}` : wx ? ": past the end of the hourly forecast" : ""}`;
-  placeMark();
-}
-
-// ---------- the world at the same moment ----------
-// Under the weather sits the map of where it is day: the land the sun is over is lit, the rest
-// is in the dark, and you are the pin. It is drawn for the moment the page is showing, so
-// dragging the day sweeps the night across it.
-function drawWorld(place, at) {
-  const lit = [], dark = [];
-  for (const c of CELLS) (sunPosition(at, c.lat, c.lon).altitude > 0 ? lit : dark).push(c);
-  $("worldDay").setAttribute("d", dots(lit));
-  $("worldNight").setAttribute("d", dots(dark));
-  const [x, y] = spot(place);
-  const pin = mapSvg("g", { class: "pin you" });
-  pin.append(mapSvg("circle", { class: "dot", cx: x, cy: y, r: 6.5 }), mapSvg("text", { x: x + 11, y: y + 6 }, "You"));
-  $("worldPins").replaceChildren(pin);
-  $("worldSay").textContent = shift ? `Day and night at ${fmtTime(at)}` : "Day and night, now";
-  $("worldMap").setAttribute("aria-label", `Daylight is on ${Math.round((lit.length / CELLS.length) * 100)}% of the land`);
-}
-
 // The place form shows itself while there is no place and goes once there is one. Opened by
 // hand to change the place, it stays until one is chosen: a forecast arriving must not shut it.
 let unplaced = false;
@@ -464,24 +388,10 @@ export async function renderToday() {
   if (!place) return;
   drawClock();
   drawSky(place);
-  drawWorld(place, moment());
   const cached = await cachedWeather(place);
   if (cached) { drawWeather(cached, place); $("wxNote").hidden = true; }
   else clearWeather(place, "Getting the forecast…");
-  sayThen(cached);
   if (!cached || Date.now() - cached.at > FRESH_MS) update(place, !!cached);
-}
-
-// Drags the day: the clock, the sun, the moon, the weather beside the clock and the map of day
-// and night all move to that moment. Zero puts them back.
-export async function scrubTo(ms) {
-  shift = ms;
-  const place = await getPlace();
-  if (!place) return;
-  drawClock();
-  drawSky(place);
-  drawWorld(place, moment());
-  sayThen(await cachedWeather(place));
 }
 
 // On a page with no sky on it, the hour still decides light or dark.
@@ -495,9 +405,6 @@ export async function tickToday() {
   applyTheme(place);
   drawClock();
   drawSky(place);
-  drawWorld(place, moment());
-  // Left alone, the strip keeps starting at now.
-  if (!shift) drawStrip(place, await cachedWeather(place));
 }
 
 // ---------- the glance: the same facts as one strip at the top of every space ----------
@@ -549,6 +456,11 @@ export async function renderGlance() {
   const src = wx && wx.station ? radarUrl(wx.station, "0") : "";
   $("glWx").hidden = !wx;
   $("glRadar").hidden = !src || img.dataset.failed === src;
+  // With a place and no forecast, the strip says why where the weather would be.
+  const { wxWhy } = wx ? {} : await chrome.storage.local.get("wxWhy");
+  const why = wxWhy && wxWhy.key === placeKey(place) ? wxWhy : null;
+  $("glWhy").hidden = !why;
+  if (why) $("glWhy").textContent = why.abroad ? "No forecast or radar here: they come from the National Weather Service, which covers the United States." : `The forecast didn't load (${why.said}). It tries again on the next new tab.`;
   if (!wx) return;
   const { now, today } = nowOf(wx);
   $("glGlyph").textContent = glyph(now.text, now.day, moonPhase(at).emoji);

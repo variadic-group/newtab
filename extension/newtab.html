@@ -31,6 +31,11 @@
 </header>
 
 <main class="wrap">
+  <div id="placeOff" class="place-off" role="status" hidden>
+    <span id="placeOffSay"></span>
+    <button type="button" id="placeOffFix" class="btn">Use this computer's location</button>
+    <button type="button" id="placeOffKeep" class="mini">Keep it</button>
+  </div>
   <section id="find" class="found" aria-label="Links found" hidden>
     <ul id="findList" class="find-list"></ul>
     <p id="findSay" class="cap" role="status"></p>
@@ -54,6 +59,7 @@
           <span id="glGlyph" class="gl-glyph"></span><b id="glTemp"></b>
           <span class="gl-lines"><span id="glText" class="gl-text"></span><span id="glHiLo" class="cap"></span></span>
         </span>
+        <span id="glWhy" class="gl-why cap" hidden></span>
         <span id="glRadar" class="gl-radar" hidden><img id="glRadarImg" alt=""><span class="cap">Radar</span></span>
         </button>
       </div>
@@ -131,7 +137,6 @@
             <defs>
               <linearGradient id="skyFill" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="0" y2="196"><stop class="sk-top" offset="0"/><stop class="sk-horizon" offset="1"/></linearGradient>
               <linearGradient id="dayFill" gradientUnits="userSpaceOnUse" x1="0" y1="26" x2="0" y2="196"><stop class="df-a" offset="0"/><stop class="df-b" offset="1"/></linearGradient>
-              <linearGradient id="hcFill" gradientUnits="userSpaceOnUse" x1="0" y1="20" x2="0" y2="72"><stop class="hc-a" offset="0"/><stop class="hc-b" offset="1"/></linearGradient>
               <radialGradient id="glowFill"><stop class="gw-a" offset="0"/><stop class="gw-b" offset="1"/></radialGradient>
               <clipPath id="above"><rect x="0" y="0" width="640" height="196"/></clipPath>
               <clipPath id="below"><rect x="0" y="196" width="640" height="94"/></clipPath>
@@ -151,11 +156,6 @@
             <circle id="sunGlow" class="sun-glow" r="30"/>
             <circle id="sunDot" class="sun-dot" r="9.5"/>
           </svg>
-          <div id="strip" class="strip">
-            <svg id="stripArt" viewBox="0 0 640 100" role="img"></svg>
-            <input id="scrub" type="range" min="0" max="1440" step="5" value="0" aria-label="The moment shown, from now to 24 hours from now">
-            <p class="strip-say"><output id="thenLine" for="scrub"></output><button type="button" id="scrubNow" class="mini" hidden>Back to now</button></p>
-          </div>
           <footer class="sky-foot">
             <div><span class="cap">Sunrise</span><b id="rise"></b><span id="riseSub" class="cap"></span></div>
             <div class="mid"><b id="daylight"></b><span id="moonLine" class="cap"></span></div>
@@ -174,11 +174,8 @@
             <span id="updated" class="cap"></span>
           </header>
           <div id="wxNow" class="wx-now"></div>
+          <div id="wxHours" class="wx-hours"></div>
           <p id="wxNote" class="note" hidden></p>
-          <figure id="world" class="daymap">
-            <figcaption id="worldSay"></figcaption>
-            <svg id="worldMap" viewBox="0 0 720 276" role="img"><path id="worldNight" class="land night"/><path id="worldDay" class="land day"/><g id="worldPins"></g></svg>
-          </figure>
         </div>
         <ol id="wxDays" class="wx-days"></ol>
       </article>

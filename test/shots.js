@@ -40,11 +40,7 @@ await page.close();
 await sw.evaluate(() => chrome.storage.local.set({ place: { lat: 40.71, lon: -74.01, source: "device", at: Date.now() } }));
 page = await view(DAY); await shot(page, "2-space");
 await page.click("#edit"); await shot(page, "3-edit"); await page.close();
-page = await view(DAY, "Today"); await shot(page, "4-today-day");
-// The same day dragged on to the evening: the sky, that hour's forecast and the world follow.
-const strip = await page.locator("#stripArt").boundingBox();
-await page.mouse.move(strip.x + strip.width * 0.1, strip.y + 30); await page.mouse.down(); await page.mouse.move(strip.x + strip.width * 0.262, strip.y + 30, { steps: 6 }); await page.mouse.up();
-await shot(page, "12-today-dragged"); await page.close();
+page = await view(DAY, "Today"); await shot(page, "4-today-day"); await page.close();
 page = await view(GOLDEN, "Today"); await shot(page, "5-today-golden-hour"); await page.close();
 page = await view(DUSK, "Today"); await shot(page, "6-today-dusk"); await page.close();
 page = await view(NIGHT, "Today"); await shot(page, "7-today-night"); await page.close();
