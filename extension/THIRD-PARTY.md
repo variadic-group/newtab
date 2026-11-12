@@ -41,10 +41,13 @@ These are not bundled; the page asks them for data. What each one receives is in
   asked without coordinates for the city this network connection appears to be in, only when
   the computer won't give its own location. No key; client-side use only, under its fair use
   policy (checked 2026-11-11).
-- Cloudflare's trace page (`1.1.1.1/cdn-cgi/trace`) and the measurement endpoints its own
-  [speed test](https://github.com/cloudflare/speedtest) uses (`speed.cloudflare.com/meta`,
-  `/__down`, `/__up`), and the STUN servers of Cloudflare and Google, for the checks on the
-  Tools tab. Called only when a check is pressed (checked 2026-11-11).
+- [ipleak.net](https://ipleak.net/), run by AirVPN, for the Tools tab's check: its keyless API
+  says what address it sees, where that is and whose network it is, and its DNS detection says
+  which DNS servers looked up a name made for the purpose. Its data is partly MaxMind's. Called
+  only when Check is pressed (checked 2026-11-12).
+- The measurement endpoints Cloudflare's own [speed test](https://github.com/cloudflare/speedtest)
+  uses (`speed.cloudflare.com/__down`, `/__up`) for the speed reading, and the STUN servers of
+  Cloudflare and Google for the WebRTC check. Called only when pressed (checked 2026-11-11).
 - [Nominatim](https://nominatim.org/), for the city search: data © OpenStreetMap contributors,
   under the [ODbL](https://www.openstreetmap.org/copyright).
 - Google's icon service (`google.com/s2/favicons`) and product icons (`gstatic.com`), for the

@@ -3,7 +3,7 @@
 **New Tab** is published by Variadic Group LLC. It has no server, no account and no
 analytics: the publisher receives nothing from it. Everything below happens in your browser.
 
-Last updated 2026-11-11.
+Last updated 2026-11-12.
 
 ## What it reads
 
@@ -21,7 +21,8 @@ Last updated 2026-11-11.
 | National Weather Service (`api.weather.gov`, `radar.weather.gov`) | Your rounded location, then the radar station nearest it | When the forecast is more than 20 minutes old and you open a new tab |
 | BigDataCloud (`api.bigdatacloud.net`) | Nothing but the request itself: it answers with the city your IP address appears to be in | Only when the computer won't give its location: on the first new tab, when you press "Use this computer's location", and at most every six hours while the place is still an estimate. Never once you have typed a place |
 | OpenStreetMap's Nominatim (`nominatim.openstreetmap.org`) | What you typed: a city, a ZIP code or an address | Only when you press Search in the location form |
-| Cloudflare (`speed.cloudflare.com`, `1.1.1.1`, `stun.cloudflare.com`) and Google's STUN server (`stun.l.google.com`) | The requests themselves: Cloudflare answers with the address it sees you at, where that is and whose network it is; the speed check sends and receives filler data; the STUN servers are asked what address they see | Only when you press Check or Run on the Tools tab. Nothing is kept after the tab closes |
+| ipleak.net, run by AirVPN (`ipleak.net` and names under it) | The request itself, so it can say what address it sees you at, where that is and whose network it is. For DNS, four made-up names under `ipleak.net` are looked up so it can see which DNS servers came asking; each of those servers' addresses is then sent back to it to be named | Only when you press Check on the Tools tab. Nothing is kept after the tab closes |
+| Cloudflare (`speed.cloudflare.com`, `stun.cloudflare.com`) and Google's STUN server (`stun.l.google.com`) | Filler data for the speed reading; the STUN servers are asked what address they see, which is what WebRTC would show a site | Only when you press Run or Check on the Tools tab |
 | Your search engine, whichever Chrome is set to | The words you typed after a bookmark's short name, with `site:` and that bookmark's site | Only when you type words after a short name that has no search of its own (`stripe/refund policy`) |
 | Google's icon service (`google.com/s2/favicons`, `gstatic.com`) | The host names of your bookmarks, one at a time | The first time a site's icon is needed; the answer is remembered |
 
@@ -34,6 +35,9 @@ A short link typed with spaces (`claude/what should I ask`) is first treated by 
 search. The extension redirects that search before the page loads, but the request may reach
 your search engine for a moment. Type it with hyphens (`claude/what-should-i-ask`), or use
 `claude` then Tab, and nothing is searched.
+
+The fingerprint on the Tools tab is worked out on your computer from what the browser reports,
+and is not sent anywhere or kept.
 
 ## What it keeps
 
@@ -57,6 +61,9 @@ Each is off until you turn it on, and Chrome asks you for the permission at that
   anywhere, and nothing is kept.
 - **Most visited** reads Chrome's list of the sites you visit most, to show eight of them.
   Their host names go to Google's icon service for their icons, as your bookmarks' do.
+- **Chrome's privacy switches** (asked for on the Tools tab) reads how Chrome's own privacy
+  settings are set, to show them. It changes one, the route WebRTC may take, and only when you
+  pick a different one; choosing Chrome's default hands the setting back.
 
 ## Contact
 

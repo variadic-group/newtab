@@ -47,7 +47,7 @@ function exact() {
 
 // How far a named time zone's clock is from UTC right now, in minutes, or null for a name this
 // browser doesn't know.
-function offsetOf(zone) {
+export function offsetOf(zone) {
   try {
     const text = new Intl.DateTimeFormat("en-US", { timeZone: zone, timeZoneName: "longOffset" }).formatToParts(new Date()).find((p) => p.type === "timeZoneName").value;
     const m = /^GMT(?:([+-])(\d{1,2})(?::(\d{2}))?)?$/.exec(text);

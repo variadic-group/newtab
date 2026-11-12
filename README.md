@@ -69,13 +69,18 @@ This page adds a face to that store and keeps nothing of its own:
   time and date open your calendar.
 
 **Check, when you want to**
-- **Tools** is a tab of checks for the connection and the browser, and nothing on it reaches
-  the network until you press it: the address the internet sees you at, where that is and
-  whether a VPN seems to be in the way; whether WebRTC shows sites an address your VPN was
-  meant to hide; a quick speed reading; what any site can read about this browser; and one
-  click into the Chrome settings pages where these things are changed (and, on a Mac, the
-  Location Services switch). Tests that need servers of their own (how unique your fingerprint
-  is, where your DNS lookups go) are links to the sites that do them well.
+- **Tools** is a tab that shows how this connection and this browser look from outside, worked
+  out and drawn on the page. Nothing on it reaches the network until you press a button.
+  - **Check** answers in four tiles: where your traffic comes out and how far that is from your
+    place (which is what a VPN looks like), whether your clock agrees with that address,
+    whether WebRTC shows sites an address your VPN was meant to hide, and whose servers answer
+    your DNS lookups.
+  - **Speed** reads download, upload and delay onto bars.
+  - **Fingerprint** works out, on your computer, the ID a tracking script would give this
+    browser, and lists each thing it is made of with how far that narrows you down.
+  - **Chrome's privacy switches** reads how Chrome itself is set, scores it, and takes you to
+    the page that changes each one. It can also narrow the route WebRTC may take, which Chrome
+    has no switch for.
 
 | Day | Dusk | Night |
 |---|---|---|
@@ -157,7 +162,7 @@ Four services are called, each with the least it needs: the National Weather Ser
 place rounded to about a kilometre; BigDataCloud is asked which city your network is in, only
 when the computer won't give its location; OpenStreetMap's Nominatim gets what you type when you
 press Search; Google's icon service gets the host names of your bookmarks. The checks on the
-Tools tab ask Cloudflare, and only when you press them. The full account is in
+Tools tab ask ipleak.net and Cloudflare, and only when you press them. The full account is in
 [PRIVACY.md](PRIVACY.md).
 
 **Extras** (footer → Extras) are off until you switch them on, and Chrome asks at that moment:
@@ -166,6 +171,10 @@ Tools tab ask Cloudflare, and only when you press them. The full account is in
 - the Google Docs, Sheets and Slides you opened lately;
 - the tabs you closed lately, to reopen, and the tabs open on your phone and other computers;
 - a row of the sites you visit most.
+
+The Tools tab asks for one more the first time you open **Chrome's privacy switches**: Chrome
+words it as "change your privacy-related settings". The page reads them, and changes only the
+WebRTC route, when you choose to.
 
 ## Good to know
 
@@ -214,7 +223,7 @@ No build step. The extension is the `extension` folder as it stands.
 ```
 npm install
 npx playwright install chromium
-npm test            # 13 astronomy checks in Node, then 155 checks in a real Chromium
+npm test            # 13 astronomy checks in Node, then 159 checks in a real Chromium
 npm run shots       # the screenshots in store/screenshots
 npm run zip         # newtab.zip, ready to upload or release
 ```

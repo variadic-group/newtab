@@ -45,9 +45,9 @@ page = await view(NIGHT, "Today"); await shot(page, "7-today-night"); await page
 page = await view(NIGHT); await shot(page, "8-space-night"); await page.close();
 page = await view(CRESCENT, "Today"); await shot(page, "9-today-crescent"); await page.close();
 page = await view(DAY, "Shortcuts"); await shot(page, "10-shortcuts"); await page.close();
-net.exitNear = true;
 page = await view(DAY, "Tools");
-for (const name of ["Connection", "WebRTC", "Speed"]) { await page.click(`.tool:has(h2:text-is("${name}")) .btn`); await page.waitForSelector(`.tool:has(h2:text-is("${name}")) .btn:has-text("again"):not([disabled])`, { timeout: 20000 }); }
+await page.click(".tl-start .btn"); await page.waitForSelector('.tl-start .btn:has-text("again"):not([disabled])', { timeout: 30000 });
+await page.click('.tool:has(h2:text-is("Speed")) .btn'); await page.waitForSelector('.tool:has(h2:text-is("Speed")) .btn:has-text("again"):not([disabled])', { timeout: 30000 });
 await shot(page, "11-tools"); await page.close();
 
 // The store's small promo tile, 440×280.

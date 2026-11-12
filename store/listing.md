@@ -66,7 +66,7 @@ LOOK UP
 • Forecast, hourly chart, seven days and radar from the National Weather Service (United States)
 
 CHECK, WHEN YOU WANT TO
-• A Tools tab: your public address and where it exits, a WebRTC leak check, a quick speed reading, what any site can read about this browser, and one click into Chrome's privacy and security settings
+• A Tools tab that shows how you look from outside: where your traffic comes out and whether your clock agrees, a WebRTC leak check, whose servers answer your DNS lookups, a speed reading, the fingerprint a tracking script would give this browser, and how Chrome's own privacy switches are set
 • Nothing on it reaches the network until you press it
 
 PRIVATE BY CONSTRUCTION
@@ -101,6 +101,7 @@ Free and open source.
 | `geolocation` | On the first new tab and when the user clicks "Use this computer's location", to show sunrise, sunset and the local forecast. Chrome shows no location prompt on a new tab page, so the permission is declared. If the computer refuses, the page falls back to the city of the network connection (marked approximate), and the user can type a place instead. |
 | Host `api.weather.gov` | Fetches the forecast for the user's place from the National Weather Service. |
 | Optional `history` | Only if the user switches on "Recent files": lists the Google Docs, Sheets and Slides they opened lately. Read locally; nothing is sent. |
+| Optional `privacy` | Only when the user opens "Chrome's privacy switches" on the Tools tab: reads Chrome's privacy settings to show how each is set. The one it can change is the WebRTC IP handling policy, which has no switch in Chrome's settings, and only when the user picks a value; choosing the default clears it. |
 | Optional `sessions` | Only if the user switches on "Closed tabs and other devices": lists recently closed tabs to reopen, and the tabs open on the user's other signed-in devices. Read locally; nothing is sent. |
 | Optional `topSites` | Only if the user switches on "Most visited": shows a row of the user's most visited sites. Read locally. |
 | Optional host `mail.google.com` | Only if the user switches on "Unread mail": reads the unread count from Gmail's inbox feed. Only the number is kept, locally. |
@@ -117,8 +118,9 @@ Free and open source.
   on the device.
 - *User activity / web history:* also with the optional "Closed tabs and other devices" and
   "Most visited" switches; read on the device, never sent.
-- The Tools tab's checks contact Cloudflare (and a STUN server) only when the user presses
-  them; the answers are shown and not stored.
+- The Tools tab's checks contact ipleak.net, Cloudflare and two STUN servers only when the user
+  presses them; the answers are shown and not stored. Its fingerprint is computed on the device
+  and never sent.
 - Everything else: no.
 - Certify: not sold to third parties; not used for purposes unrelated to the single purpose; not
   used for creditworthiness or lending.

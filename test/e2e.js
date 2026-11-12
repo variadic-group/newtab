@@ -5,7 +5,9 @@ import { launch, seed, grantedCopy, manifest } from "./harness.js";
 let failed = 0;
 const ok = (name, cond, extra) => { if (!cond) failed++; console.log((cond ? "PASS " : "FAIL ") + name + (extra !== undefined ? "  " + JSON.stringify(extra) : "")); };
 
-const { ctx, sw, id, net, errs, open, tree, find, titles } = await launch();
+// The clock is New York's, where the computer is set to be, so the sky and the Tools checks
+// have one answer wherever the tests run.
+const { ctx, sw, id, net, errs, open, tree, find, titles } = await launch({ timezoneId: "America/New_York" });
 await seed(sw);
 const tabOrder = () => sw.evaluate(async () => (await chrome.tabs.query({})).filter((x) => /^https?:/.test(x.url)).sort((x, y) => x.index - y.index).map((x) => new URL(x.url).hostname));
 const place = () => sw.evaluate(async () => (await chrome.storage.local.get("place")).place);
@@ -257,21 +259,26 @@ net.holdPage = false; await q.close(); await bare.close();
 
 // ---------- tools ----------
 await p.bringToFront(); await p.click('#pages .tab:has-text("Tools")'); await p.waitForSelector(".tool");
-ok("Tools has six cards, and nothing has reached the network before a press", (await p.$$eval(".tool h2", (x) => x.map((e) => e.textContent))).join() === "Connection,WebRTC,Speed,This browser,Chrome's settings,Deeper tests" && net.tools.length === 0, net.tools);
-ok("This browser lists what any site can read", /Browser.*(Chrom|HeadlessChrome).*Time zone.*Languages.*Screen.*Network, by Chrome's guess/s.test(await text(p, '.tool:has(h2:text-is("This browser")) .facts')), await text(p, '.tool:has(h2:text-is("This browser")) .facts'));
 const tool = (name) => `.tool:has(h2:text-is("${name}"))`;
-const press = async (name) => { await p.click(`${tool(name)} .btn`); await p.waitForSelector(`${tool(name)} .btn:has-text("again"):not([disabled])`, { timeout: 20000 }); return text(p, `${tool(name)} .out`); };
-let shown = await press("Connection");
-ok("Connection shows the address, where it exits and whose network, and that it is far from your place", /IPv4 address203\.0\.113\.7 Copy.*IPv6 addressnone on this network.*Exits inStockholm, Stockholm County, Sweden.*NetworkAS64500.*Reached Cloudflare atARN, Stockholm/.test(shown) && /This exit is about 6,3\d0 km \(3,9\d0 mi\) from the place this page is set to, so a VPN or proxy is probably in the way\./.test(shown) && (await p.getAttribute(`${tool("Connection")} .facts a`, "href")) === "https://radar.cloudflare.com/as64500", shown);
-net.exitNear = true; shown = await press("Connection");
-ok("an exit near your place says so, and that a nearby VPN looks the same", /Exits inNew York, New York, United States.*This exit is near the place this page is set to\. A VPN that exits near you looks the same as none\./.test(shown), shown);
-shown = await press("WebRTC");
-ok("WebRTC says what a site can see through it", /^(No public address came back through WebRTC|WebRTC shows sites)/.test(shown), shown);
-shown = await press("Speed");
-ok("Speed reads download, upload and delay", /Download[\d.]+ MbpsUpload[\d.]+ MbpsDelay\d+ ms/.test(shown) && net.tools.includes("__up") && net.tools.filter((x) => x === "__down").length >= 8, shown);
-ok("Chrome's settings and the deeper tests are one click away", (await p.$$eval(`${tool("Chrome's settings")} [data-go]`, (x) => x.map((e) => e.dataset.go))).includes("chrome://settings/security") && (await p.$$eval(`${tool("Chrome's settings")} [data-go]`, (x) => x.map((e) => e.dataset.go))).includes("chrome://settings/content/location") && (await p.$$eval(`${tool("Deeper tests")} h3`, (x) => x.map((e) => e.textContent))).join() === "Your fingerprint,This device,Leaks and speed" && (await p.$$eval(`${tool("Deeper tests")} a`, (x) => x.map((e) => new URL(e.href).hostname))).join() === "coveryourtracks.eff.org,amiunique.org,abrahamjuliot.github.io,pixelscan.net,iphey.com,www.deviceinfo.me,browserleaks.com,ipleak.net,mullvad.net,www.dnsleaktest.com,speed.cloudflare.com" && (await p.$$eval(`${tool("Deeper tests")} a`, (x) => x.every((e) => e.title.length > 10))) && !(await p.$(`${tool("Chrome's settings")} a`)));
+ok("Tools has five cards and no card of links out, and nothing has reached the network before a press", (await p.$$eval(".tool h2", (x) => x.map((e) => e.textContent))).join() === "Where you come out,Leaks,Speed,Fingerprint,Chrome's privacy switches" && net.tools.length === 0 && (await p.$$eval("#tools a", (x) => x.map((e) => new URL(e.href).hostname))).join() === "coveryourtracks.eff.org,amiunique.org", net.tools);
+const fp = await text(p, "#fpId");
+const sig = await p.$$eval(".signals .s-name", (x) => x.map((e) => e.textContent));
+ok("the fingerprint is worked out here at once: an ID, and each thing a script can read with how far it narrows you down", /^[0-9a-f]{4}-[0-9a-f]{4}$/.test(fp) && ["Canvas drawing", "Graphics card", "Browser", "Screen", "Time zone", "Languages"].every((s) => sig.includes(s)) && (await p.$$eval(".signals .dots", (x) => x.every((d) => d.querySelectorAll("i").length === 3 && d.querySelectorAll("i.on").length >= 1 && d.title.startsWith("Narrows you down")))) && /from the \d+ things below that stay the same/.test(await text(p, tool("Fingerprint"))), { fp, sig });
 await p.click('#pages .tab:has-text("Today")'); await p.click('#pages .tab:has-text("Tools")');
-ok("a result stays while the tab is open", /Download/.test(await text(p, `${tool("Speed")} .out`)));
+ok("it is the same each time it is worked out", (await text(p, "#fpId")) === fp);
+const check = async () => { await p.click(".tl-start .btn"); await p.waitForSelector('.tl-start .btn:has-text("again"):not([disabled])', { timeout: 30000 }); return { tiles: await p.$$eval(".tile-v", (x) => x.map((e) => `${e.className.replace("tile-v ", "")}|${[...e.children].map((c) => c.textContent).join("|")}`)), address: await text(p, `${tool("Where you come out")} .out`), leaks: await text(p, `${tool("Leaks")} .out`) }; };
+let seen = await check();
+ok("Check answers in four tiles: where you come out and how far that is, whether your clock agrees, WebRTC, and who answers your lookups", /^plain\|Address\|Stockholm 🇸🇪\|6,3\d0 km from your place$/.test(seen.tiles[0]) && seen.tiles[1] === "warn|Clock|Doesn't match|Europe/Stockholm" && /^(good|bad|plain)\|WebRTC\|/.test(seen.tiles[2]) && seen.tiles[3] === "warn|DNS|Example DNS Inc.|United States", seen.tiles);
+ok("the address card shows it, draws the hop from your place, and says what a site can tell", /^203\.0\.113\.7Copy/.test(seen.address) && /Comes out inStockholm, Stockholm County, SwedenNetworkExample Networks · AS64500IPv4203\.0\.113\.7IPv6none on this network/.test(seen.address) && /6,3\d0 km \(3,9\d0 mi\) from your place, so a VPN or proxy is in the way\./.test(seen.address) && /Your clock says America\/New_York; your address says Europe\/Stockholm\. A site can tell the two don't match\./.test(seen.address) && !!(await p.$(`${tool("Where you come out")} .hop .hop-exit.away`)) && (await text(p, `${tool("Where you come out")} .hop-far`)).endsWith("km"), seen.address);
+ok("the leaks card names whose servers answer your lookups, and says when they are not where you come out", /Example DNS Inc\.United States · 3 servers/.test(seen.leaks) && /Your lookups are answered in United States, not in Sweden where your traffic comes out\. On a VPN, that means they are going around it\./.test(seen.leaks) && /WebRTC/.test(seen.leaks) && net.tools.filter((x) => x === "dns").length === 4 && net.tools.filter((x) => x === "lookup").length === 3, seen.leaks);
+net.exitNear = true; net.dnsHome = true; seen = await check();
+ok("with no VPN in the way the same check says so: near your place, clock matches, lookups answered by your own network", seen.tiles[0] === "plain|Address|New York 🇺🇸|near your place" && seen.tiles[1] === "good|Clock|Matches|America/New_York" && seen.tiles[3] === "good|DNS|Example Networks|United States" && /Near your place\. A VPN that comes out near you looks the same as none\./.test(seen.address) && /Your lookups are answered by the same network your traffic comes out of\./.test(seen.leaks) && (await text(p, `${tool("Where you come out")} .hop-far`)) === "near", seen.tiles);
+await p.click(`${tool("Speed")} .btn`); await p.waitForSelector(`${tool("Speed")} .btn:has-text("again"):not([disabled])`, { timeout: 30000 });
+const sp = await p.$$eval(`${tool("Speed")} .meter`, (x) => x.map((m) => `${m.querySelector(".m-name").textContent} ${m.querySelector("b").textContent} ${m.querySelector(".m-bar i").style.width}`));
+ok("Speed reads download and upload onto bars and gives the delay", sp.length === 2 && sp.every((s) => /^(Download|Upload) [\d.,]+ [\d.]+%$/.test(s)) && /^Delay \d+ ms, give or take \d+\./.test(await text(p, `${tool("Speed")} .note`)) && net.tools.includes("__up") && net.tools.filter((x) => x === "__down").length >= 8, sp);
+ok("Chrome's privacy switches wait for the permission to read them", (await text(p, `${tool("Chrome's privacy switches")} .btn`)) === "Show them" && !(await p.$(".switches")) && manifest.optional_permissions.includes("privacy"));
+await p.click('#pages .tab:has-text("Today")'); await p.click('#pages .tab:has-text("Tools")');
+ok("a result stays while the tab is open", /New York/.test(await text(p, ".verdicts")) && /^Delay/.test(await text(p, `${tool("Speed")} .note`)));
 
 // ---------- the weather service unreachable ----------
 net.weatherDown = true;
@@ -287,7 +294,7 @@ ok("an old forecast stays up with a note when it can't refresh", !!(await q.$(".
 
 // ---------- extras are off until asked for ----------
 await q.click('#spaces .tab:has-text("Work")'); await q.waitForSelector(".card");
-ok("the extras ship switched off, as optional permissions", !!(await q.$("#glMail[hidden]")) && !!(await q.$("#filesPanel[hidden]")) && !!(await q.$("#closedPanel[hidden]")) && !!(await q.$("#often[hidden]")) && manifest.optional_permissions.join() === "history,sessions,topSites" && manifest.optional_host_permissions.join() === "https://mail.google.com/*" && !manifest.permissions.includes("history"));
+ok("the extras ship switched off, as optional permissions", !!(await q.$("#glMail[hidden]")) && !!(await q.$("#filesPanel[hidden]")) && !!(await q.$("#closedPanel[hidden]")) && !!(await q.$("#often[hidden]")) && manifest.optional_permissions.join() === "history,privacy,sessions,topSites" && manifest.optional_host_permissions.join() === "https://mail.google.com/*" && !manifest.permissions.includes("history"));
 await q.click("#extrasBtn"); await q.waitForSelector(".extra");
 ok("Extras in the footer lists them, all off", (await q.$$eval(".extra .btn", (x) => x.map((e) => `${e.getAttribute("aria-label")}:${e.textContent}`))).join() === "Unread mail:Off,Recent files:Off,Closed tabs and other devices:Off,Most visited:Off");
 
@@ -338,6 +345,16 @@ await e.waitForFunction(() => chrome.tabs.query({ url: "https://example.com/clos
 ok("a click reopens it", (await g.sw.evaluate(async () => (await chrome.tabs.query({ url: "https://example.com/closed-page" })).length)) === 1);
 await e.bringToFront();
 ok("with its permission, Most visited draws without complaint (a new profile has none yet)", (await e.$$eval("#often .pin", (x) => x.length)) >= 0 && (await g.sw.evaluate(async () => Array.isArray(await chrome.topSites.get()))));
+await e.click('#pages .tab:has-text("Tools")'); await e.waitForSelector(".switches");
+const sw0 = await e.evaluate(() => ({ score: document.querySelector(".big-fact.small").textContent, bars: document.querySelectorAll(".score i").length, good: document.querySelectorAll(".score i.on").length, names: [...document.querySelectorAll(".switches .sw-name b")].map((b) => b.textContent), states: [...document.querySelectorAll(".switches .state")].map((s) => s.textContent), go: [...document.querySelectorAll(".switches [data-go]")].map((b) => b.dataset.go), route: document.getElementById("rtcRoute").value, locked: document.getElementById("rtcRoute").disabled }));
+ok("with its permission, Chrome's privacy switches are read from Chrome and scored, each with the Chrome page that changes it", /^\d+ of \d+ set the private way$/.test(sw0.score) && sw0.bars >= 5 && sw0.good === +sw0.score.split(" ")[0] && ["Third-party cookies", "Safe Browsing", "Preload pages"].every((s) => sw0.names.includes(s)) && sw0.states.length === sw0.names.length && sw0.go.includes("chrome://settings/cookies") && sw0.route === "default" && !sw0.locked, sw0);
+await e.selectOption("#rtcRoute", "default_public_interface_only");
+await e.waitForFunction(() => document.getElementById("rtcRoute") && document.getElementById("rtcRoute").value === "default_public_interface_only");
+const held = await g.sw.evaluate(() => chrome.privacy.network.webRTCIPHandlingPolicy.get({}));
+await e.selectOption("#rtcRoute", "default"); await e.waitForTimeout(500);
+const freed = await g.sw.evaluate(() => chrome.privacy.network.webRTCIPHandlingPolicy.get({}));
+ok("the WebRTC route, which Chrome has no switch for, is set here and handed back by choosing the default", held.value === "default_public_interface_only" && held.levelOfControl === "controlled_by_this_extension" && freed.value === "default" && freed.levelOfControl === "controllable_by_this_extension", [held, freed]);
+await e.click('#spaces .tab:has-text("Work")'); await e.waitForSelector(".card");
 await e.click("#extrasBtn"); await e.waitForSelector(".extra");
 ok("their switches read On", (await e.$$eval(".extra .btn", (x) => x.map((b) => b.textContent))).join() === "On,On,On,On");
 ok("no page errors with the extras on", g.errs.length === 0, g.errs);

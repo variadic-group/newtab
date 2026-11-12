@@ -95,7 +95,7 @@ export async function launch({ ext = shipped, icons = "stub", locate = true, vie
     ...(locate ? { geolocation: { latitude: 40.7128, longitude: -74.006 }, permissions: ["geolocation"] } : {}),
   });
   // `at` moves the stubbed forecast to a moment; `titles` names stubbed pages by a piece of their address.
-  const net = { weatherDown: false, estimateDown: false, estimateAs: null, estimates: 0, tools: [], exitNear: false, points: [], searches: [], holdPage: false, unread: 7, at: null, titles: { "docs.google.com/spreadsheets": "Q4 plan - Google Sheets", "docs.google.com/document": "Launch notes - Google Docs" } };
+  const net = { weatherDown: false, estimateDown: false, estimateAs: null, estimates: 0, tools: [], exitNear: false, dnsHome: false, points: [], searches: [], holdPage: false, unread: 7, at: null, titles: { "docs.google.com/spreadsheets": "Q4 plan - Google Sheets", "docs.google.com/document": "Launch notes - Google Docs" } };
   await ctx.route("**/*", async (route) => {
     const u = route.request().url();
     if (u.startsWith("chrome-extension://")) {
@@ -114,16 +114,31 @@ export async function launch({ ext = shipped, icons = "stub", locate = true, vie
       }
       return route.fulfill({ json: { properties: { periods: u.endsWith("/hourly") ? hourly(net.at ?? Date.now()) : forecast(net.at ?? Date.now()) } } });
     }
-    // The Tools page's checks: Cloudflare's trace and speed endpoints. The exit is Stockholm, or
-    // New York (where the tests' computer is) when net.exitNear is set. No IPv6 on this network.
+    // The Tools page's checks. ipleak.net says where the address is: Stockholm, or New York (where
+    // the tests' computer is) when net.exitNear is set; there is no IPv6 on this network. Its
+    // DNS detection answers only a session of forty digits, as the real one does, with three
+    // servers that are another company's in the United States, or the exit's own network when
+    // net.dnsHome is set. Cloudflare's endpoints serve the speed reading.
     const open = { "access-control-allow-origin": "*" };
-    if (url.hostname === "1.1.1.1" || url.hostname === "[2606:4700:4700::1111]") {
-      net.tools.push(url.hostname === "1.1.1.1" ? "v4" : "v6");
-      return url.hostname === "1.1.1.1" ? route.fulfill({ body: "fl=1\nip=203.0.113.7\nloc=SE\ncolo=ARN\nhttp=http/2\nwarp=off\n", headers: open }) : route.abort();
+    if (url.hostname.endsWith("ipleak.net")) {
+      const exit = net.exitNear
+        ? { ip: "203.0.113.7", isp_name: "Example Networks", as_number: 64500, city_name: "New York", region_name: "New York", country_name: "United States", country_code: "US", time_zone: "America/New_York", latitude: 40.71, longitude: -74.01 }
+        : { ip: "203.0.113.7", isp_name: "Example Networks", as_number: 64500, city_name: "Stockholm", region_name: "Stockholm County", country_name: "Sweden", country_code: "SE", time_zone: "Europe/Stockholm", latitude: 59.33, longitude: 18.07 };
+      if (url.hostname === "ipv6.ipleak.net") { net.tools.push("v6"); return route.abort(); }
+      if (url.hostname === "ipv4.ipleak.net") { net.tools.push("v4"); return route.fulfill({ json: exit, headers: open }); }
+      if (url.pathname.startsWith("/dnsdetection")) {
+        net.tools.push("dns");
+        const session = url.hostname.split("-")[0];
+        return route.fulfill({ json: { session, ip: /^\d{40}$/.test(session) ? { "198.51.100.1": 1, "198.51.100.2": 1, "198.51.100.3": 2 } : {} }, headers: open });
+      }
+      if (url.pathname.startsWith("/json/")) {
+        net.tools.push("lookup");
+        const ip = url.pathname.split("/")[2];
+        return route.fulfill({ json: net.dnsHome ? { ...exit, ip, city_name: null } : { ip, isp_name: "Example DNS Inc.", as_number: 64501, country_name: "United States", country_code: "US", city_name: null, region_name: null, time_zone: null, latitude: null, longitude: null }, headers: open });
+      }
     }
     if (url.hostname === "speed.cloudflare.com") {
       net.tools.push(url.pathname.slice(1));
-      if (url.pathname === "/meta") return route.fulfill({ json: { clientIp: "203.0.113.7", asn: 64500, country: net.exitNear ? "US" : "SE", city: net.exitNear ? "New York" : "Stockholm", region: net.exitNear ? "New York" : "Stockholm County", latitude: net.exitNear ? "40.71" : "59.33", longitude: net.exitNear ? "-74.01" : "18.07", colo: { iata: net.exitNear ? "EWR" : "ARN", city: net.exitNear ? "Newark" : "Stockholm" } }, headers: open });
       if (url.pathname === "/__down") return route.fulfill({ body: Buffer.alloc(Math.min(+url.searchParams.get("bytes"), 2e6)), headers: open });
       if (url.pathname === "/__up") return route.fulfill({ body: "", headers: open });
     }
