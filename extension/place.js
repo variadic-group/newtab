@@ -31,8 +31,12 @@ async function save(place) {
 // no location prompt on a new tab page, so the extension holds the permission itself; what is
 // left to refuse is the operating system.
 const WHY = {
-  1: "Chrome isn't allowed to see this computer's location (on a Mac: System Settings → Privacy & Security → Location Services → Google Chrome).",
-  2: "This computer couldn't work out where it is (its location service is off, or there is no Wi-Fi to place it by).",
+  1: MAC
+    ? "Chrome isn't allowed to see this computer's location. Switch on Google Chrome under System Settings → Privacy & Security → Location Services. If Chrome isn't in that list, open Google Maps in Chrome and press “Show your location” once: the Mac then asks whether Chrome may know, and this page can too."
+    : "Chrome isn't allowed to see this computer's location: switch on location for Chrome in the computer's own settings.",
+  2: MAC
+    ? "This computer couldn't work out where it is. On a Mac that usually means Location Services hasn't let Chrome in yet (System Settings → Privacy & Security → Location Services), or Wi-Fi is off: Macs place themselves by the Wi-Fi networks around them."
+    : "This computer couldn't work out where it is (its location service is off, or there is no Wi-Fi to place it by).",
   3: "Finding this computer took too long.",
 };
 function exact() {
@@ -103,6 +107,13 @@ async function thisComputer() {
 // The clock's standard time is used, so summer time doesn't move the answer.
 const standardOffset = () => { const y = new Date().getFullYear(); return Math.max(new Date(y, 0, 1).getTimezoneOffset(), new Date(y, 6, 1).getTimezoneOffset()); };
 export const couldBeHere = (place) => place.source === "device" || Math.abs(place.lon / 15 + standardOffset() / 60) <= 3.5;
+
+// How a place was found, and what it will do as you travel, in a sentence for Settings.
+export function howFound(place) {
+  if (place.source === "device") return "Found by this computer. It follows you: looked for again every six hours, and at once when the computer's time zone changes.";
+  if (place.source === "network") return `Estimated from your network, so it can be a city or so off. ${place.why || ""} It is looked for again every six hours, and becomes exact once the computer will say. A network in another time zone, as on a VPN, is never used.`.replace(/\s+/g, " ");
+  return "Typed by you, so it stays put while you travel. When the computer's time zone changes, the page asks whether it still holds. To follow this computer again, use its location below.";
+}
 
 export async function useDevice() {
   return save({ ...(await thisComputer()), at: Date.now() });

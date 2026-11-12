@@ -181,7 +181,9 @@ sky is that place's, the page may be light at night, and there is no forecast or
 person it looks as if everything broke at once. So a notice across the top of every page says
 what the page is set to and why that matters, with "Use this computer's location" and "Keep
 it". *Why it exists:* this is exactly what happened in use, from one city typed to see what
-it would do.
+it would do. Since 4.7.0 Settings opens on **Your place**: where the page is set to, how it was
+found, how it will follow you, and the form to change it, because the place name on Today was
+the only way in and it wasn't found.
 
 **Jot.** A synced scratch box. Expanded, it can be a few pages, copied or downloaded; small,
 it is only a box. It is not a notes app: no folders, no formatting; `keep/` is one keystroke

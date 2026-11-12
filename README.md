@@ -254,8 +254,16 @@ WebRTC route, when you choose to.
   the page is on that clock. A place taken from the computer or its network follows you: it is
   looked for again every six hours, and at once when the computer's time zone changes. A place
   you typed stays put; when the computer's time zone changes the page asks once whether to
-  change it or keep it. A trip inside one time zone with a typed place is not noticed: click
-  the place name on Today to change it.
+  change it or keep it. A trip inside one time zone with a typed place is not noticed: change
+  it under **Your place** in Settings, or by the place name on Today.
+- **Your place**, at the top of Settings, says where the page is set to, how that was found
+  (by this computer, estimated from the network, or typed) and how it will follow you, with
+  "Use this computer's location" and a box for a city, ZIP or address.
+- **When "Use this computer's location" fails on a Mac,** Chrome isn't allowed in System
+  Settings → Privacy & Security → Location Services. If Chrome isn't in that list, open Google
+  Maps in Chrome and press "Show your location" once: the Mac asks then, and the page can use
+  it from that moment. Until then the network's city is used (never one in another time zone,
+  as on a VPN), and it becomes exact by itself once the computer will say.
 - **A place you type replaces the one before.** The page says so and offers "Go back", since a
   city typed out of curiosity would otherwise become where you are. If the page is set to
   somewhere this computer's clock isn't (Paris, on a clock in California), the sky is that

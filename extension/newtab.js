@@ -3,7 +3,7 @@ import { loadIcons, siteIcon, tabIcon, host } from "./icons.js";
 import { BUILTIN, claims, barChildren, bookmarkBars, leaves, aliasTable, aliasFor, nextFolder, addToNext } from "./shared.js";
 import { renderShortcuts, aliasPill } from "./shortcuts.js";
 import { renderToday, tickToday, tickTheme, renderGlance, warmWeather } from "./today.js";
-import { placeForm, getPlace, leftBehind, keepPlace, useDevice, couldBeHere } from "./place.js";
+import { placeForm, getPlace, leftBehind, keepPlace, useDevice, couldBeHere, howFound } from "./place.js";
 import { renderExtras, renderMail, renderOften } from "./extras.js";
 import { renderTools } from "./tools.js";
 import { loadNotes, wireNotes, bigNote, noteIsBig } from "./notes.js";
@@ -657,6 +657,16 @@ $("placeOffKeep").onclick = async () => chrome.storage.local.set({ place: { ...(
 const asking = placeForm(placed);
 $("askForm").append(asking);
 $("todayAskForm").append(placeForm(placed));
+// Settings says where the page is set to, how that was found, and changes it.
+$("placeSet").append(placeForm(placed));
+async function showPlaceNow() {
+  const place = await getPlace();
+  // A place the computer found has no name of its own; the forecast names it.
+  const { wx } = await chrome.storage.local.get("wx");
+  const named = place && (place.name || (wx && wx.key === `${place.lat},${place.lon}` && wx.place));
+  $("placeNow").textContent = place ? named || "Near you" : "Not set";
+  $("placeHow").textContent = place ? howFound(place) : "Use this computer's location, or type a city, ZIP or address.";
+}
 $("placeBtn").onclick = () => changePlace();
 
 // Settings is a sheet lifted over the page. Extras are switched on and off in it; each is a
@@ -665,7 +675,7 @@ const drawExtras = () => { renderExtras(drawExtras); if (!isPage(current)) rende
 const settings = (open) => {
   $("extras").hidden = !open;
   $("extrasBtn").setAttribute("aria-expanded", String(open));
-  if (open) drawExtras();
+  if (open) { drawExtras(); showPlaceNow(); }
 };
 $("extrasBtn").onclick = () => { menu(false); settings($("extras").hidden); };
 $("extrasFoot").onclick = () => settings($("extras").hidden);
@@ -766,7 +776,7 @@ for (const ev of ["onCreated", "onRemoved", "onChanged", "onMoved", "onChildrenR
 const redrawSky = () => { if (current === TODAY) renderToday(); else if (isPage(current)) tickTheme(); else renderGlance(); };
 chrome.storage.onChanged.addListener((changes, area) => {
   if (area === "sync" && (changes.aliases || changes.links)) rerender();
-  if (area === "local" && changes.place) { warmWeather(); replaced(changes.place); placeOff(); }
+  if (area === "local" && changes.place) { warmWeather(); replaced(changes.place); placeOff(); if (!$("extras").hidden) showPlaceNow(); }
   if (area === "local" && changes.wxWhy) redrawSky();
   if (area === "local" && (changes.wx || changes.place)) redrawSky();
 });
@@ -800,7 +810,7 @@ wireFind([
   { title: "Today", where: "The sky, the radar and the forecast", run: () => show(TODAY) },
   { title: "Shortcuts", where: "Every short name", run: () => show(KEYS) },
   { title: "Tools", where: "Your connection and what it gives away", run: () => show(TOOLS) },
-  { title: "Settings and extras", where: "Light and dark, an accent, a list, extras", run: () => settings(true) },
+  { title: "Settings and extras", where: "Your place, light and dark, an accent, a list, extras", run: () => settings(true) },
 ]);
 await loadIcons();
 placeOff();
