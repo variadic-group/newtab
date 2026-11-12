@@ -1,6 +1,6 @@
 import { $, el } from "./dom.js";
 import { loadIcons, siteIcon, tabIcon, host } from "./icons.js";
-import { BUILTIN, barChildren, leaves, aliasTable, aliasFor, nextFolder, addToNext } from "./shared.js";
+import { barChildren, bookmarkBars, leaves, aliasTable, aliasFor, nextFolder, addToNext } from "./shared.js";
 import { renderShortcuts, aliasPill } from "./shortcuts.js";
 import { renderToday, tickToday, tickTheme, renderGlance, warmWeather } from "./today.js";
 import { placeForm, getPlace } from "./place.js";
@@ -15,14 +15,15 @@ let pendingRename = null;
 const editing = () => document.body.classList.contains("editing");
 const label = (node) => node.title || host(node.url) || node.url;
 
+// A line at the foot of the page that goes away by itself, with one thing to press if `act` is given.
 let toastTimer;
-function toast(text, undo) {
+function toast(text, act, { label = "Undo", ms = 6000 } = {}) {
   const t = $("toast");
   t.replaceChildren(el("span", null, text));
-  if (undo) { const b = el("button", null, "Undo"); b.type = "button"; b.onclick = () => { undo(); t.hidden = true; }; t.append(b); }
+  if (act) { const b = el("button", null, label); b.type = "button"; b.onclick = () => { act(); t.hidden = true; }; t.append(b); }
   t.hidden = false;
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => { t.hidden = true; }, 6000);
+  toastTimer = setTimeout(() => { t.hidden = true; }, ms);
 }
 
 // ---------- drag and drop ----------
@@ -109,13 +110,14 @@ async function render() {
   if (!current) current = saved || (all[0] && all[0].id) || TODAY;
   if (!isPage(current) && !all.some((s) => s.id === current)) current = all[0] ? all[0].id : TODAY;
 
-  $("spaces").replaceChildren(...all.map((s) => tabFor(s.id, s.title, s)));
+  $("spaces").replaceChildren(...all.map((s) => tabFor(s.id, s.title, s)), newSpaceTab(!all.length));
+  renameNew($("spaces"));
   $("pages").replaceChildren(tabFor(TODAY, "☀️ Today"), tabFor(KEYS, "⌨️ Shortcuts"));
   $("today").hidden = current !== TODAY;
   $("shortcuts").hidden = current !== KEYS;
   $("space").hidden = isPage(current);
   $("edit").hidden = isPage(current);
-  $("empty").hidden = all.length > 0 || isPage(current);
+  $("empty").hidden = all.length > 0;
   if (current === TODAY) return renderToday();
   if (current === KEYS) return renderShortcuts($("scBody"), render);
   const space = all.find((s) => s.id === current);
@@ -132,6 +134,15 @@ function show(id) {
   render();
 }
 
+// A folder made on this page is named straight away: its heading opens as a text box.
+function renameNew(scope) {
+  if (!pendingRename) return;
+  const h = scope.querySelector(`[data-id="${pendingRename}"]`);
+  if (!h) return;
+  pendingRename = null;
+  startRename(h);
+}
+
 function tabFor(id, title, space) {
   const b = el("button", "tab", title);
   b.type = "button";
@@ -139,10 +150,32 @@ function tabFor(id, title, space) {
   b.setAttribute("aria-selected", String(id === current));
   b.onclick = () => show(id);
   if (space && !space.pinned) {
+    // In Edit, a click on the space you are in renames it.
+    b.dataset.id = space.id;
+    b.dataset.name = space.node.title;
+    b.onclick = () => (editing() && id === current ? startRename(b) : show(id));
     dropTarget(b, ["link", "next", "folder", "tab"], (d) => place(d, { parentId: space.id }));
     drags(b, { kind: "space", id: space.id });
     orderTarget(b, ["space"], "x", (d, before) => place(d, slot(space.node, before)));
   }
+  return b;
+}
+
+// In Edit, a "+" after the spaces makes a new one: a folder on the bookmarks bar. With no space
+// yet it is the way in, so it shows without Edit, says what it is, and leaves Edit on.
+function newSpaceTab(first) {
+  const b = el("button", first ? "tab add-space" : "tab add-space edit-only", first ? "+ New space" : "+");
+  b.type = "button";
+  b.title = "New space";
+  b.setAttribute("aria-label", "New space");
+  b.onclick = async () => {
+    const [root] = await chrome.bookmarks.getTree();
+    const f = await chrome.bookmarks.create({ parentId: bookmarkBars(root)[0].id, title: "New space" });
+    pendingRename = f.id;
+    current = f.id;
+    chrome.storage.local.set({ space: f.id });
+    if (!editing()) $("edit").click();
+  };
   return b;
 }
 
@@ -161,13 +194,22 @@ async function renderSpace(space) {
     pendingRename = f.id;
   };
   $("collections").replaceChildren(...cards, add);
+  // Like a collection, a space can be deleted here once it is empty; the bookmark manager
+  // removes a full one.
+  if (!space.pinned && !kids.length) {
+    cards[0].append(el("p", "note view-only", "Nothing here yet. The pencil at the top right adds collections and links; an open tab can be dragged in from the list on the right."));
+    const del = el("button", "mini danger edit-only", "Delete this empty space");
+    del.type = "button";
+    del.onclick = async () => {
+      const { parentId, index, title } = space.node;
+      await chrome.bookmarks.remove(space.id);
+      toast(`Deleted ${space.title}`, () => chrome.bookmarks.create({ parentId, index, title }));
+    };
+    $("collections").append(del);
+  }
   $("saveTabs").onclick = () => saveTabs(space);
   $("saveTabs").hidden = !!space.pinned;
-  if (pendingRename) {
-    const h = document.querySelector(`[data-folder="${pendingRename}"] h2`);
-    pendingRename = null;
-    if (h) startRename(h);
-  }
+  renameNew($("collections"));
 }
 
 function plusIcon() {
@@ -230,6 +272,15 @@ function cardFor(folder, table, isRoot) {
   }
   if (!isRoot) {
     h.onclick = () => { if (editing()) startRename(h); };
+    // A group is a folder inside the collection: a headed row of tiles in this card.
+    const group = el("button", "mini edit-only", "Add group");
+    group.type = "button";
+    group.title = "A headed group of links inside this collection";
+    group.onclick = async () => {
+      const f = await chrome.bookmarks.create({ parentId: folder.id, title: "New group" });
+      pendingRename = f.id;
+    };
+    act.append(group);
     if (!(folder.children || []).length) act.append(deleteButton(folder));
     drags(head, { kind: "folder", id: folder.id }, card);
     orderTarget(card, ["folder"], "y", (d, before) => place(d, slot(folder, before)));
@@ -489,11 +540,26 @@ $("edit").onclick = () => {
 $("glance").onclick = () => show(TODAY);
 
 // Where you are is asked in the glance until it is answered, and changed from Today. Setting it
-// saves the place; the page redraws when that changes.
-const asking = placeForm(() => {});
+// saves the place; the page redraws when that changes. A place that is only an estimate from
+// the network says so, and why when you had pressed the button for the exact one.
+const changePlace = async (open = $("todayAsk").hidden) => {
+  $("todayAsk").hidden = !open;
+  const place = await getPlace();
+  const rough = !!place && place.source === "network";
+  $("todayAskWhy").hidden = !rough;
+  if (rough) $("todayAskWhy").textContent = `${place.name || "This place"} is an estimate from your network. ${place.why || ""} The button tries for the exact spot again; or type a place.`;
+};
+function placed(place, byHand) {
+  $("todayAsk").hidden = true;
+  if (place.source !== "network") return;
+  const where = place.name || "nearby";
+  if (byHand) toast(`${place.why} So this is your network's city instead: ${where}.`, null, { ms: 14000 });
+  else toast(`The sky and forecast are for your network's city: ${where}.`, () => { show(TODAY); changePlace(true); }, { label: "Change", ms: 12000 });
+}
+const asking = placeForm(placed);
 $("askForm").append(asking);
-$("todayAskForm").append(placeForm(() => {}));
-$("placeBtn").onclick = () => { $("todayAsk").hidden = !$("todayAsk").hidden; };
+$("todayAskForm").append(placeForm(placed));
+$("placeBtn").onclick = () => changePlace();
 
 // Extras are switched on and off from the footer; each is a permission Chrome asks for.
 const drawExtras = () => { renderExtras(drawExtras); if (!isPage(current)) { renderMail(); renderFiles(); } };
@@ -510,12 +576,12 @@ chrome.permissions.onRemoved.addListener(drawExtras);
 // be shown inside this one, so a button marked data-go sends this tab to one.
 const hint = $("hint");
 hint.append("Type in the address bar: ");
-for (const name of Object.keys(BUILTIN)) hint.append(el("code", null, `${name}/`), " ");
+for (const name of ["mail", "cal", "drive", "claude"]) hint.append(el("code", null, `${name}/`), " ");
 const all = el("button", "mini", "All shortcuts ›");
 all.type = "button";
 all.id = "goShortcuts";
 all.onclick = () => show(KEYS);
-hint.append("or any link's short name. ", all);
+hint.append("or any link's short name. Add words to search it: ", el("code", null, "mail/invoice"), " ", all);
 document.addEventListener("click", (e) => {
   const go = e.target.closest("[data-go]");
   if (go) chrome.tabs.update({ url: go.dataset.go });
@@ -524,7 +590,7 @@ $("version").textContent = `v${chrome.runtime.getManifest().version}`;
 
 // Redrawing replaces the text boxes, so a change from outside (another tab, sync) waits while one
 // of them is being typed in.
-const typing = () => !!document.activeElement && document.activeElement.matches("#collections input, #scBody input");
+const typing = () => !!document.activeElement && document.activeElement.matches("#spaces input, #collections input, #scBody input");
 let queued;
 function rerender(wait = 60) { clearTimeout(queued); queued = setTimeout(() => (typing() ? rerender(500) : render()), wait); }
 for (const ev of ["onCreated", "onRemoved", "onChanged", "onMoved", "onChildrenReordered", "onImportEnded"]) {

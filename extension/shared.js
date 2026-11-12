@@ -1,16 +1,20 @@
 // Shared by the new tab page and the background worker: where spaces come from, and how a typed
 // short link (mail/, cal/, claude/what-to-ask) resolves to an address.
 
-// The short links that exist whatever is bookmarked. Each one with `search` also takes words.
-// One marked `site` is a whole site: if you have bookmarked that site, your bookmark carries the
-// short name (and is where it opens), rather than getting a second name of its own.
+// The short links that exist whatever is bookmarked: Google's apps and Claude. Words after the
+// slash search inside the app. `own` says which bookmark is the app's own front door: if you
+// have one, it carries the short name (and is where the name opens) rather than getting a
+// second name of its own. Plain web search is not here: the address bar already does that.
+const home = (path) => new RegExp(`^https://docs\\.google\\.com/${path}/(u/\\d+/)?([?#]|$)`);
 export const BUILTIN = {
-  mail: { site: true, url: "https://mail.google.com", search: "https://mail.google.com/mail/u/0/#search/%s", label: "Gmail", example: "mail/invoice searches your mail" },
-  cal: { site: true, url: "https://calendar.google.com", label: "Google Calendar" },
-  drive: { site: true, url: "https://drive.google.com", search: "https://drive.google.com/drive/search?q=%s", label: "Google Drive", example: "drive/contract searches Drive" },
-  keep: { site: true, url: "https://keep.google.com", search: "https://keep.google.com/#search/text=%s", label: "Google Keep, for notes", example: "keep/idea searches your notes" },
-  g: { url: "https://www.google.com", search: "https://www.google.com/search?q=%s", label: "Google search", example: "g/best-pizza searches Google" },
-  claude: { site: true, url: "https://claude.ai/new", search: "https://claude.ai/new?q=%s", label: "Ask Claude", example: "claude/draft a reply to this, or type claude, press Tab, then the question" },
+  mail: { own: /^https:\/\/mail\.google\.com\//, url: "https://mail.google.com/", search: "https://mail.google.com/mail/u/0/#search/%s", label: "Gmail", example: "mail/invoice from the printer" },
+  cal: { own: /^https:\/\/calendar\.google\.com\//, url: "https://calendar.google.com/", search: "https://calendar.google.com/calendar/u/0/r/search?q=%s", label: "Google Calendar", example: "cal/dentist" },
+  drive: { own: /^https:\/\/drive\.google\.com\//, url: "https://drive.google.com/", search: "https://drive.google.com/drive/search?q=%s", label: "Google Drive", example: "drive/contract" },
+  docs: { own: home("document"), url: "https://docs.google.com/document/", search: "https://docs.google.com/document/u/0/?q=%s", label: "Google Docs", example: "docs/board minutes" },
+  sheets: { own: home("spreadsheets"), url: "https://docs.google.com/spreadsheets/", search: "https://docs.google.com/spreadsheets/u/0/?q=%s", label: "Google Sheets", example: "sheets/budget" },
+  slides: { own: home("presentation"), url: "https://docs.google.com/presentation/", search: "https://docs.google.com/presentation/u/0/?q=%s", label: "Google Slides", example: "slides/pitch" },
+  keep: { own: /^https:\/\/keep\.google\.com\//, url: "https://keep.google.com/", search: "https://keep.google.com/#search/text=%s", label: "Google Keep", example: "keep/gift ideas" },
+  claude: { own: /^https:\/\/claude\.ai\/(new\/?)?([?#]|$)/, url: "https://claude.ai/new", search: "https://claude.ai/new?q=%s", label: "Claude", example: "claude/draft a reply to this" },
 };
 
 export const NEXT_TITLE = "⏭️ Next";
@@ -19,9 +23,11 @@ export function slug(text) {
   return (text || "").toLowerCase().normalize("NFKD").replace(/[^a-z0-9]+/g, "");
 }
 
-export function firstWord(text) {
-  const w = (text || "").toLowerCase().normalize("NFKD").replace(/[^a-z0-9 ]+/g, " ").trim().split(/\s+/)[0];
-  return w || "";
+// A title's leading words, squashed, shortest first: "Google Cloud console" gives google,
+// googlecloud, googlecloudconsole.
+function leads(title) {
+  const words = (title || "").toLowerCase().normalize("NFKD").replace(/[^a-z0-9 ]+/g, " ").trim().split(/\s+/).filter(Boolean);
+  return words.map((_, i) => words.slice(0, i + 1).join(""));
 }
 
 export function leaves(node) {
@@ -48,19 +54,16 @@ export async function customAliases() {
   return aliases;
 }
 
-const hostOf = (url) => (URL.canParse(url) ? new URL(url).hostname : "");
 async function allLinks() {
   return (await barChildren()).flatMap((n) => (n.url ? [n] : leaves(n)));
 }
 
-// Which bookmark carries each built-in name: the one on that site with the shortest address
-// (your Claude bookmark, not a page saved from inside Claude), the first on the bar if they tie.
-const depth = (url) => new URL(url).pathname.length;
+// Which bookmark carries each built-in name: the first one on the bar that is that app's front
+// door (your Claude bookmark, not a page saved from inside Claude).
 function claimsIn(links) {
   const claims = new Map();
   for (const [name, b] of Object.entries(BUILTIN)) {
-    if (!b.site) continue;
-    const [mine] = links.filter((l) => hostOf(l.url) === hostOf(b.url)).sort((x, y) => depth(x.url) - depth(y.url));
+    const mine = links.find((l) => b.own.test(l.url));
     if (mine) claims.set(name, mine.url);
   }
   return claims;
@@ -70,27 +73,30 @@ export async function claims() {
 }
 
 // Every bookmark's short links, in the order they are shown: a name you set, a built-in name it
-// carries, its first word when no other bookmark shares it ("admin" for "Admin console"), and
-// its whole name squashed ("adminconsole").
+// carries, the fewest of its leading words that no other bookmark starts with ("admin" for
+// "Admin console"; "googlecloud" and "googleads" when two start with Google), and its whole
+// name squashed ("adminconsole"), which always works too.
 export async function aliasTable() {
   const links = await allLinks();
   const custom = await customAliases();
   const table = new Map();
-  const firstCount = new Map();
-  for (const l of links) { const f = firstWord(l.title); firstCount.set(f, (firstCount.get(f) || 0) + 1); }
   for (const l of links) {
     const own = custom[l.url];
     if (own && !table.has(own)) table.set(own, l.url);
   }
   for (const [name, url] of claimsIn(links)) if (!table.has(name)) table.set(name, url);
+  // Which addresses could go by each leading name. The same page saved twice is one address.
+  const takers = new Map();
+  for (const l of links) for (const n of leads(l.title)) takers.set(n, (takers.get(n) || new Set()).add(l.url));
+  // A built-in name is never handed out automatically: it would show on the tile but open the built-in.
+  const free = (n) => !BUILTIN[n] && !table.has(n);
   for (const l of links) {
-    const f = firstWord(l.title);
-    // A built-in name is never handed out automatically: it would show on the tile but open the built-in.
-    if (f && !BUILTIN[f] && firstCount.get(f) === 1 && !table.has(f)) table.set(f, l.url);
+    const short = leads(l.title).find((n) => takers.get(n).size === 1 && (free(n) || table.get(n) === l.url));
+    if (short) table.set(short, l.url);
   }
   for (const l of links) {
     const s = slug(l.title);
-    if (s && !BUILTIN[s] && !table.has(s)) table.set(s, l.url);
+    if (s && free(s)) table.set(s, l.url);
   }
   return table;
 }
@@ -116,24 +122,43 @@ function wordsOf(rest, plain) {
   return text.replace(/[-+_]/g, " ").trim();
 }
 
-// Where a typed short link goes, or null if it isn't one. `plain` words came from a search, where
-// only a whole name counts: a search for "and/or" must not open the one bookmark starting "and".
+// The site a link belongs to, for searching it: its host without a leading label that only says
+// "the app" (dashboard.stripe.com is stripe.com), as long as a real site is left.
+const APP = /^(www|app|apps|dashboard|dash|console|account|accounts|admin|my|portal|login|secure|manage|online|cloud|us|eu)\./;
+function siteOf(url) {
+  let h = new URL(url).hostname;
+  while (APP.test(h) && h.split(".").length > 2 && h.replace(APP, "") !== "google.com") h = h.replace(APP, "");
+  return h;
+}
+
+// Where a link goes with words after the slash. A built-in app's front door searches the app,
+// whatever you have named it; any other link has no search of its own, so the web is searched
+// for its site.
+function reach(url, query) {
+  if (!query) return url;
+  const app = Object.values(BUILTIN).find((b) => b.own.test(url));
+  return app ? app.search.replace("%s", encodeURIComponent(query)) : { search: `${query} site:${siteOf(url)}` };
+}
+
+// Where a typed short link goes: an address, or { search } for words to hand to the default
+// search engine, or null if it isn't a short link. `plain` words came from a search, where only
+// a whole name counts: a search for "and/or" must not open the one bookmark starting "and".
 export async function resolve(name, rest, plain = false) {
   const key = name.toLowerCase();
   const query = wordsOf(rest, plain);
   const own = (await customLinks())[key];
-  if (own) return own.replace("%s", encodeURIComponent(query));
+  if (own) return own.includes("%s") ? own.replace("%s", encodeURIComponent(query)) : reach(own, query);
   const table = await aliasTable();
   const custom = await customAliases();
-  if (Object.values(custom).includes(key) && table.has(key)) return table.get(key);
+  if (Object.values(custom).includes(key) && table.has(key)) return reach(table.get(key), query);
   const b = BUILTIN[key];
-  if (b && query && b.search) return b.search.replace("%s", encodeURIComponent(query));
+  if (b && query) return b.search.replace("%s", encodeURIComponent(query));
   if (b) return (await claims()).get(key) || b.url;
-  if (table.has(key)) return table.get(key);
+  if (table.has(key)) return reach(table.get(key), query);
   if (plain) return null;
   const hits = [...table.keys()].filter((a) => a.startsWith(key));
   const urls = new Set(hits.map((a) => table.get(a)));
-  return urls.size === 1 ? [...urls][0] : null;
+  return urls.size === 1 ? reach([...urls][0], query) : null;
 }
 
 // Next is a plain bookmarks folder under Other bookmarks, so Chrome syncs it and its order is the

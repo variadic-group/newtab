@@ -42,13 +42,11 @@ function row(key, what, note) {
   return r;
 }
 
-// A bookmark that carries a built-in name also carries that name's note on searching.
 function linkRow(link, table, done) {
   const what = el("a", "sc-what");
   what.href = link.url;
   what.append(siteIcon(link.url, link.title), el("span", "t", link.title || host(link.url)), el("span", "h", host(link.url)));
-  const builtin = BUILTIN[aliasFor(link, table)];
-  return row(aliasPill(link, table, done), what, builtin && builtin.example);
+  return row(aliasPill(link, table, done), what);
 }
 
 // Shortcuts worth a click to add. Each address is the site's own search or ask page.
@@ -119,31 +117,34 @@ export async function renderShortcuts(root, done) {
   const table = await aliasTable();
   const cards = [];
 
-  // A built-in name that one of your bookmarks carries is listed once, with that bookmark.
+  // Every built-in is listed here whether or not you have bookmarked it. One that a bookmark of
+  // yours carries opens that bookmark, which is then listed here and not again under its space:
+  // each name is on this page once.
   const carried = await claims();
   const built = el("article", "sc-card");
-  built.append(el("h2", null, "Always there"));
+  built.append(el("h2", null, "Always there"), el("p", "sc-note lead", "Google's apps and Claude, bookmarked or not. Words after the slash search inside the app."));
   for (const [name, b] of Object.entries(BUILTIN)) {
-    if (carried.has(name) && table.get(name) === carried.get(name)) continue;
     const what = el("a", "sc-what");
-    what.href = b.url;
+    what.href = carried.get(name) || b.url;
     what.append(siteIcon(b.url, b.label), el("span", "t", b.label));
+    if (carried.has(name)) what.append(el("span", "h", "your bookmark"));
     built.append(row(el("code", "key fixed", `${name}/`), what, b.example));
   }
   cards.push(built, await ownCard(done));
+  const listed = (l) => { const name = aliasFor(l, table); return !(BUILTIN[name] && carried.get(name) === l.url); };
 
   for (const space of (await barChildren()).filter((k) => !k.url)) {
     const card = el("article", "sc-card");
     card.append(el("h2", null, space.title));
     const kids = space.children || [];
-    for (const l of kids.filter((k) => k.url)) card.append(linkRow(l, table, done));
+    for (const l of kids.filter((k) => k.url && listed(k))) card.append(linkRow(l, table, done));
     for (const sub of kids.filter((k) => !k.url)) {
-      const links = leaves(sub);
+      const links = leaves(sub).filter(listed);
       if (!links.length) continue;
       card.append(el("h3", null, sub.title));
       for (const l of links) card.append(linkRow(l, table, done));
     }
-    cards.push(card);
+    if (card.children.length > 1) cards.push(card);
   }
   root.replaceChildren(...cards);
 }

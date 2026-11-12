@@ -22,7 +22,9 @@ chrome.webNavigation.onBeforeNavigate.addListener(async (d) => {
   const typed = shortLink(new URL(d.url));
   if (!typed) return;
   const target = await resolve(...typed);
-  if (target) chrome.tabs.update(d.tabId, { url: target });
+  if (typeof target === "string") chrome.tabs.update(d.tabId, { url: target });
+  // Words for a link with no search of its own go to whichever search engine Chrome is set to.
+  else if (target) chrome.search.query({ text: target.search, tabId: d.tabId });
 });
 
 // "claude" then Space or Tab in the address bar takes a question with spaces in it.

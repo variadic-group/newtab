@@ -85,7 +85,7 @@ const PLACES = {
 // icons: "stub" answers the icon services the way they answer (a miss is 16 px), "letters"
 // misses everything so every tile shows its initial, which is what the screenshots use.
 // locate: false leaves the browser with no way to find itself, as on a computer whose location
-// service is off.
+// service is off; the page then falls back to the stubbed network estimate.
 export async function launch({ ext = shipped, icons = "stub", locate = true, viewport = { width: 1360, height: 900 }, ...context } = {}) {
   const profile = fs.mkdtempSync(path.join(os.tmpdir(), "newtab-profile-"));
   const ctx = await chromium.launchPersistentContext(profile, {
@@ -94,7 +94,7 @@ export async function launch({ ext = shipped, icons = "stub", locate = true, vie
     ...(locate ? { geolocation: { latitude: 40.7128, longitude: -74.006 }, permissions: ["geolocation"] } : {}),
   });
   // `at` moves the stubbed forecast to a moment; `titles` names stubbed pages by a piece of their address.
-  const net = { weatherDown: false, points: [], searches: [], holdPage: false, unread: 7, at: null, titles: { "docs.google.com/spreadsheets": "Q4 plan - Google Sheets", "docs.google.com/document": "Launch notes - Google Docs" } };
+  const net = { weatherDown: false, estimateDown: false, estimates: 0, points: [], searches: [], holdPage: false, unread: 7, at: null, titles: { "docs.google.com/spreadsheets": "Q4 plan - Google Sheets", "docs.google.com/document": "Launch notes - Google Docs" } };
   await ctx.route("**/*", async (route) => {
     const u = route.request().url();
     if (u.startsWith("chrome-extension://")) {
@@ -112,6 +112,12 @@ export async function launch({ ext = shipped, icons = "stub", locate = true, vie
         return route.fulfill({ json: { properties: { forecast: "https://api.weather.gov/gridpoints/X/1,1/forecast", forecastHourly: "https://api.weather.gov/gridpoints/X/1,1/forecast/hourly", radarStation: ny ? "KOKX" : "KMUX", relativeLocation: { properties: { city: ny ? "New York" : "San Francisco", state: ny ? "NY" : "CA" } } } } });
       }
       return route.fulfill({ json: { properties: { periods: u.endsWith("/hourly") ? hourly(net.at ?? Date.now()) : forecast(net.at ?? Date.now()) } } });
+    }
+    // The network's city, as the estimate service answers it (its name for the country and all).
+    if (url.hostname === "api.bigdatacloud.net") {
+      net.estimates++;
+      if (net.estimateDown) return route.abort();
+      return route.fulfill({ json: { latitude: 37.7749, longitude: -122.4194, lookupSource: "ip geolocation", city: "San Francisco", locality: "San Francisco", principalSubdivision: "California", countryCode: "US", countryName: "United States of America (the)" }, headers: { "access-control-allow-origin": "*" } });
     }
     if (url.hostname === "nominatim.openstreetmap.org") {
       const q = url.searchParams.get("q");

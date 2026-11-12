@@ -24,6 +24,7 @@
 </header>
 
 <main class="wrap">
+  <p id="empty" class="empty" hidden>Your bookmarks bar has no folders yet. Press “+ New space” at the top to start one, or make folders on the bookmarks bar yourself: each top folder is a tab here, each folder inside it a card of links. ⌘D (Ctrl+D) bookmarks the page you're on.</p>
   <section id="space" class="space" hidden>
     <div class="glance">
       <button type="button" id="glance" class="gl-main" aria-label="Time, daylight, weather and radar. Opens Today.">
@@ -80,6 +81,7 @@
     <article id="todayAsk" class="ask-card" hidden>
       <h2>Where are you?</h2>
       <p class="cap">The sun, the moon, the forecast and the radar are drawn for one place. It stays on this computer.</p>
+      <p id="todayAskWhy" class="note" hidden></p>
       <div id="todayAskForm"></div>
     </article>
     <div id="todayGrid" class="today-grid">
@@ -144,12 +146,11 @@
   <section id="shortcuts" class="shortcuts" hidden>
     <header class="sc-head">
       <h1>Shortcuts</h1>
-      <p>Type one in the address bar and press Enter. Every link gets a short name from its own name; click one to change it. Add any other under “Your own”.</p>
+      <p>Type one in the address bar and press Enter. Words after the slash search: <code>mail/invoice</code> looks in Gmail, and for a link with no search of its own, like <code>github/actions cache</code>, the web is searched for that site. Every bookmark gets its short name from its own name the moment it is saved; click one to change it.</p>
     </header>
     <div id="scBody" class="sc-body"></div>
   </section>
 
-  <p id="empty" class="empty" hidden>Nothing on your bookmarks bar yet. Make a folder there for each part of your work and put links in folders inside it: each top folder becomes a tab here, each folder inside it a card. ⌘D (Ctrl+D) bookmarks the page you're on.</p>
 </main>
 
 <footer class="foot">

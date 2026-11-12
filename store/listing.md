@@ -45,14 +45,14 @@ Your bookmarks are already organised. This makes them your new tab.
 Every folder on your bookmarks bar becomes a tab; every folder inside it becomes a card of icons. Nothing to import and no account: the page is drawn from Chrome's own bookmarks, so it is the same on every computer you sign in to, and removing it loses nothing.
 
 LAUNCH
-• Spaces and collections, straight from the bookmarks bar
+• Spaces, collections and groups, straight from the bookmarks bar; make and rename them on the page
 • Drag to reorder links, cards and tabs; the bookmarks bar changes with you
 • Open a whole collection as one named tab group
 
 TYPE, DON'T CLICK
-• mail/ cal/ drive/ keep/ g/ claude/ in the address bar
-• Every bookmark gets a short name: stripe/ opens Stripe
-• Add words to search: mail/invoice from the printer, claude/what should I ask
+• Every bookmark gets a short name the moment you save it: stripe/ opens Stripe
+• Add words to search that site: stripe/refund policy
+• Google's apps and Claude are always there and search inside themselves: mail/invoice from the printer, cal/dentist, drive/contract, docs/ sheets/ slides/ keep/, claude/what should I ask
 • Add your own: any name to any address
 
 PICK UP WHERE YOU LEFT OFF
@@ -91,8 +91,9 @@ Free and open source.
 | `tabs` | Lists the window's open tabs so one can be switched to, closed, reordered or saved as a bookmark; opens a collection's links. |
 | `tabGroups` | "Open all" opens a collection as one named tab group. |
 | `webNavigation` | Notices when the user types one of their short links (for example `mail/`) in the address bar, to send the tab to the bookmark it names. No browsing data is stored or sent. |
+| `search` | When the user types words after a bookmark's short name (for example `stripe/refund policy`), runs that search on the user's own default search engine through `chrome.search.query`. It does not read or change the search setting. |
 | `storage` | Keeps the user's short names, their own shortcuts, their note, the place they set and a cache of the forecast and icons. |
-| `geolocation` | On the first new tab and when the user clicks "Use this computer's location", to show sunrise, sunset and the local forecast. Chrome shows no location prompt on a new tab page, so the permission is declared; the user can type a place instead. |
+| `geolocation` | On the first new tab and when the user clicks "Use this computer's location", to show sunrise, sunset and the local forecast. Chrome shows no location prompt on a new tab page, so the permission is declared. If the computer refuses, the page falls back to the city of the network connection (marked approximate), and the user can type a place instead. |
 | Host `api.weather.gov` | Fetches the forecast for the user's place from the National Weather Service. |
 | Optional `history` | Only if the user switches on "Recent files": lists the Google Docs, Sheets and Slides they opened lately. Read locally; nothing is sent. |
 | Optional host `mail.google.com` | Only if the user switches on "Unread mail": reads the unread count from Gmail's inbox feed. Only the number is kept, locally. |
@@ -102,7 +103,8 @@ Free and open source.
 **Data use** (tick what applies; a person certifies):
 
 - *Location:* yes. The place the user sets, rounded to about a kilometre, is sent to the National
-  Weather Service to fetch their forecast. Not sold, not used for anything else.
+  Weather Service to fetch their forecast. When the computer won't give a location, BigDataCloud
+  is asked which city the connection's IP address is in. Not sold, not used for anything else.
 - *Web history:* only with the optional "Recent files" switch; read on the device, never sent.
 - *Personal communications:* only with the optional "Unread mail" switch; the count alone, kept
   on the device.
@@ -116,8 +118,9 @@ a folder with a link in it.
 ## What a reviewer may ask about
 
 - **New tab page plus address-bar short links.** Both are the one purpose: launching the user's
-  bookmarks. The short links only ever resolve to the user's own bookmarks, six named Google and
-  Claude addresses, or shortcuts the user typed in.
+  bookmarks. The short links only ever resolve to the user's own bookmarks, eight named Google and
+  Claude addresses, shortcuts the user typed in, or a search for the bookmark's site on the
+  user's own default search engine.
 - **Reading a search.** A short link typed with spaces is sent by Chrome to the search engine;
   the extension redirects that one navigation when the search starts with one of the user's short
   names and a slash. It does not change the default search engine or any setting.

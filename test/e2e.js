@@ -30,7 +30,7 @@ ok("the first new tab asks the computer where it is, saves that rounded, and the
 ok("tabs: spaces, then Today and Shortcuts", true, [await p.$$eval("#spaces .tab", (x) => x.map((e) => e.textContent)), await p.$$eval("#pages .tab", (x) => x.map((e) => e.textContent))]);
 ok("the glance shows the time, the sun and the weather now", /\d/.test(await text(p, "#glTime")) && /↑ \d/.test(await text(p, "#glRise")) && /↓ \d/.test(await text(p, "#glSet")) && / in \d/.test(await text(p, "#glLeft")) && /^\d+°$/.test(await text(p, "#glTemp")) && /High|Low/.test(await text(p, "#glHiLo")), { time: await text(p, "#glTime"), sun: await text(p, "#glLeft"), now: [await text(p, "#glTemp"), await text(p, "#glText"), await text(p, "#glHiLo")] });
 ok("the glance has a radar still, not the loop", /_0\.gif/.test(await p.$eval("#glRadarImg", (i) => i.src)) && !(await p.$("#glRadar[hidden]")));
-ok("the footer says how to type a short link, leads to them all, and holds Extras and the version", /mail\/.*claude\/.*short name/.test(await text(p, "#hint")) && !!(await p.$("#hint #goShortcuts")) && (await p.$$eval(".foot nav .mini", (x) => x.map((e) => e.id))).join() === "extrasBtn,version" && (await text(p, "#version")) === "v" + manifest.version, await text(p, "#hint"));
+ok("the footer says how to type a short link and how to search with one, leads to them all, and holds Extras and the version", /mail\/.*claude\/.*short name.*mail\/invoice/.test(await text(p, "#hint")) && !!(await p.$("#hint #goShortcuts")) && (await p.$$eval(".foot nav .mini", (x) => x.map((e) => e.id))).join() === "extrasBtn,version" && (await text(p, "#version")) === "v" + manifest.version, await text(p, "#hint"));
 ok("Edit is a pencil with a name for screen readers; the bookmark manager shows only while editing", (await p.getAttribute("#edit", "aria-label")) === "Edit bookmarks" && !!(await p.$("#edit svg")) && !(await p.isVisible('[data-go="chrome://bookmarks/"]')));
 await p.mouse.move(700, 4);
 ok("\"Open all\" waits for the pointer, and cards carry no count", (await p.$eval(".card .act", (e) => getComputedStyle(e).opacity)) === "0" && !(await p.$(".card-head .n")) && !(await p.$(".panel .sub")));
@@ -72,7 +72,7 @@ ok("a tile dropped on the right of one in another card lands after it", (await t
 await drag(p, `.card[data-folder="${money.id}"] .card-head`, `.card[data-folder="${ws.id}"]`, "top");
 ok("a card dragged by its head lands above the card it is dropped on", (await titles("🏢 Work")).slice(0, 2).join() === "💵 Money,✉️ Workspace", await titles("🏢 Work"));
 await drag(p, '#spaces .tab:has-text("Product")', '#spaces .tab:has-text("Work")', "left");
-ok("a space tab dragged onto another reorders the bookmarks bar", (await p.$$eval("#spaces .tab", (x) => x.map((e) => e.textContent))).join() === "📖 Product,🏢 Work" && (await tree()).children[0].children[0].title === "📖 Product");
+ok("a space tab dragged onto another reorders the bookmarks bar", (await p.$$eval("#spaces .tab:not(.add-space)", (x) => x.map((e) => e.textContent))).join() === "📖 Product,🏢 Work" && (await tree()).children[0].children[0].title === "📖 Product");
 await drag(p, "#tabs li:nth-child(2)", "#tabs li:nth-child(1)", "top");
 ok("an open tab dragged above another moves in the tab strip", (await tabOrder()).join() === "example.org,example.com", await tabOrder());
 await p.hover("#tabs li:nth-child(1)"); await p.click("#tabs li:nth-child(1) .close"); await p.waitForFunction(() => document.querySelectorAll("#tabs li").length === 1);
@@ -105,7 +105,20 @@ ok("renaming a group changes its own name, not its path", !!find(await tree(), "
 ok("New collection is drawn like Add link: a dashed plus and a label", !!(await p.$(".new-card .sico.plus")) && (await text(p, ".new-card .name")) === "New collection" && !!(await p.$(".tile.add .sico.plus")));
 await p.click(".new-card"); await p.waitForSelector(".rename"); await p.fill(".rename", "📎 Extras"); await p.keyboard.press("Enter"); await p.waitForTimeout(300);
 ok("New collection adds a folder and names it", !!find(await tree(), "📎 Extras"));
+const banking = find(await tree(), "💵 Banking");
+await p.click(`.card[data-folder="${banking.id}"] .act button:has-text("Add group")`); await p.waitForSelector(".rename"); await p.fill(".rename", "Receipts"); await p.keyboard.press("Enter"); await p.waitForSelector('.group h3:text-is("Receipts")');
+ok("Add group makes a folder inside the collection, shown as an empty headed group that can be deleted", find(await tree(), "Receipts").parentId === banking.id && /Drag a link here/.test(await text(p, `.group[data-folder="${find(await tree(), "Receipts").id}"]`)) && !!(await p.$(`.group[data-folder="${find(await tree(), "Receipts").id}"] .danger`)));
+ok("in Edit a + follows the spaces", (await p.isVisible("#spaces .add-space")) && (await text(p, "#spaces .add-space")) === "+");
+await p.click("#spaces .add-space"); await p.waitForSelector("#spaces .rename"); await p.fill("#spaces .rename", "🧪 Lab"); await p.keyboard.press("Enter"); await p.waitForSelector('#spaces .tab[aria-selected="true"]:has-text("Lab")');
+const bar = async () => (await tree()).children[0].children.map((c) => c.title);
+ok("+ makes a space, a folder on the bookmarks bar, names it and opens it", (await bar()).join() === "📖 Product,🏢 Work,🧪 Lab" && /Nothing here yet/.test(await text(p, "#collections")), await bar());
+await p.click('#spaces .tab[aria-selected="true"]'); await p.waitForSelector("#spaces .rename"); await p.fill("#spaces .rename", "🧪 Labs"); await p.keyboard.press("Enter"); await p.waitForSelector('#spaces .tab:has-text("Labs")');
+ok("in Edit, a click on the space you are in renames it", (await bar()).at(-1) === "🧪 Labs");
+await p.click('#collections button:has-text("Delete this empty space")'); await p.waitForFunction(() => document.querySelectorAll("#spaces .tab:not(.add-space)").length === 2);
+ok("an empty space can be deleted, and the page moves to another", (await bar()).join() === "📖 Product,🏢 Work" && !!(await p.$('#spaces .tab[aria-selected="true"]')));
+await p.click('#spaces .tab:has-text("Work")'); await p.waitForSelector(`.card[data-folder="${banking.id}"]`);
 await p.click("#edit");
+ok("out of Edit the + is gone", !(await p.isVisible("#spaces .add-space")));
 
 await p.click("#saveTabs"); await p.waitForTimeout(500);
 const saved = find(await tree(), "🏢 Work").children.find((c) => c.title.startsWith("🗂️ Tabs"));
@@ -117,9 +130,17 @@ ok("Open all makes one named tab group", groups.titles.join() === "✉️ Worksp
 // ---------- shortcuts page ----------
 await p.bringToFront(); await p.click('#pages .tab:has-text("Shortcuts")'); await p.waitForSelector(".sc-card");
 const keys = () => p.$$eval("#scBody .key", (x) => x.map((e) => e.textContent));
-ok("built-in names with no bookmark of their own are listed under Always there", (await p.$$eval(".key.fixed", (x) => x.map((e) => e.textContent))).join() === "g/");
-ok("claude/ is carried by the Claude bookmark, not by a page saved from inside Claude", (await keys()).filter((k) => k === "claude/").length === 1 && (await text(p, '.sc-row:has-text("claude.ai") >> nth=0')).includes("Plan") && (await text(p, '.sc-row:has(.key:text-is("claude/")) .t')) === "Claude", await p.$$eval('.sc-row:has-text("claude.ai")', (x) => x.map((e) => e.textContent.slice(0, 40))));
-ok("a bookmark of a built-in's site carries its name, once: Calendar is cal/, Gmail is mail/", (await keys()).filter((k) => k === "cal/").length === 1 && (await keys()).filter((k) => k === "mail/").length === 1 && !(await keys()).some((k) => ["calendar/", "gmail/"].includes(k)) && /mail\/invoice/.test(await text(p, '.sc-row:has-text("Gmail") .sc-note')), await keys());
+ok("Always there lists Google's apps and Claude, bookmarked or not, and no plain web search", (await p.$$eval(".key.fixed", (x) => x.map((e) => e.textContent))).join() === "mail/,cal/,drive/,docs/,sheets/,slides/,keep/,claude/");
+const always = (name) => p.$eval(`.sc-row:has(.key:text-is("${name}/")) .sc-what`, (a) => `${a.textContent}|${a.getAttribute("href")}`);
+ok("a built-in you have bookmarked opens your bookmark; one you haven't opens the app", (await always("cal")) === "Google Calendaryour bookmark|https://calendar.google.com/calendar/u/0/r" && (await always("docs")) === "Google Docs|https://docs.google.com/document/", [await always("cal"), await always("docs")]);
+ok("each name is on the page once: claude/ is the Claude bookmark, and a page saved from inside Claude has its own", (await keys()).filter((k) => k === "claude/").length === 1 && (await keys()).filter((k) => k === "mail/").length === 1 && !(await keys()).some((k) => ["calendar/", "gmail/"].includes(k)) && (await text(p, '.sc-row:has-text("claude.ai") .key')) === "plan/", await keys());
+ok("each built-in shows what a search with it looks like", /mail\/invoice/.test(await text(p, '.sc-row:has(.key:text-is("mail/")) .sc-note')) && /cal\/dentist/.test(await text(p, '.sc-row:has(.key:text-is("cal/")) .sc-note')));
+const platform = find(await tree(), "🧰 Platform");
+await sw.evaluate(async (parentId) => { for (const [title, url] of [["Google Cloud console", "https://console.cloud.google.com/"], ["Google Ads", "https://ads.google.com/"], ["Docs", "https://docs.product.example/"]]) await chrome.bookmarks.create({ parentId, title, url }); }, platform.id);
+await p.waitForFunction(() => [...document.querySelectorAll("#scBody .key")].some((k) => k.textContent === "googleads/"));
+const nameOf = (title) => p.$eval(`.sc-row:has(.t:text-is("${title}")) .key`, (k) => k.textContent);
+ok("a new bookmark is named at once by the fewest leading words no other bookmark starts with", (await nameOf("Google Cloud console")) === "googlecloud/" && (await nameOf("Google Ads")) === "googleads/" && (await nameOf("Admin console")) === "admin/", [await nameOf("Google Cloud console"), await nameOf("Google Ads")]);
+ok("a bookmark named like a built-in app that isn't that app gets no name of its own, and says so", (await nameOf("Docs")) === "set a name" && (await go("http://docs/")) === "https://docs.google.com/document/");
 ok("Chrome's own search shortcuts are one click from the Shortcuts page", !!(await p.$('#scBody [data-go="chrome://settings/searchEngines"]')));
 ok("no tasks/ shortcut; todo/ comes from the Todo list bookmark", !(await keys()).includes("tasks/") && (await keys()).includes("todo/"));
 await p.locator(".sc-row", { hasText: "Stripe" }).locator(".key").click(); await p.fill(".alias-input", "pay"); await p.keyboard.press("Enter");
@@ -142,6 +163,11 @@ ok("admin/ → bookmark by first word", (await go("http://admin/")).startsWith("
 ok("todo/ → the Todo list bookmark", (await go("http://todo/")) === "https://todo.example.com/");
 ok("claude/what-is-x → Claude with the question", (await go("http://claude/what-is-x")) === "https://claude.ai/new?q=what%20is%20x");
 ok("keep/idea → searches Keep", (await go("http://keep/idea")).startsWith("https://keep.google.com/#search/text=idea"));
+ok("docs/board-minutes and cal/dentist search inside those apps, bookmarked or not", (await go("http://docs/board-minutes")) === "https://docs.google.com/document/u/0/?q=board%20minutes" && (await go("http://cal/dentist")) === "https://calendar.google.com/calendar/u/0/r/search?q=dentist", [await go("http://docs/board-minutes"), await go("http://cal/dentist")]);
+const asked = async (u) => { const r = new URL(await go(u)); return `${r.hostname}${r.pathname}?q=${r.searchParams.get("q")}`; };
+ok("words after any other link's name search the web for its site, on Chrome's own search engine", (await asked("http://pay/refund-policy")) === "www.google.com/search?q=refund policy site:stripe.com" && (await asked("http://admin/users")) === "www.google.com/search?q=users site:admin.google.com", [await asked("http://pay/refund-policy"), await asked("http://admin/users")]);
+ok("typed with spaces it does the same", (await asked("https://www.google.com/search?q=pay%2Frefund+policy")) === "www.google.com/search?q=refund policy site:stripe.com", await asked("https://www.google.com/search?q=pay%2Frefund+policy"));
+ok("g/ is no longer a shortcut: plain words are what the address bar already searches", (await go("http://g/best-pizza")) === "http://g/best-pizza");
 ok("tasks/ and unknown words are left alone", (await go("http://tasks/")) === "http://tasks/" && (await go("http://nope/")) === "http://nope/");
 ok("real sites are left alone", (await go("https://example.com/x")) === "https://example.com/x");
 // With a space in it, Chrome searches for what was typed; that search is read as the short link.
@@ -284,19 +310,52 @@ ok("their switches read On", (await e.$$eval(".extra .btn", (x) => x.map((b) => 
 ok("no page errors with the extras on", g.errs.length === 0, g.errs);
 await g.ctx.close();
 
-// ---------- a computer that can't say where it is ----------
+// ---------- nothing bookmarked, and a computer that can't say where it is ----------
 const n = await launch({ locate: false });
-await seed(n.sw);
-const f = await n.open(); await f.waitForSelector(".card");
-await f.waitForFunction(() => /couldn't work out|isn't allowed|took too long/.test(document.querySelector("#askForm .note").textContent), null, { timeout: 15000 }).catch(() => {});
-ok("when the computer can't say where it is, the first new tab says why, asks, and looks nothing up", !(await f.$("#ask[hidden]")) && !!(await f.$("#glSun[hidden]")) && n.net.points.length === 0 && /Type a place/.test(await text(f, "#askForm .note")) && /\d/.test(await text(f, "#glTime")), await text(f, "#askForm .note"));
+const local = (key) => n.sw.evaluate(async (k) => (await chrome.storage.local.get(k))[k], key);
+const f = await n.open();
+await f.waitForFunction(() => /network's city/.test(document.getElementById("toast").textContent), null, { timeout: 15000 }).catch(() => {});
+ok("with no folders on the bookmarks bar the page says so and offers a first space without Edit", (await f.isVisible("#empty")) && (await text(f, "#spaces .add-space")) === "+ New space" && (await f.isVisible("#spaces .add-space")) && !(await f.$("#today[hidden]")));
+ok("when the computer won't say where it is, the first new tab uses the network's city, rounded, and says so", (await local("place")).source === "network" && (await local("place")).name === "San Francisco, California" && (await local("place")).lat === 37.77 && (await local("place")).lon === -122.42 && /^The sky and forecast are for your network's city: San Francisco, California\./.test(await text(f, "#toast")) && n.net.estimates === 1, { place: await local("place"), toast: await text(f, "#toast") });
+await f.waitForFunction(() => /approximate/.test(document.getElementById("place").textContent) && document.querySelector(".wx-temp"), null, { timeout: 8000 }).catch(() => {});
+ok("Today marks the place approximate and the forecast is for it", (await text(f, "#place")) === "San Francisco, California (approximate)" && n.net.points.join() === "37.77,-122.42" && /Estimated from your network/.test(await f.getAttribute("#placeBtn", "title")), [await text(f, "#place"), n.net.points]);
+await f.click("#toast button"); await f.waitForSelector("#todayAsk:not([hidden])");
+ok("Change on that notice opens the place form, which says it is an estimate and why", /is an estimate from your network\. .*(couldn't work out|isn't allowed|took too long)/.test(await text(f, "#todayAskWhy")), await text(f, "#todayAskWhy"));
+await f.click('#todayAskForm button:has-text("Use this computer")');
+await f.waitForFunction(() => /instead/.test(document.getElementById("toast").textContent), null, { timeout: 15000 }).catch(() => {});
+ok("pressing the button says why the exact spot was refused and what it used instead", /(couldn't work out|isn't allowed|took too long).* So this is your network's city instead: San Francisco, California\.$/.test(await text(f, "#toast")), await text(f, "#toast"));
+await f.click("#spaces .add-space"); await f.waitForSelector("#spaces .rename"); await f.fill("#spaces .rename", "🏠 Home"); await f.keyboard.press("Enter"); await f.waitForSelector('#spaces .tab[aria-selected="true"]:has-text("Home")');
+ok("the first space is made from the page, opens, and leaves Edit on to fill it", (await n.tree()).children[0].children.map((c) => c.title).join() === "🏠 Home" && (await f.evaluate(() => document.body.classList.contains("editing"))) && !(await f.isVisible("#empty")) && (await f.isVisible(".tile.add")));
 await f.close();
+
+// the estimate unreachable too: nothing is assumed, and the page asks
+n.net.estimateDown = true;
+await n.sw.evaluate(() => chrome.storage.local.remove(["place", "placeTried", "wx"]));
+const f1 = await n.open(); await f1.waitForSelector(".card");
+await f1.waitForFunction(() => /type a place/.test(document.querySelector("#askForm .note").textContent), null, { timeout: 15000 }).catch(() => {});
+ok("with no location and no estimate it says why, asks, and looks nothing up", !(await f1.$("#ask[hidden]")) && !!(await f1.$("#glSun[hidden]")) && n.net.points.length === 1 && /(couldn't work out|isn't allowed|took too long).* Its network couldn't be placed either, so type a place\.$/.test(await text(f1, "#askForm .note")) && /\d/.test(await text(f1, "#glTime")), await text(f1, "#askForm .note"));
+await f1.close();
 const f2 = await n.open(); await f2.waitForSelector(".card"); await f2.waitForTimeout(1200);
 ok("it asks the computer once, not on every new tab", (await text(f2, "#askForm .note")) === "" && !(await f2.$("#ask[hidden]")));
 await f2.fill("#askForm input", "94103"); await f2.press("#askForm input", "Enter"); await f2.waitForSelector("#askForm .place-hits button");
 await f2.click("#askForm .place-hits button");
 await f2.waitForFunction(() => /^\d+°$/.test(document.getElementById("glTemp").textContent), null, { timeout: 8000 }).catch(() => {});
-ok("typing a place there and pressing Enter sets it, and the strip fills in", (await n.sw.evaluate(async () => (await chrome.storage.local.get("place")).place.name)) === "San Francisco, California" && !!(await f2.$("#ask[hidden]")) && /^\d+°$/.test(await text(f2, "#glTemp")) && n.net.points.join() === "37.77,-122.41");
+ok("typing a place there and pressing Enter sets it, and the strip fills in", (await local("place")).name === "San Francisco, California" && (await local("place")).source === "typed" && !!(await f2.$("#ask[hidden]")) && /^\d+°$/.test(await text(f2, "#glTemp")) && n.net.points.at(-1) === "37.77,-122.41");
+await f2.close();
+
+// six hours on: an exact place is never swapped for a guess, and a guess becomes exact when it can
+const aged = (place) => n.sw.evaluate((p) => chrome.storage.local.set({ place: { ...p, at: Date.now() - 7 * 3600e3 } }), place);
+n.net.estimateDown = false;
+const asked0 = n.net.estimates;
+await aged({ lat: 40.71, lon: -74.01, source: "device" });
+let f3 = await n.open(); await f3.waitForSelector(".card"); await f3.waitForTimeout(2500);
+ok("an exact place the computer can't confirm later is kept, and the network is not asked", (await local("place")).source === "device" && (await local("place")).lat === 40.71 && n.net.estimates === asked0, { place: await local("place"), asked: n.net.estimates - asked0 });
+await f3.close();
+await n.ctx.grantPermissions(["geolocation"]); await n.ctx.setGeolocation({ latitude: 40.7128, longitude: -74.006 });
+await aged({ lat: 37.77, lon: -122.42, name: "San Francisco, California", source: "network", why: "It was off." });
+f3 = await n.open(); await f3.waitForSelector(".card");
+await f3.waitForFunction(() => chrome.storage.local.get("place").then(({ place }) => place.source === "device"), null, { timeout: 15000 }).catch(() => {});
+ok("an estimate becomes the exact place by itself once the computer will say where it is", (await local("place")).source === "device" && (await local("place")).lat === 40.71 && !(await local("place")).name && n.net.estimates === asked0, await local("place"));
 ok("no page errors without a location", n.errs.length === 0, n.errs);
 await n.ctx.close();
 

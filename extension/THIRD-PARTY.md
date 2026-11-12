@@ -37,6 +37,10 @@ These are not bundled; the page asks them for data. What each one receives is in
 
 - [National Weather Service API](https://www.weather.gov/documentation/services-web-api) and
   radar images: United States government data, in the public domain.
+- [BigDataCloud's free client-side reverse geocoding API](https://www.bigdatacloud.com/docs/api/free-reverse-geocode-to-city-api),
+  asked without coordinates for the city this network connection appears to be in, only when
+  the computer won't give its own location. No key; client-side use only, under its fair use
+  policy (checked 2026-11-11).
 - [Nominatim](https://nominatim.org/), for the city search: data © OpenStreetMap contributors,
   under the [ODbL](https://www.openstreetmap.org/copyright).
 - Google's icon service (`google.com/s2/favicons`) and product icons (`gstatic.com`), for the

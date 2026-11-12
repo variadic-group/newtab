@@ -3,8 +3,8 @@
 **Your bookmarks are already organised. This makes them your new tab.**
 
 A new tab page for Chrome, drawn live from your bookmarks bar. Every folder on the bar is a tab;
-every folder inside it is a card of icons. Type `mail/` or `claude/what should I ask` in the
-address bar and go. Look up and see the sun where it really is.
+every folder inside it is a card of icons. Type `mail/`, `stripe/refund policy` or
+`claude/what should I ask` in the address bar and go. Look up and see the sun where it really is.
 
 Nothing to import. No account. Remove it and you have lost nothing.
 
@@ -37,18 +37,19 @@ This page adds a face to that store and keeps nothing of its own:
 - **Drag to reorder** tiles, cards and space tabs. It is your bookmarks moving, so the order
   holds everywhere.
 - **Open all** opens a collection as one named tab group.
-- **The pencil** (top right) turns on editing: click a name to rename a link, a card or a
-  group; add and remove in place, with Undo.
+- **The pencil** (top right) turns on editing: add a space, a collection, a group or a link;
+  click a name to rename any of them; remove in place, with Undo.
 
 **Type, don't click**
-- `mail/` `cal/` `drive/` `keep/` `g/` `claude/` work from the address bar.
 - **Every bookmark gets a short name** from its own name, the moment it is bookmarked:
-  `stripe/`, `github/`. Click one on the Shortcuts page to change it. A bookmark of Gmail,
-  Calendar, Drive or Keep carries the built-in name, so each place has one short name.
-- **Add words to search:** `mail/invoice from the printer`, `drive/contract`,
+  `stripe/`, `github/`. Nothing to set up; click one to change it.
+- **Words after the slash search.** `stripe/refund policy` searches the web for that site with
+  whichever search engine Chrome uses. Shortcuts you add yourself put the words wherever you
+  say, with `%s`: `gpt/`, `yt/`, `gh/`, `maps/` and `wiki/` are one click to add.
+- **Google's apps and Claude are always there,** bookmarked or not, and search inside
+  themselves: `mail/invoice from the printer`, `cal/dentist`, `drive/contract`,
+  `docs/board minutes`, `sheets/budget`, `slides/pitch`, `keep/gift ideas`,
   `claude/draft a reply to this`. Or type `claude`, press Tab, and ask.
-- **Your own shortcuts:** any name to any address, with `%s` where the words go. `gpt/`, `yt/`,
-  `gh/`, `maps/` and `wiki/` are one click to add.
 
 **Pick up where you left off**
 - **Up next:** pages to come back to, in order. One click on the toolbar button, or Alt+Shift+S.
@@ -97,16 +98,37 @@ New Tab is built and tested on Chrome 120 and later. Other Chromium browsers are
 ## First five minutes
 
 1. **Check where you are.** The first new tab asks the computer for its location. If the
-   computer can't say (on a Mac, Chrome needs Location Services switched on for it), the strip
-   at the top says why and takes a city, a ZIP code or an address instead. No place is ever
-   assumed.
-2. **Shape the bar.** In Chrome's bookmark manager (the pencil offers a link to it), make one folder on
-   the bookmarks bar per area of work, and folders inside for collections. Emoji in the names
-   read well as tabs: `🏢 Work`, `✉️ Mail and calendar`, `💵 Money`.
+   computer won't say (on a Mac, Chrome needs Location Services switched on for it), the page
+   uses the city your network connection appears to be in, marks it approximate, and says how
+   to make it exact. Or type a city, a ZIP code or an address. If none of that works it asks;
+   no place is ever assumed.
+2. **Shape the bar.** Press the pencil: **+** after the tabs makes a space, **New collection**
+   a card, **Add group** a headed group inside a card. They are folders on your bookmarks bar,
+   so Chrome's bookmark manager (linked beside the pencil) does the same, and bulk moves.
+   Emoji in the names read well as tabs: `🏢 Work`, `✉️ Mail and calendar`, `💵 Money`.
 3. **Learn three short links.** `mail/`, `cal/`, and the short name of the site you open most.
    The Shortcuts page lists them all.
 4. **Pin the toolbar button** (puzzle icon → pin). Clicking it on any page saves that page to
    Up next.
+
+## How a new bookmark gets its place, icon and names
+
+Nothing is configured; all of it follows from the bookmark itself.
+
+| | Where it comes from | To change it |
+|---|---|---|
+| **Place** | The folder you saved it in. ⌘D (Ctrl+D) offers the last folder you used; a page saved with the toolbar button waits in Up next | Drag the tile to another card, group or space tab |
+| **Icon** | The site's own icon; Google's apps get their product icon; a site with none gets its initial | It follows the address |
+| **Name** | The bookmark's name | The pencil, then click the name |
+| **Short name** | The fewest leading words of the name that no other bookmark starts with: `admin/` for "Admin console"; `googlecloud/` and `googleads/` when two start with Google. The whole name squashed (`adminconsole/`) always works too | Click it on the Shortcuts page, or on the tile while editing |
+
+A bookmark of Gmail, Calendar, Drive, Docs, Sheets, Slides, Keep or Claude takes that app's
+built-in name (`mail/`, `cal/`, …), so each place has one name. Those eight names are reserved:
+a bookmark called "Docs" that is something else gets no automatic name until you click and give
+it one.
+
+Folders nest as deep as you like. A folder on the bar is a space; a folder in a space is a
+collection; a folder in a collection is a group, and one inside that shows as `Filings › Federal`.
 
 ## Permissions, and what leaves your browser
 
@@ -115,14 +137,16 @@ New Tab is built and tested on Chrome 120 and later. Other Chromium browsers are
 | Bookmarks | The page *is* your bookmarks; edits here are edits to them |
 | Tabs and tab groups | The Open tabs list; opening a collection as a group |
 | Web navigation | Noticing a typed short link. Chrome words this, with Tabs, as "read your browsing history"; nothing is stored or sent |
+| Search | Handing the words after a short name to whichever search engine Chrome is set to. It cannot read or change that setting |
 | Storage | Your short names, shortcuts and note (synced by Chrome); your place and caches (this browser only) |
 | Location | On the first new tab, and when you press "Use this computer's location". Chrome shows no location prompt on a new tab page, so the extension holds the permission itself |
 | `api.weather.gov` | The forecast |
 
-Three services are called, each with the least it needs: the National Weather Service gets your
-place rounded to about a kilometre; OpenStreetMap's Nominatim gets what you type when you press
-Search; Google's icon service gets the host names of your bookmarks. The full account is in
-[PRIVACY.md](PRIVACY.md).
+Four services are called, each with the least it needs: the National Weather Service gets your
+place rounded to about a kilometre; BigDataCloud is asked which city your network is in, only
+when the computer won't give its location; OpenStreetMap's Nominatim gets what you type when you
+press Search; Google's icon service gets the host names of your bookmarks. The full account is
+in [PRIVACY.md](PRIVACY.md).
 
 **Extras** (footer → Extras) are off until you switch them on, and Chrome asks at that moment:
 your Gmail unread count in the top strip, and a list of the Google Docs, Sheets and Slides you
@@ -134,6 +158,10 @@ opened lately.
   Weather Service. Everywhere else the sun, moon and twilights still work.
 - **A short link with spaces** (`claude/what should I ask`) reaches Chrome as a search, which the
   extension redirects. With hyphens, or with `claude` then Tab, nothing is searched at all.
+- **An approximate place** comes from your network connection, so a VPN moves it. Turn on
+  location for Chrome, or type a place, and it stops guessing.
+- **Deleting is for empty things.** A link has an ×; a group, a collection or a space can be
+  deleted here once it is empty. Chrome's bookmark manager removes a full one.
 - **Chrome's own site-search shortcuts** can't be read or changed by an extension; the Shortcuts
   page links to that settings page.
 - **Signed in to Chrome with sync on**, bookmarks live in the account's own bookmarks bar. The
@@ -159,7 +187,7 @@ No build step. The extension is the `extension` folder as it stands.
 ```
 npm install
 npx playwright install chromium
-npm test            # 13 astronomy checks in Node, then 108 checks in a real Chromium
+npm test            # 13 astronomy checks in Node, then 129 checks in a real Chromium
 npm run shots       # the screenshots in store/screenshots
 npm run zip         # newtab.zip, ready to upload or release
 ```
@@ -177,6 +205,8 @@ request stubbed.
 Sun and moon positions are ported from [SunCalc](https://github.com/mourner/suncalc) by
 Volodymyr Agafonkin (BSD 2-Clause); see [THIRD-PARTY.md](extension/THIRD-PARTY.md). Weather and
 radar are from the U.S. National Weather Service. City search is © OpenStreetMap contributors.
+The approximate place is from BigDataCloud. What the product is for, flow by flow, is in
+[PRODUCT.md](PRODUCT.md).
 
 ## Licence
 

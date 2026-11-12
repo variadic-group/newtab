@@ -2,7 +2,7 @@
 // the National Weather Service forecast and the radar. Nothing here waits for the network before
 // drawing: it starts from the saved place and the last forecast, then replaces them.
 import { $, el } from "./dom.js";
-import { getPlace, placeKey, deviceMoved } from "./place.js";
+import { getPlace, placeKey, placeMoved } from "./place.js";
 import { sunPosition, sunTimes, moonPosition, moonPhase, moonTimes, lightPhase, nextLight, nightSpan, skyColors } from "./sky.js";
 
 const FRESH_MS = 20 * 60e3;
@@ -94,7 +94,7 @@ export async function warmWeather() {
   const quiet = (err) => console.warn("weather:", err.message);
   const wx = await cachedWeather(place);
   if (!wx || Date.now() - wx.at > FRESH_MS) refreshWeather(place).catch(quiet);
-  const moved = await deviceMoved(place);
+  const moved = await placeMoved(place);
   if (moved) refreshWeather(moved).catch(quiet);
 }
 
@@ -277,10 +277,15 @@ function nowOf(wx) {
   return { hours, days, now: hours[0] || wx.daily[0], today: days[0] || {} };
 }
 const radarUrl = (station, which) => `https://radar.weather.gov/ridge/standard/${station}_${which}.gif?t=${Math.floor(Date.now() / 300000)}`;
-const nameOf = (place, wx) => place.name || (wx && wx.place) || `${place.lat}, ${place.lon}`;
+// The place's name over the forecast. One estimated from the network says so, and why.
+function showPlace(place, wx) {
+  const rough = place.source === "network";
+  $("place").textContent = (place.name || (wx && wx.place) || `${place.lat}, ${place.lon}`) + (rough ? " (approximate)" : "");
+  $("placeBtn").title = rough ? `Estimated from your network. ${place.why || ""} Click to set the place.` : "Change the place";
+}
 
 function drawWeather(wx, place) {
-  $("place").textContent = nameOf(place, wx);
+  showPlace(place, wx);
   $("updated").textContent = `National Weather Service · ${fmtTime(new Date(wx.at))}`;
   const { hours, days, now, today } = nowOf(wx);
 
@@ -329,7 +334,7 @@ function drawWeather(wx, place) {
 }
 
 function clearWeather(place, text) {
-  $("place").textContent = nameOf(place);
+  showPlace(place);
   $("updated").textContent = "";
   $("skyWx").textContent = "";
   $("wxNow").replaceChildren();
@@ -358,10 +363,15 @@ async function update(place, hadForecast) {
   }
 }
 
+// The place form shows itself while there is no place and goes once there is one. Opened by
+// hand to change the place, it stays until one is chosen: a forecast arriving must not shut it.
+let unplaced = false;
 export async function renderToday() {
   const place = await getPlace();
   applyTheme(place);
-  $("todayAsk").hidden = !!place;
+  if (!place) $("todayAsk").hidden = false;
+  else if (unplaced) $("todayAsk").hidden = true;
+  unplaced = !place;
   $("todayGrid").hidden = !place;
   if (!place) return;
   drawClock();

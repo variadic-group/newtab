@@ -1,6 +1,7 @@
-// Where you are. It is never assumed: the first new tab asks the computer, and if the computer
-// can't say, the page asks you. Until there is an answer nothing that needs a place is drawn.
-// It stays in this browser's local storage, rounded to about a kilometre.
+// Where you are. It is never assumed. The first new tab asks the computer; if the computer won't
+// say, the city is estimated from the network connection and the page says so; if that fails
+// too, the page asks you. The place stays in this browser's local storage, rounded to about a
+// kilometre.
 import { el } from "./dom.js";
 
 const RELOCATE_MS = 6 * 3600e3;
@@ -15,38 +16,67 @@ async function save(place) {
   return place;
 }
 
-// Why the computer's location didn't come back, by the browser's error code, in words that say
-// what to do next. Chrome shows no location prompt on a new tab page, so the extension holds the
-// permission itself; what is left to refuse is the operating system.
+// Why the computer's own location didn't come back, by the browser's error code. Chrome shows
+// no location prompt on a new tab page, so the extension holds the permission itself; what is
+// left to refuse is the operating system.
 const WHY = {
-  1: "Chrome isn't allowed to see this computer's location. On a Mac, turn on Google Chrome under System Settings → Privacy & Security → Location Services, then press the button again. Or type a place.",
-  2: "This computer couldn't work out where it is: its location service is off, or there is no Wi-Fi to place it by. Type a place instead.",
-  3: "Finding this computer took too long. Press the button to try again, or type a place.",
+  1: "Chrome isn't allowed to see this computer's location (on a Mac: System Settings → Privacy & Security → Location Services → Google Chrome).",
+  2: "This computer couldn't work out where it is (its location service is off, or there is no Wi-Fi to place it by).",
+  3: "Finding this computer took too long.",
 };
-function locate() {
+function exact() {
   return new Promise((resolve, reject) => {
     navigator.geolocation.getCurrentPosition(
-      (p) => resolve({ lat: round(p.coords.latitude), lon: round(p.coords.longitude) }),
+      (p) => resolve({ lat: round(p.coords.latitude), lon: round(p.coords.longitude), source: "device" }),
       (err) => reject(new Error(WHY[err.code] || WHY[2])),
       { timeout: 10000, maximumAge: RELOCATE_MS },
     );
   });
 }
 
-// A place taken from the computer has no name of its own; the forecast names it.
-export async function useDevice() {
-  return save({ ...(await locate()), source: "device", at: Date.now() });
+// The city this network connection appears to be in. BigDataCloud's free client-side API needs
+// no key and, given no coordinates, places the caller by IP address.
+// https://www.bigdatacloud.com/docs/api/free-reverse-geocode-to-city-api (checked 2026-11-11)
+async function estimate() {
+  const r = await fetch("https://api.bigdatacloud.net/data/reverse-geocode-client?localityLanguage=en", { signal: AbortSignal.timeout(8000) });
+  if (!r.ok) throw new Error(`the estimate answered ${r.status}`);
+  const d = await r.json();
+  if (typeof d.latitude !== "number" || typeof d.longitude !== "number") throw new Error("the estimate had no position in it");
+  const name = [d.city || d.locality, d.principalSubdivision, d.countryCode === "US" ? "" : (d.countryName || "").replace(/ \(the\)$/, "")].filter(Boolean).join(", ");
+  return { lat: round(d.latitude), lon: round(d.longitude), name, source: "network" };
 }
 
-// A place taken from the computer follows it, checked again after six hours; one you typed stays
-// put. Resolves with the new place only when the computer has moved.
-export async function deviceMoved(place) {
-  if (place.source !== "device" || Date.now() - place.at < RELOCATE_MS) return null;
+// Where this computer is: exactly if it will say, else roughly from its network, with the
+// reason the exact answer was refused kept beside it. A place found exactly has no name of its
+// own; the forecast names it.
+async function thisComputer() {
+  try {
+    return await exact();
+  } catch (refused) {
+    try {
+      return { ...(await estimate()), why: refused.message };
+    } catch (err) {
+      console.warn("location estimate:", err.message);
+      throw new Error(`${refused.message} Its network couldn't be placed either, so type a place.`);
+    }
+  }
+}
+
+export async function useDevice() {
+  return save({ ...(await thisComputer()), at: Date.now() });
+}
+
+// A place taken from the computer or its network follows it, checked again after six hours; one
+// you typed stays put. An exact place is only replaced by another exact one (a moment without
+// Wi-Fi must not swap it for a guess); an estimate takes whatever is better by then. Resolves
+// with the new place only when it has changed.
+export async function placeMoved(place) {
+  if (place.source === "typed" || Date.now() - place.at < RELOCATE_MS) return null;
   let here;
-  try { here = await locate(); } catch (err) { console.warn("location:", err.message); return null; }
-  const moved = here.lat !== place.lat || here.lon !== place.lon;
-  await save({ ...here, source: "device", at: Date.now() });
-  return moved ? getPlace() : null;
+  try { here = await (place.source === "device" ? exact() : thisComputer()); } catch (err) { console.warn("location:", err.message); return null; }
+  const moved = here.lat !== place.lat || here.lon !== place.lon || here.source !== place.source;
+  const saved = await save({ ...here, at: Date.now() });
+  return moved ? saved : null;
 }
 
 // The place search is OpenStreetMap's Nominatim. Its usage policy allows a search a person asks
@@ -74,7 +104,8 @@ export async function searchPlaces(q) {
   }).filter((hit) => !seen.has(hit.name) && seen.add(hit.name)).slice(0, 5);
 }
 
-// The two ways to say where you are, as one small form. `onDone` gets the place that was set.
+// The two ways to say where you are, as one small form. `onDone` gets the place that was set,
+// and whether a press of the button set it.
 // The box it returns has `locate()`, which is the button's press, for the first run to call.
 export function placeForm(onDone) {
   const box = el("div", "place-form");
@@ -105,7 +136,7 @@ export function placeForm(onDone) {
   box.locate = async (byHand) => {
     hits.replaceChildren();
     say("Finding this computer…");
-    try { onDone(await useDevice()); say(""); } catch (err) { say(err.message); if (byHand) input.focus(); }
+    try { onDone(await useDevice(), !!byHand); say(""); } catch (err) { say(err.message); if (byHand) input.focus(); }
   };
   device.onclick = () => box.locate(true);
   form.onsubmit = async (e) => {
