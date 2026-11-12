@@ -8,7 +8,7 @@
 // chrome.privacy, a permission asked for when its card is first opened.
 // https://ipleak.net/ (API section, checked 2026-11-12)
 import { el } from "./dom.js";
-import { getPlace, offsetOf } from "./place.js";
+import { getPlace, offsetOf, useDevice } from "./place.js";
 import { CELLS, MAP, dots, spot, svg } from "./world.js";
 
 const CF = "https://speed.cloudflare.com";
@@ -273,6 +273,39 @@ function answers({ v4, v6, at, rtc, dns }, away, limitWebrtc) {
   return [network, clock, webrtc, lookups];
 }
 
+// What each kind of tool changes and what it doesn't, for someone deciding whether they want
+// one. They are kinds, not products: nothing here is named, ranked or linked for money. If a
+// recommendation is ever made on this page, this list is the one place it goes, marked as what
+// it is (PRODUCT.md, "The door left open").
+const GAPS = [
+  { name: "A VPN", state: (away) => (away ? "You look to be on one" : "Not in use here"),
+    does: "Your provider sees only that you are connected to it, not which sites you visit; sites see its address in place of yours. You are trusting the VPN's operator in place of your provider.",
+    not: "It doesn't stop a site you sign in to from knowing it is you, and it doesn't change your fingerprint." },
+  { name: "Secure DNS", state: () => "Built into Chrome", go: ["Choose your DNS in Chrome", "chrome://settings/security"],
+    does: "Your name lookups go, encrypted, to a service you pick, so your provider can't read or change them.",
+    not: "Your provider still sees the addresses you connect to, and the service you pick sees the names." },
+  { name: "A tracker blocker", state: () => "An extension you add",
+    does: "Stops most of the third-party scripts that follow you between sites, including the ones that would compute your fingerprint.",
+    not: "It doesn't hide your address, and a site you are on can still see what you do there." },
+  { name: "A private window", state: () => "Built into Chrome",
+    does: "Leaves no history or cookies on this computer when you close it.",
+    not: "Your provider, your employer's network and the sites themselves see the same as ever, and your fingerprint is the same." },
+];
+function gapsList(away) {
+  const box = el("details", "gaps");
+  const list = el("div", "gaps-list");
+  for (const g of GAPS) {
+    const row = el("div", "gap");
+    const head = el("div");
+    head.append(el("b", null, g.name), el("span", "state", g.state(away)));
+    row.append(head, el("p", null, g.does), el("p", null, g.not));
+    if (g.go) row.append(act(g.go[0], null, g.go[1]));
+    list.append(row);
+  }
+  box.append(el("summary", null, "What each kind of tool would change"), list);
+  return box;
+}
+
 // The one line over the four answers: whether anything needs doing, counted from their signs.
 function verdict(ways, away) {
   const wrong = ways.filter((w) => w.matches(".bad, .warn")).length;
@@ -303,8 +336,18 @@ function heroPanel() {
   ways.setAttribute("role", "status");
   const doing = el("div", "hero-verdict");
   doing.setAttribute("role", "status");
+  const gaps = el("div", "hero-gaps");
   const box = el("section", "hero");
-  box.append(top, doing, ways);
+  box.append(top, doing, ways, gaps);
+  // With no place set there is nothing to measure the distance from, so the way to set one is
+  // offered right here: this computer's own location.
+  const locate = act("Use this computer's location", async () => {
+    locate.disabled = true;
+    try { await useDevice(); run(); } catch (err) { console.warn("location:", err.message); sub.textContent = err.message; }
+    locate.disabled = false;
+  });
+  locate.hidden = true;
+  again.before(locate);
 
   // The sentence and the map as soon as the address is known; the four answers when DNS is in.
   let away = false;
@@ -312,10 +355,11 @@ function heroPanel() {
     const { km, near } = map.draw({ place, at });
     away = km !== null && !near;
     line.textContent = `You come out in ${cityOf(at)}. ${flag(at.code)}`.trim();
-    sub.textContent = km === null ? (place ? "How far that is from your place isn't known." : "Set a place on Today and this says how far that is from you.")
+    sub.textContent = km === null ? (place ? "How far that is from your place isn't known." : "Say where you are and this tells you how far that is from you.")
       : near ? "That is where you are, near enough. Nothing is carrying you elsewhere, or it comes out close by."
         : `That is ${far(km)} from ${place.name || "your place"}, so a VPN or proxy is carrying you.`;
     address.replaceChildren(el("code", null, at.ip), copyable(at.ip));
+    locate.hidden = !!place;
     world.classList.remove("busy");
     world.classList.add("landed");
   };
@@ -336,6 +380,7 @@ function heroPanel() {
       const all = answers(found, away, limitWebrtc);
       doing.replaceChildren(verdict(all, away));
       ways.replaceChildren(...all);
+      gaps.replaceChildren(gapsList(away));
     } catch (err) {
       console.warn("check:", err.message);
       line.textContent = "Couldn't find where you come out.";
@@ -343,6 +388,7 @@ function heroPanel() {
       address.replaceChildren();
       doing.replaceChildren();
       ways.replaceChildren();
+      gaps.replaceChildren();
       world.classList.remove("busy");
     }
     again.disabled = false;

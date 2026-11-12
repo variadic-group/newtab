@@ -4,7 +4,7 @@ The reasoning behind the product: who it serves, what they are trying to do at t
 tab opens, and how each of those moments goes. Read it before adding a feature. The README says
 what the product does; this says why, and what it refuses to become.
 
-Last walked through end to end at 3.8.0 (2026-11-12).
+Last walked through end to end at 3.9.0 (2026-11-12).
 
 ## Who it is for
 
@@ -45,6 +45,20 @@ its own tab, Tools, so it costs the main page nothing.
 - **Short-link ("go link") services:** type a name, land on the page. Built for companies: a
   server, an administrator, someone to create each link.
 
+Checked once more before the store (2026-11-12), by what these kinds keep offering and what
+their users keep asking for:
+
+- **Taken, because most people with more than a screenful of links want it:** finding a link
+  by typing part of it, wherever it is filed (Find, on `/`); and a compact list as well as
+  tiles, which here also shows each link's short name. Collection managers lead with search;
+  the plainest start pages are a text list and nothing else, and people choose them for that.
+- **Already here, and what collection managers are faulted for lacking:** no account, no cap
+  on what can be saved, nothing lost if a service goes away, adding an open tab to a
+  collection that exists.
+- **Refused:** tags (a bookmark has none, so they would be this page's own library); a
+  wallpaper, a quote, a to-do list, widgets to arrange, which most dashboards have and which
+  serve none of the four moments; shared or team collections, which need a server.
+
 ## The gap, and how this fills it
 
 | What people want | What they are usually asked to accept | What New Tab does |
@@ -75,13 +89,41 @@ Asked as "what would make a person keep it after the first day", in the order it
 What is deliberately not done to earn money from it: affiliate links (to VPNs or anything
 else), sponsored tiles, a paid tier. A recommendation the page is paid for would undo point 4.
 
+## The door left open
+
+Earning nothing is the choice for the first public version, not a principle. If that changes,
+these are the ways that fit the product, and the rules each would have to keep:
+
+- **Named recommendations on Tools.** The page already says what a VPN, secure DNS, a tracker
+  blocker and a private window each change (`GAPS` in `extension/tools.js`). That list is the
+  one place a named product could ever go. It would be marked as paid where it is paid, shown
+  to everyone the same, never placed by who pays most, and never on the links page. The store
+  requires that an affiliate programme be described on the listing, in the page itself and
+  before installation, that it gives the user a direct benefit, and that the user acts before
+  each affiliate link or code is used
+  ([Chrome Web Store affiliate ads policy](https://developer.chrome.com/docs/webstore/program-policies/affiliate-ads),
+  checked 2026-11-12). Disclosure law is a question for an attorney before it is switched on.
+- **Paying for what costs money to run.** A forecast outside the United States, or calendar
+  and tasks on the page, would need a paid service or a server. Either could be an extra a
+  person pays for, with everything that exists today staying free.
+- **Being asked.** A plain "support this" link.
+
+What is not on the table: selling or sharing anything about what people bookmark, visit or
+type; advertisements on the page; putting an affiliate code on a link the person saved.
+
 ## Each flow, as the person meets it
 
-**First run.** A new tab opens on their own bookmarks, already arranged; there is no setup
-screen. The page asks the computer where it is, without a prompt to dismiss. If the computer
+**First run.** The first new tab on a computer opens on Start here: four things, each with
+its button and a tick that is read from what is true (links on the bar, a saved place, a short
+name typed, Up next in use), never from having pressed something on the guide. Someone with
+bookmarks sees the first ticked already; someone with none, which is most people, sees the
+three ways in laid open. Every new tab after that opens on their links. The guide's tab can be
+hidden once it has done its job and stays in Settings. *Why a guide at all:* the page explained
+itself only to people who already had folders on their bar. The page asks the computer where it is, without a prompt to dismiss. If the computer
 refuses, it uses the network's city, says so, and says how to get the exact spot. If that fails,
 or the network is in another time zone (a VPN), it asks for a city, ZIP or address. With no
-folders on the bar, the page says so and offers three ways to bring links in: a starter set in
+folders on the bar, the page opens on that guide, not on Today, and offers three ways to bring
+links in: a starter set in
 one press, a bookmarks file from another browser, or a prompt to paste into an assistant, which
 interviews the person and writes that file. "+ New space" is still there to build by hand.
 *Held to:* something useful on screen before any question is answered; a file is read as

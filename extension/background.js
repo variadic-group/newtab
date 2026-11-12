@@ -22,6 +22,8 @@ chrome.webNavigation.onBeforeNavigate.addListener(async (d) => {
   const typed = shortLink(new URL(d.url));
   if (!typed) return;
   const target = await resolve(...typed);
+  // The Start page ticks "Type a short name" once one has worked.
+  if (target && !(await chrome.storage.sync.get("usedShort")).usedShort) chrome.storage.sync.set({ usedShort: true });
   if (typeof target === "string") chrome.tabs.update(d.tabId, { url: target });
   // Words for a link with no search of its own go to whichever search engine Chrome is set to.
   else if (target) chrome.search.query({ text: target.search, tabId: d.tabId });

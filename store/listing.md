@@ -44,9 +44,17 @@ Your bookmarks are already organised. This makes them your new tab.
 
 Every folder on your bookmarks bar becomes a tab; every folder inside it becomes a card of icons. Nothing to import and no account: the page is drawn from Chrome's own bookmarks, so it is the same on every computer you sign in to, and removing it loses nothing.
 
+NEW HERE? IT STARTS YOU OFF
+The first tab opens on Start here: four things, about a minute each, ticked as you do them.
+1. Bring in your links: a starter set in one press, a bookmarks file from another browser, or a prompt that has your own assistant ask what you use and write the file
+2. Say where you are: this computer's location, or type a city
+3. Type a short name: stripe/ opens Stripe, mail/invoice searches your mail
+4. Keep a page for later: one press files it under Up next
+
 LAUNCH
 • Spaces, collections and groups, straight from the bookmarks bar; make and rename them on the page
-• Starting from nothing? Add a starter set, choose a bookmarks file from another browser, or copy a prompt that has your assistant interview you and write one
+• Find (press /): one box over every link in every space, and your open tabs
+• Links as icon tiles, or as a list with each link's short name beside it
 • Drag to reorder links, cards and tabs; the bookmarks bar changes with you
 • Open a whole collection as one named tab group
 
@@ -72,6 +80,7 @@ LOOK UP
 CHECK, WHEN YOU WANT TO
 • A Tools tab that shows how you look from outside: where your traffic comes out and whether your clock agrees, a WebRTC leak check, whose servers answer your DNS lookups, a speed reading, the fingerprint a tracking script would give this browser, and how Chrome's own privacy switches are set
 • Written for people who have never heard those words: each answer says what it is, what was found, what it means and what to do, which is often nothing
+• A plain list of what a VPN, secure DNS, a tracker blocker and a private window each change and don't. Kinds, not products: nothing is sold or recommended for money
 • Opening that tab runs the check; no other part of the page makes those calls
 
 PRIVATE BY CONSTRUCTION
@@ -82,7 +91,7 @@ PRIVATE BY CONSTRUCTION
 Free and open source.
 ```
 
-**Screenshots** (1280×800, sample data): `2-space.png`, `4-today-day.png`, `12-today-dragged.png`,
+**Screenshots** (1280×800, sample data): `13-start.png`, `2-space.png`, `12-today-dragged.png`,
 `10-shortcuts.png`, `11-tools.png`.
 
 ## Privacy tab

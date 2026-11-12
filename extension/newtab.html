@@ -19,6 +19,9 @@
         <svg class="when-off" viewBox="0 0 20 20" aria-hidden="true"><path d="M3.2 16.8l.9-3.9L14.3 2.7a1.6 1.6 0 0 1 2.2 0l.8.8a1.6 1.6 0 0 1 0 2.2L7.1 15.9z"/><path d="M12.4 4.6l3 3"/></svg>
         <svg class="when-on" viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10.6l4 4 8-9.2"/></svg>
       </button>
+      <button type="button" id="findBtn" class="icon-btn" aria-expanded="false" aria-controls="find" aria-label="Find a link" title="Find a link in any space ( / )">
+        <svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="8.8" cy="8.8" r="5.3"/><path d="M12.8 12.8l4 4"/></svg>
+      </button>
       <button type="button" id="extrasBtn" class="icon-btn" aria-expanded="false" aria-controls="extras" aria-label="Settings" title="Settings">
         <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 6h7M14 6h3M3 14h3M10 14h7"/><circle cx="12" cy="6" r="2"/><circle cx="8" cy="14" r="2"/></svg>
       </button>
@@ -27,10 +30,15 @@
 </header>
 
 <main class="wrap">
-  <section id="empty" class="empty" aria-labelledby="emptyTitle" hidden>
-    <h1 id="emptyTitle">Bring in your links</h1>
-    <p>This page is your bookmarks bar, laid out: each top folder is a tab here, and each folder inside it a card of links. Yours has no folders yet. Start one of these ways, or press “+ New space” at the top and build it by hand.</p>
-    <div id="emptyWays" class="setup"></div>
+  <section id="start" class="start" aria-labelledby="startTitle" hidden>
+    <header class="sc-head">
+      <h1 id="startTitle">Start here</h1>
+      <p>Four things, about a minute each. <span id="startCount"></span></p>
+    </header>
+    <ol id="startSteps" class="steps"></ol>
+    <h2 class="also-title">Also on this page</h2>
+    <div id="startAlso" class="alsos"></div>
+    <p class="start-foot"><button type="button" id="startHide" class="mini lead"></button><span class="cap">This guide stays in Settings, under Getting started.</span></p>
   </section>
   <section id="space" class="space" hidden>
     <div class="glance">
@@ -216,6 +224,7 @@
 <section id="extras" class="extras" role="dialog" aria-labelledby="extrasTitle" hidden>
   <header class="extras-head">
     <h2 id="extrasTitle">Settings</h2>
+    <button type="button" id="guideBtn" class="mini lead">Getting started</button>
     <button type="button" id="extrasClose" class="mini">Close</button>
   </header>
   <h3>Look</h3>
@@ -230,6 +239,13 @@
   <div class="extra">
     <div><b>Accent</b><p class="cap">The colour of the things you press and the names you type.</p></div>
     <div id="accentPick" class="swatches" role="radiogroup" aria-label="Accent colour"></div>
+  </div>
+  <div class="extra">
+    <div><b>Links</b><p class="cap">Tiles show each link as an icon. A list fits more in a card and shows each link's short name beside it.</p></div>
+    <select id="viewPick" aria-label="Links as tiles or a list">
+      <option value="tiles">Tiles</option>
+      <option value="list">List</option>
+    </select>
   </div>
   <h3>Bring in your links</h3>
   <div id="setupBody"></div>
@@ -253,6 +269,12 @@
     <button type="button" class="chip" data-go="chrome://settings/searchEngines">Search engines</button>
     <button type="button" class="chip" data-go="chrome://settings/syncSetup">Sync</button>
   </div>
+</section>
+
+<section id="find" class="find" role="dialog" aria-label="Find a link" hidden>
+  <input id="findBox" type="text" autocomplete="off" spellcheck="false" placeholder="Find a link, in any space" aria-label="Find a link, in any space" aria-controls="findList">
+  <ul id="findList" class="find-list"></ul>
+  <p id="findSay" class="cap" role="status"></p>
 </section>
 
 <div id="toast" class="toast" role="status" hidden></div>

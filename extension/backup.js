@@ -9,6 +9,9 @@ const SHAPES = {
   links: (v) => words(v, 2000),
   theme: (v) => ["sun", "light", "dark"].includes(v),
   accent: (v) => ["teal", "blue", "violet", "rose"].includes(v),
+  view: (v) => ["tiles", "list"].includes(v),
+  guide: (v) => ["shown", "hidden"].includes(v),
+  usedShort: (v) => v === true,
   zones: (v) => Array.isArray(v) && v.length <= 8 && v.every((z) => z && text(z.name, 200) && text(z.zone, 60) && Number.isFinite(z.lat) && Number.isFinite(z.lon)),
   notePages: (v) => Array.isArray(v) && v.length >= 1 && v.length <= 8 && v.every((k) => typeof k === "string" && PAGE.test(k)),
 };

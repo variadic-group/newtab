@@ -87,7 +87,9 @@ const PLACES = {
 // locate: false leaves the browser with no way to find itself, as on a computer whose location
 // service is off; the page then falls back to the stubbed network estimate, which is in
 // America/Los_Angeles unless net.estimateAs says otherwise.
-export async function launch({ ext = shipped, icons = "stub", locate = true, viewport = { width: 1360, height: 900 }, ...context } = {}) {
+// `fresh` leaves the profile as a new install finds it, so the first new tab opens on the Start
+// guide; otherwise that greeting has already happened and a new tab opens on a space.
+export async function launch({ ext = shipped, icons = "stub", locate = true, fresh = false, viewport = { width: 1360, height: 900 }, ...context } = {}) {
   const profile = fs.mkdtempSync(path.join(os.tmpdir(), "newtab-profile-"));
   const ctx = await chromium.launchPersistentContext(profile, {
     channel: "chromium", headless: true, viewport, ...context,
@@ -181,6 +183,7 @@ export async function launch({ ext = shipped, icons = "stub", locate = true, vie
   let [sw] = ctx.serviceWorkers();
   if (!sw) sw = await ctx.waitForEvent("serviceworker");
   const id = sw.url().split("/")[2];
+  if (!fresh) await sw.evaluate(() => chrome.storage.local.set({ greeted: true }));
   const errs = [];
   // A page with the extension's new tab on it. `at` pins the page's clock to a moment.
   const open = async ({ at, waitUntil } = {}) => {

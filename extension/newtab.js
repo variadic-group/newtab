@@ -1,7 +1,7 @@
 import { $, el } from "./dom.js";
 import { loadIcons, siteIcon, tabIcon, host } from "./icons.js";
 import { BUILTIN, claims, barChildren, bookmarkBars, leaves, aliasTable, aliasFor, nextFolder, addToNext } from "./shared.js";
-import { renderShortcuts, aliasPill } from "./shortcuts.js";
+import { renderShortcuts, aliasPill, wireTry } from "./shortcuts.js";
 import { renderToday, tickToday, tickTheme, renderGlance, warmWeather, scrubTo, stripMinutes } from "./today.js";
 import { wireZones } from "./zones.js";
 import { placeForm, getPlace, leftBehind, keepPlace } from "./place.js";
@@ -10,11 +10,14 @@ import { renderTools } from "./tools.js";
 import { loadNotes, wireNotes, bigNote, noteIsBig } from "./notes.js";
 import { setupRows } from "./setup.js";
 import { saveCopy, restoreCopy } from "./backup.js";
+import { wireStart, renderStart } from "./start.js";
+import { wireFind, openFind, findIsOpen } from "./find.js";
 
 const TODAY = "today";
 const KEYS = "shortcuts";
 const TOOLS = "tools";
-const isPage = (id) => id === TODAY || id === KEYS || id === TOOLS;
+const START = "start";
+const isPage = (id) => id === TODAY || id === KEYS || id === TOOLS || id === START;
 let current = null;
 let pendingRename = null;
 
@@ -76,7 +79,7 @@ function dropTarget(node, accepts, onDrop) {
 function orderTarget(node, accepts, axis, onDrop) {
   const isBefore = (e) => {
     const r = node.getBoundingClientRect();
-    return axis === "x" ? e.clientX < r.left + r.width / 2 : e.clientY < r.top + r.height / 2;
+    return (typeof axis === "function" ? axis() : axis) === "x" ? e.clientX < r.left + r.width / 2 : e.clientY < r.top + r.height / 2;
   };
   node.addEventListener("dragover", (e) => {
     if (!takes(accepts)) return;
@@ -118,20 +121,27 @@ async function spaces() {
 
 async function render() {
   const all = await spaces();
-  const { space: saved } = await chrome.storage.local.get("space");
-  if (!current) current = saved || (all[0] && all[0].id) || TODAY;
-  if (!isPage(current) && !all.some((s) => s.id === current)) current = all[0] ? all[0].id : TODAY;
+  const { space: saved, greeted } = await chrome.storage.local.get(["space", "greeted"]);
+  const { guide } = await chrome.storage.sync.get("guide");
+  // The very first new tab on this computer opens on the guide, and so does one with nothing
+  // on the bookmarks bar; after that a new tab opens on the last space.
+  if (!current) current = !greeted ? START : saved || (all[0] && all[0].id) || START;
+  if (!greeted) chrome.storage.local.set({ greeted: true });
+  if (!isPage(current) && !all.some((s) => s.id === current)) current = all[0] ? all[0].id : START;
 
   $("spaces").replaceChildren(...all.map((s) => tabFor(s.id, s.title, s)), newSpaceTab(!all.length));
   renameNew($("spaces"));
   fitSpaces();
-  $("pages").replaceChildren(tabFor(TODAY, "☀️ Today"), tabFor(KEYS, "⌨️ Shortcuts"), tabFor(TOOLS, "🛠️ Tools"));
+  // The Start tab stays until it is hidden from the guide itself; a bare bar always has it.
+  const guided = guide !== "hidden" || !all.length || current === START;
+  $("pages").replaceChildren(...(guided ? [tabFor(START, "👋 Start")] : []), tabFor(TODAY, "☀️ Today"), tabFor(KEYS, "⌨️ Shortcuts"), tabFor(TOOLS, "🛠️ Tools"));
+  $("start").hidden = current !== START;
   $("today").hidden = current !== TODAY;
   $("shortcuts").hidden = current !== KEYS;
   $("tools").hidden = current !== TOOLS;
   $("space").hidden = isPage(current);
   $("edit").hidden = isPage(current);
-  $("empty").hidden = all.length > 0;
+  if (current === START) return renderStart();
   if (current === TODAY) return renderToday();
   if (current === KEYS) return renderShortcuts($("scBody"), render);
   if (current === TOOLS) return renderTools($("toolsBody"));
@@ -396,7 +406,8 @@ function tileFor(link, table) {
   };
   a.append(x);
   drags(a, { kind: "link", id: link.id });
-  orderTarget(a, ["link", "next", "tab"], "x", (d, before) => place(d, slot(link, before)));
+  // Tiles run across a card and a list runs down it, so "before" is the left half or the top one.
+  orderTarget(a, ["link", "next", "tab"], () => (document.documentElement.dataset.view === "list" ? "y" : "x"), (d, before) => place(d, slot(link, before)));
   a.addEventListener("click", (e) => { if (editing()) e.preventDefault(); });
   return a;
 }
@@ -636,11 +647,12 @@ chrome.permissions.onRemoved.addListener(drawExtras);
 // The first folders to arrive on a bare bookmarks bar are opened, in place of Today.
 const brought = { toast, opened: async () => { const [first] = await spaces(); if (first) show(first.id); } };
 $("setupBody").append(...setupRows(brought));
-$("emptyWays").append(...setupRows(brought));
+$("guideBtn").onclick = () => { settings(false); show(START); };
 
 // Anything lifted over the page goes away with Esc, or with a press anywhere outside it.
 const LIFTED = [
   { open: () => !$("extras").hidden, within: "#extras, #extrasBtn", shut: () => settings(false) },
+  { open: findIsOpen, within: "#find, #findBtn", shut: () => openFind(false) },
   { open: noteIsBig, within: ".notes", shut: () => bigNote(false) },
 ];
 document.addEventListener("pointerdown", (e) => {
@@ -707,6 +719,17 @@ for (const [name, label] of ACCENTS) {
   $("accentPick").append(b);
 }
 chrome.storage.sync.get("accent").then(({ accent }) => applyAccent(accent));
+
+// Links as tiles or as a list, which also travels, and is set before a new tab first paints.
+const applyView = (pick) => {
+  const list = pick === "list";
+  if (list) { localStorage.setItem("view", "list"); document.documentElement.dataset.view = "list"; }
+  else { localStorage.removeItem("view"); delete document.documentElement.dataset.view; }
+  $("viewPick").value = list ? "list" : "tiles";
+};
+$("viewPick").onchange = () => { applyView($("viewPick").value); chrome.storage.sync.set({ view: $("viewPick").value }); };
+chrome.storage.sync.get("view").then(({ view }) => applyView(view));
+chrome.storage.onChanged.addListener((changes, area) => { if (area === "sync" && changes.view) applyView(changes.view.newValue); });
 chrome.storage.onChanged.addListener((changes, area) => { if (area === "sync" && changes.accent) applyAccent(changes.accent.newValue); });
 
 // Redrawing replaces the text boxes, so a change from outside (another tab, sync) waits while one
@@ -720,7 +743,8 @@ for (const ev of ["onCreated", "onRemoved", "onChanged", "onMoved", "onChildrenR
 // The sky and the forecast are drawn from what is saved, so a new place or forecast redraws them.
 const redrawSky = () => { if (current === TODAY) renderToday(); else if (isPage(current)) tickTheme(); else renderGlance(); };
 chrome.storage.onChanged.addListener((changes, area) => {
-  if (area === "sync" && (changes.aliases || changes.links)) rerender();
+  if (area === "sync" && (changes.aliases || changes.links || changes.guide || changes.usedShort)) rerender();
+  if (area === "local" && changes.place && current === START) rerender();
   if (area === "local" && changes.place) warmWeather();
   if (area === "local" && (changes.wx || changes.place)) redrawSky();
 });
@@ -754,6 +778,10 @@ dayStrip.addEventListener("pointerdown", (e) => {
 dayStrip.addEventListener("pointermove", (e) => { if (dayStrip.hasPointerCapture(e.pointerId)) dragTo(stripMinutes(e.clientX)); });
 $("scrubNow").onclick = () => scrubTo(0);
 wireZones();
+wireFind();
+// The guide's buttons lead into the rest of the page.
+const tryShort = (text) => { show(KEYS); wireTry(); const bar = $("tryBar"); bar.value = text; bar.oninput(); bar.focus(); };
+wireStart({ ...brought, placed, changePlace: () => { show(TODAY); changePlace(true); }, tryShort, shortcuts: () => show(KEYS), find: () => openFind(), today: () => show(TODAY), tools: () => show(TOOLS), settings: () => settings(true) });
 chrome.storage.onChanged.addListener((changes, area) => { if (area === "sync" && changes.zones && current === TODAY) renderToday(); });
 await loadIcons();
 wireNotes(toast);

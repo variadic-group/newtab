@@ -28,7 +28,11 @@ Then write one file called bookmarks.html in the Netscape bookmark format that b
 - Begin each area's name with one emoji (for example "💼 Work"). Keep link names to one or two words.
 - Use only https addresses I gave you or that you are sure of. Leave out anything you are unsure of, and list those for me afterwards.
 
-Give me the file to download, or its full text in one code block that I can save as bookmarks.html. Then tell me to open a new tab, choose Settings, and choose "Choose a file" under "Bring in your links".`;
+Give me the file to download, or its full text in one code block that I can save as bookmarks.html. Then tell me the next three things to do:
+1. Open a new tab, and under "Bring in your links" press "Choose a file" and pick bookmarks.html. (It is on the Start tab, and in Settings at the top right.)
+2. Type a link's short name in the address bar and press Enter to open it. The short name is usually the first word of the link's name in lower case, followed by a slash: a link called "Stripe" opens with stripe/. Words after the slash search that site. The Shortcuts tab lists every name.
+3. Pin the extension's button in the browser toolbar. One press saves the page I am on to a list called Up next.
+List the short names you expect for the five links I said I use most.`;
 
 const MAX_LINKS = 2000;
 const count = (nodes) => nodes.reduce((n, x) => n + (x.url ? 1 : count(x.children)), 0);

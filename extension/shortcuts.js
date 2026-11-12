@@ -23,7 +23,7 @@ async function explain(typed) {
 }
 
 let wired = false;
-function wireTry() {
+export function wireTry() {
   if (wired) return;
   wired = true;
   const bar = document.getElementById("tryBar"), out = document.getElementById("tryOut");

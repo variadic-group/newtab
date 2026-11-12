@@ -7,6 +7,7 @@
   try {
     var accent = localStorage.getItem("accent");
     if (accent) document.documentElement.dataset.accent = accent;
+    if (localStorage.getItem("view") === "list") document.documentElement.dataset.view = "list";
     var pick = localStorage.getItem("theme");
     if (pick === "light" || pick === "dark") { document.documentElement.dataset.theme = pick; return; }
     var night = JSON.parse(localStorage.getItem("night") || "null");

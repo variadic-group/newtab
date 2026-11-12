@@ -37,6 +37,11 @@ This page adds a face to that store and keeps nothing of its own:
 - **Drag to reorder** tiles, cards and space tabs. It is your bookmarks moving, so the order
   holds everywhere.
 - **Open all** opens a collection as one named tab group.
+- **Find** (the magnifier, or `/`) is one box over every link you keep, whichever space it is
+  in, and the tabs open in this window: a list, best match first, each with where it lives and
+  its short name. Enter opens the first; with no match, Enter searches the web.
+- **Tiles or a list.** Settings shows links as icon tiles or as rows, which fit more in a card
+  and show each link's short name beside it.
 - **The pencil** (top right) turns on editing: add a space, a collection, a group or a link;
   click a name to rename any of them; remove in place, with Undo. Naming a folder offers a row
   of emoji to lead it with, which is what a crowded top bar keeps of the name.
@@ -98,6 +103,9 @@ This page adds a face to that store and keeps nothing of its own:
   - **Fingerprint** draws the mark a tracking script would know this browser by, worked out on
     your computer, lists what it is made of in plain words, by how far each thing narrows
     you down, and says what can and can't be done about it.
+  - **What each kind of tool would change:** a VPN, secure DNS, a tracker blocker, a private
+    window, each with what it does and what it doesn't. Kinds, not products: nothing is named,
+    ranked or linked for money.
   - **Speed** reads download, upload and delay onto bars, says what that is good for in a
     household's terms, and what to try when it is poor. It waits for a press, because it
     spends data.
@@ -133,23 +141,40 @@ company's tools. The listing text and assets are in [`store/`](store/listing.md)
 
 New Tab is built and tested on Chrome 120 and later. Other Chromium browsers are untested.
 
-## First five minutes
+## Getting started
 
-1. **Check where you are.** The first new tab asks the computer for its location. If the
-   computer won't say (on a Mac, Chrome needs Location Services switched on for it), the page
-   uses the city your network connection appears to be in, marks it approximate, and says how
-   to make it exact. Or type a city, a ZIP code or an address. If the network can't be placed,
-   or is plainly elsewhere (a VPN), it asks; no place is ever assumed.
-2. **Bring your links in,** if the bar is bare: the page offers a starter set, a bookmarks
-   file, or a prompt for an assistant to write one. Settings (top right) has the same three.
-3. **Shape the bar.** Press the pencil: **+** after the tabs makes a space, **New collection**
-   a card, **Add group** a headed group inside a card. They are folders on your bookmarks bar,
-   so Chrome's bookmark manager (linked beside the pencil) does the same, and bulk moves.
-   Emoji in the names read well as tabs: `🏢 Work`, `✉️ Mail and calendar`, `💵 Money`.
-4. **Learn three short links.** `mail/`, `cal/`, and the short name of the site you open most.
-   The Shortcuts page lists them all.
-5. **Pin the toolbar button** (puzzle icon → pin). Clicking it on any page saves that page to
-   Up next.
+The first new tab opens on **Start here**, which walks through the same four things, each
+with the button for it and a tick once it is true. It stays in Settings afterwards.
+
+1. **Bring in your links.** The page is your bookmarks bar, laid out: each folder on the bar
+   is a tab at the top, each folder inside it a card of links. With nothing there yet, pick
+   one of three ways in:
+   - **A starter set:** one space, Home, with everyday Google apps, three assistants and a few
+     places to look things up. Rename or remove any of it.
+   - **A bookmarks file:** exported from another browser or profile. Its folders become spaces
+     and collections; only web links are taken, and nothing already there is added twice.
+   - **Have an assistant write the file:** copy the prompt into Gemini, Claude or ChatGPT. It
+     asks what you do and which sites you open, then hands you a bookmarks file to choose.
+
+   Or build it by hand: the pencil adds a space, a collection and a link, and ⌘D (Ctrl+D) on
+   any page bookmarks it into a folder, where it shows at once.
+2. **Say where you are.** Press "Use this computer's location", or type a city, a ZIP code or
+   an address. The sky, the forecast and turning dark at dusk are drawn for that place, and it
+   stays on your computer. If the computer won't say (on a Mac, Chrome needs Location Services
+   switched on for it), the page uses your network's city, marks it approximate and says how to
+   make it exact; if the network is plainly elsewhere (a VPN), it asks.
+3. **Type a short name.** Every link gets one from its own name. In the address bar, `stripe/`
+   opens Stripe and `stripe/refund policy` searches it; `mail/`, `cal/` and `drive/` work
+   whether or not you bookmarked them. The Shortcuts tab lists them all and has a box that
+   says what any of them would do.
+4. **Keep a page for later.** Pin the extension's button (the puzzle piece in Chrome's toolbar,
+   then the pin). One press on it, Alt+Shift+S, or a right-click on any page files that page
+   under Up next. Tick it off when you have been back.
+
+Then, when you want them: **Find** (the magnifier, or `/`) lists any link in any space;
+**Today** has the sky, the next 24 hours and the clocks of cities you add; **Tools** shows how
+your connection looks from outside and what to do about it; **Settings** has light and dark,
+an accent, tiles or a list, and four extras that are off until you switch them on.
 
 ## How a new bookmark gets its place, icon and names
 
@@ -233,8 +258,8 @@ WebRTC route, when you choose to.
 
 ## What is deliberately not here
 
-A task manager, a notes app, a news feed, a search box (the address bar is already focused on a
-new tab), a list-or-grid switch, page previews, wallpapers. Each was tried or considered and
+A task manager, a notes app, a news feed, a web search box (the address bar is already focused
+on a new tab), tags, page previews, wallpapers, widgets to arrange. Each was tried or considered and
 left out to keep the page quiet. Nothing on the page calls a language model: the one prompt it
 offers is text you paste into an assistant yourself. What only some people want is an extra, off until asked for, or
 sits on the Tools tab, away from the links.
