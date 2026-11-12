@@ -44,10 +44,15 @@ These are not bundled; the page asks them for data. What each one receives is in
 - [ipleak.net](https://ipleak.net/), run by AirVPN, for the Tools tab's check: its keyless API
   says what address it sees, where that is and whose network it is, and its DNS detection says
   which DNS servers looked up a name made for the purpose. Its data is partly MaxMind's. Called
-  only when Check is pressed (checked 2026-11-12).
+  only when the Tools tab is opened or Check again is pressed (checked 2026-11-12).
 - The measurement endpoints Cloudflare's own [speed test](https://github.com/cloudflare/speedtest)
   uses (`speed.cloudflare.com/__down`, `/__up`) for the speed reading, and the STUN servers of
-  Cloudflare and Google for the WebRTC check. Called only when pressed (checked 2026-11-11).
+  Cloudflare and Google for the WebRTC check. The speed reading runs only when pressed
+  (checked 2026-11-11).
+- The dotted world map on the Tools tab is a grid worked out from
+  [Natural Earth](https://www.naturalearthdata.com/)'s 1:110m land outline, which is in the
+  public domain, as packaged by [world-atlas](https://github.com/topojson/world-atlas) (ISC,
+  © 2013–2019 Michael Bostock). It is in `land.js`; nothing is fetched for it.
 - [Nominatim](https://nominatim.org/), for the city search: data © OpenStreetMap contributors,
   under the [ODbL](https://www.openstreetmap.org/copyright).
 - Google's icon service (`google.com/s2/favicons`) and product icons (`gstatic.com`), for the

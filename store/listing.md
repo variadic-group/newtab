@@ -67,7 +67,7 @@ LOOK UP
 
 CHECK, WHEN YOU WANT TO
 • A Tools tab that shows how you look from outside: where your traffic comes out and whether your clock agrees, a WebRTC leak check, whose servers answer your DNS lookups, a speed reading, the fingerprint a tracking script would give this browser, and how Chrome's own privacy switches are set
-• Nothing on it reaches the network until you press it
+• Opening that tab runs the check; no other part of the page makes those calls
 
 PRIVATE BY CONSTRUCTION
 • No account, no server, no analytics
@@ -118,8 +118,9 @@ Free and open source.
   on the device.
 - *User activity / web history:* also with the optional "Closed tabs and other devices" and
   "Most visited" switches; read on the device, never sent.
-- The Tools tab's checks contact ipleak.net, Cloudflare and two STUN servers only when the user
-  presses them; the answers are shown and not stored. Its fingerprint is computed on the device
+- The Tools tab's checks contact ipleak.net and two STUN servers only when the user opens that
+  tab, and Cloudflare only when the user runs the speed reading; the answers are shown and not
+  stored. Its fingerprint is computed on the device
   and never sent.
 - Everything else: no.
 - Certify: not sold to third parties; not used for purposes unrelated to the single purpose; not

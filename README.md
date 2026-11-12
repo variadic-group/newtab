@@ -69,18 +69,20 @@ This page adds a face to that store and keeps nothing of its own:
   time and date open your calendar.
 
 **Check, when you want to**
-- **Tools** is a tab that shows how this connection and this browser look from outside, worked
-  out and drawn on the page. Nothing on it reaches the network until you press a button.
-  - **Check** answers in four tiles: where your traffic comes out and how far that is from your
-    place (which is what a VPN looks like), whether your clock agrees with that address,
-    whether WebRTC shows sites an address your VPN was meant to hide, and whose servers answer
-    your DNS lookups.
-  - **Speed** reads download, upload and delay onto bars.
-  - **Fingerprint** works out, on your computer, the ID a tracking script would give this
-    browser, and lists each thing it is made of with how far that narrows you down.
-  - **Chrome's privacy switches** reads how Chrome itself is set, scores it, and takes you to
-    the page that changes each one. It can also narrow the route WebRTC may take, which Chrome
-    has no switch for.
+- **Tools** is a tab that shows how this connection and this browser look from outside. Opening
+  it runs the check; no other part of the page makes these calls.
+  - **Where you come out**, as a sentence and a map: your place, the city your traffic leaves
+    from, and the way round the world between them. Under it, four plain answers: whose network
+    you are on, whether your clock agrees with that address, what WebRTC shows a site, and
+    whose servers answer your DNS lookups.
+  - **Fingerprint** draws the mark a tracking script would know this browser by, worked out on
+    your computer, and lists what it is made of in plain words, by how far each thing narrows
+    you down.
+  - **Speed** reads download, upload and delay onto bars. It waits for a press, because it
+    spends data.
+  - **Chrome's privacy switches** reads how Chrome itself is set, puts what is worth a look
+    first, and takes you to the page that changes each one. It can also narrow the route WebRTC
+    may take, which Chrome has no switch for.
 
 | Day | Dusk | Night |
 |---|---|---|
@@ -162,7 +164,8 @@ Four services are called, each with the least it needs: the National Weather Ser
 place rounded to about a kilometre; BigDataCloud is asked which city your network is in, only
 when the computer won't give its location; OpenStreetMap's Nominatim gets what you type when you
 press Search; Google's icon service gets the host names of your bookmarks. The checks on the
-Tools tab ask ipleak.net and Cloudflare, and only when you press them. The full account is in
+Tools tab ask ipleak.net when you open that tab, and Cloudflare when you run the speed reading.
+The full account is in
 [PRIVACY.md](PRIVACY.md).
 
 **Extras** (footer → Extras) are off until you switch them on, and Chrome asks at that moment:
@@ -223,7 +226,7 @@ No build step. The extension is the `extension` folder as it stands.
 ```
 npm install
 npx playwright install chromium
-npm test            # 13 astronomy checks in Node, then 159 checks in a real Chromium
+npm test            # 13 astronomy checks in Node, then 163 checks in a real Chromium
 npm run shots       # the screenshots in store/screenshots
 npm run zip         # newtab.zip, ready to upload or release
 ```
@@ -241,7 +244,7 @@ request stubbed.
 Sun and moon positions are ported from [SunCalc](https://github.com/mourner/suncalc) by
 Volodymyr Agafonkin (BSD 2-Clause); see [THIRD-PARTY.md](extension/THIRD-PARTY.md). Weather and
 radar are from the U.S. National Weather Service. City search is © OpenStreetMap contributors.
-The approximate place is from BigDataCloud. What the product is for, flow by flow, is in
+The approximate place is from BigDataCloud. The dotted map's land is from Natural Earth. What the product is for, flow by flow, is in
 [PRODUCT.md](PRODUCT.md).
 
 ## Licence

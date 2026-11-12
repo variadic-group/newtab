@@ -4,7 +4,7 @@ The reasoning behind the product: who it serves, what they are trying to do at t
 tab opens, and how each of those moments goes. Read it before adding a feature. The README says
 what the product does; this says why, and what it refuses to become.
 
-Last walked through end to end at 3.5.0 (2026-11-12).
+Last walked through end to end at 3.6.0 (2026-11-12).
 
 ## Who it is for
 
@@ -96,7 +96,9 @@ app; `keep/` is one keystroke away.
 **Check.** The Tools tab answers "how do I look from outside" on the page itself: where the
 traffic comes out, whether the clock agrees, what WebRTC and DNS give away, a speed reading,
 the fingerprint a tracking script would compute, and how Chrome's own privacy switches are set.
-*Held to:* nothing reaches the network until pressed; a check is done here and drawn here, or
+*Held to:* opening the tab is the asking, so the check runs then and lands as one sentence and a
+map; nothing else on the page makes these calls, and what spends data (speed) waits for a
+press; a check is done here and drawn here, or
 it is left out. A list of links to other people's test pages is not a feature. The one thing
 pointed elsewhere is how rare a fingerprint is, which needs a sample of other browsers.
 
