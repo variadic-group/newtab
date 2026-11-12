@@ -12,14 +12,14 @@ Last updated 2026-11-11.
 | Your bookmarks | To draw the page, and to change them when you drag, rename, add or remove | Nowhere. Changes are made to your own Chrome bookmarks |
 | This window's open tabs (title, address, icon) | The Open tabs list, saving a tab, opening a collection as a tab group | Nowhere |
 | Addresses you navigate to | To notice a typed short link (`mail/`, `claude/what to ask`) and send the tab where it points. Only one-word hosts and searches that begin with one of your short names are acted on | Nowhere. Nothing is kept |
-| Where you are | Sun, moon, forecast and radar. Asked for once: this computer's location, or a city you type. Rounded to two decimal places (about a kilometre) | The rounded point goes to the National Weather Service to fetch the forecast |
+| Where you are | Sun, moon, forecast and radar. The first new tab asks the computer for its location; if the computer can't say, you type a place. A place taken from the computer is checked again after six hours; a typed one stays put. Rounded to two decimal places (about a kilometre) | The rounded point goes to the National Weather Service to fetch the forecast |
 
 ## What it sends, and to whom
 
 | To | What | When |
 |---|---|---|
 | National Weather Service (`api.weather.gov`, `radar.weather.gov`) | Your rounded location, then the radar station nearest it | When the forecast is more than 20 minutes old and you open a new tab |
-| OpenStreetMap's Nominatim (`nominatim.openstreetmap.org`) | The city name you typed | Only when you press Search in the location form |
+| OpenStreetMap's Nominatim (`nominatim.openstreetmap.org`) | What you typed: a city, a ZIP code or an address | Only when you press Search in the location form |
 | Google's icon service (`google.com/s2/favicons`, `gstatic.com`) | The host names of your bookmarks, one at a time | The first time a site's icon is needed; the answer is remembered |
 
 Each of those services sees your IP address, as any website you visit does.

@@ -92,7 +92,7 @@ Free and open source.
 | `tabGroups` | "Open all" opens a collection as one named tab group. |
 | `webNavigation` | Notices when the user types one of their short links (for example `mail/`) in the address bar, to send the tab to the bookmark it names. No browsing data is stored or sent. |
 | `storage` | Keeps the user's short names, their own shortcuts, their note, the place they set and a cache of the forecast and icons. |
-| `geolocation` | When the user clicks "Use this computer's location", to show sunrise, sunset and the local forecast. |
+| `geolocation` | On the first new tab and when the user clicks "Use this computer's location", to show sunrise, sunset and the local forecast. Chrome shows no location prompt on a new tab page, so the permission is declared; the user can type a place instead. |
 | Host `api.weather.gov` | Fetches the forecast for the user's place from the National Weather Service. |
 | Optional `history` | Only if the user switches on "Recent files": lists the Google Docs, Sheets and Slides they opened lately. Read locally; nothing is sent. |
 | Optional host `mail.google.com` | Only if the user switches on "Unread mail": reads the unread count from Gmail's inbox feed. Only the number is kept, locally. |

@@ -62,19 +62,36 @@ const RADAR = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 550"><de
 <g filter="url(#s)" opacity=".9"><ellipse cx="330" cy="150" rx="80" ry="22" fill="#f2d33b" transform="rotate(-28 330 150)"/><ellipse cx="345" cy="140" rx="30" ry="9" fill="#ef7d2a" transform="rotate(-28 345 140)"/><ellipse cx="430" cy="325" rx="60" ry="16" fill="#f2d33b" transform="rotate(-20 430 325)"/></g>
 <circle cx="300" cy="275" r="5" fill="#11151b"/></svg>`;
 
+// What the place search answers, by what was typed. The postal code comes back foreign-first and
+// the street address as three things in one town, the way the real service answers them.
+const us = (city, state, more = {}) => ({ city, state, country: "United States", country_code: "us", ...more });
 const PLACES = {
-  oakland: [{ name: "Oakland", lat: "37.8044", lon: "-122.2712", display_name: "Oakland, Alameda County, California, United States", address: { state: "California", country: "United States" } }],
-  paris: [{ name: "Paris", lat: "48.8566", lon: "2.3522", display_name: "Paris, Île-de-France, France", address: { state: "Île-de-France", country: "France" } }],
+  oakland: [
+    { name: "Oakland", lat: "37.8044", lon: "-122.2712", addresstype: "city", address: us("Oakland", "California") },
+    { name: "Oakland County", lat: "42.6618", lon: "-83.3804", addresstype: "county", address: { county: "Oakland County", state: "Michigan", country: "United States", country_code: "us" } },
+  ],
+  paris: [{ name: "Paris", lat: "48.8566", lon: "2.3522", addresstype: "city", address: { city: "Paris", state: "Île-de-France", country: "France", country_code: "fr" } }],
+  94103: [
+    { name: "94103", lat: "55.7", lon: "21.13", addresstype: "postcode", address: { postcode: "94103", city: "Klaipėda", state: "Klaipėda County", country: "Lithuania", country_code: "lt" } },
+    { name: "94103", lat: "37.7726", lon: "-122.4099", addresstype: "postcode", address: us("San Francisco", "California", { postcode: "94103" }) },
+  ],
+  "1 market st, san francisco": [
+    { name: "Southern Pacific Building", lat: "37.7939", lon: "-122.3950", addresstype: "building", address: us("San Francisco", "California", { road: "Market Street" }) },
+    { name: "", lat: "37.7941", lon: "-122.3951", addresstype: "place", address: us("San Francisco", "California") },
+    { name: "", lat: "37.7940", lon: "-122.3949", addresstype: "amenity", address: us("San Francisco", "California") },
+  ],
 };
 
 // icons: "stub" answers the icon services the way they answer (a miss is 16 px), "letters"
 // misses everything so every tile shows its initial, which is what the screenshots use.
-export async function launch({ ext = shipped, icons = "stub", viewport = { width: 1360, height: 900 }, ...context } = {}) {
+// locate: false leaves the browser with no way to find itself, as on a computer whose location
+// service is off.
+export async function launch({ ext = shipped, icons = "stub", locate = true, viewport = { width: 1360, height: 900 }, ...context } = {}) {
   const profile = fs.mkdtempSync(path.join(os.tmpdir(), "newtab-profile-"));
   const ctx = await chromium.launchPersistentContext(profile, {
     channel: "chromium", headless: true, viewport, ...context,
     args: [`--disable-extensions-except=${ext}`, `--load-extension=${ext}`],
-    geolocation: { latitude: 40.7128, longitude: -74.006 }, permissions: ["geolocation"],
+    ...(locate ? { geolocation: { latitude: 40.7128, longitude: -74.006 }, permissions: ["geolocation"] } : {}),
   });
   // `at` moves the stubbed forecast to a moment; `titles` names stubbed pages by a piece of their address.
   const net = { weatherDown: false, points: [], searches: [], holdPage: false, unread: 7, at: null, titles: { "docs.google.com/spreadsheets": "Q4 plan - Google Sheets", "docs.google.com/document": "Launch notes - Google Docs" } };
@@ -125,7 +142,7 @@ export async function launch({ ext = shipped, icons = "stub", viewport = { width
   const open = async ({ at, waitUntil } = {}) => {
     const page = await ctx.newPage();
     page.on("pageerror", (e) => errs.push(e.message));
-    page.on("console", (m) => { if (m.type() === "error" && !/404|ERR_FAILED|weather/.test(m.text())) errs.push(m.text()); });
+    page.on("console", (m) => { if (m.type() === "error" && !/404|ERR_FAILED|weather|Network location provider/.test(m.text())) errs.push(m.text()); });
     // Playwright's own clock is shared by every page in the browser, so the moment is pinned in
     // this page alone: timers still run, and Date always answers `at`.
     if (at) await page.addInitScript((ms) => {
@@ -153,7 +170,7 @@ export function seed(sw) {
     await fill((await mk(work.id, "✉️ Workspace")).id, [["Gmail", "https://mail.google.com/"], ["Calendar", "https://calendar.google.com/calendar/u/0/r"], ["Drive", "https://drive.google.com/"], ["Keep", "https://keep.google.com/"], ["Admin console", "https://admin.google.com/"]]);
     await fill((await mk(work.id, "💵 Money")).id, [["Stripe", "https://dashboard.stripe.com/"], ["Bank", "https://app.examplebank.com/"]]);
     const company = await mk(work.id, "🏢 Company");
-    await fill(company.id, [["Todo list", "https://todo.example.com/"], ["GitHub", "https://github.com/"], ["Agent", "https://account.exampleagent.com/"]]);
+    await fill(company.id, [["Todo list", "https://todo.example.com/"], ["Plan", "https://claude.ai/artifact/abc123"], ["Claude", "https://claude.ai/new"], ["GitHub", "https://github.com/"], ["Agent", "https://account.exampleagent.com/"]]);
     const filings = await mk(company.id, "🏛️ Filings");
     await fill(filings.id, [["State tax", "https://tax.example.gov/"]]);
     await fill((await mk(filings.id, "Federal")).id, [["IRS", "https://www.irs.gov/"]]);

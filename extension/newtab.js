@@ -3,7 +3,7 @@ import { loadIcons, siteIcon, tabIcon, host } from "./icons.js";
 import { BUILTIN, barChildren, leaves, aliasTable, aliasFor, nextFolder, addToNext } from "./shared.js";
 import { renderShortcuts, aliasPill } from "./shortcuts.js";
 import { renderToday, tickToday, tickTheme, renderGlance, warmWeather } from "./today.js";
-import { placeForm } from "./place.js";
+import { placeForm, getPlace } from "./place.js";
 import { renderExtras, renderMail, renderFiles } from "./extras.js";
 
 const TODAY = "today";
@@ -490,7 +490,8 @@ $("glance").onclick = () => show(TODAY);
 
 // Where you are is asked in the glance until it is answered, and changed from Today. Setting it
 // saves the place; the page redraws when that changes.
-$("askForm").append(placeForm(() => {}));
+const asking = placeForm(() => {});
+$("askForm").append(asking);
 $("todayAskForm").append(placeForm(() => {}));
 $("placeBtn").onclick = () => { $("todayAsk").hidden = !$("todayAsk").hidden; };
 
@@ -556,3 +557,11 @@ await loadIcons();
 await loadNote();
 await render();
 warmWeather();
+
+// The very first new tab asks the computer where it is, once, without waiting for a press: the
+// extension holds that permission. If the computer can't say, the form says why and waits.
+const { placeTried } = await chrome.storage.local.get("placeTried");
+if (!placeTried && !(await getPlace())) {
+  await chrome.storage.local.set({ placeTried: true });
+  asking.locate();
+}

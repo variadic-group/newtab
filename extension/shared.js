@@ -10,7 +10,7 @@ export const BUILTIN = {
   drive: { site: true, url: "https://drive.google.com", search: "https://drive.google.com/drive/search?q=%s", label: "Google Drive", example: "drive/contract searches Drive" },
   keep: { site: true, url: "https://keep.google.com", search: "https://keep.google.com/#search/text=%s", label: "Google Keep, for notes", example: "keep/idea searches your notes" },
   g: { url: "https://www.google.com", search: "https://www.google.com/search?q=%s", label: "Google search", example: "g/best-pizza searches Google" },
-  claude: { url: "https://claude.ai/new", search: "https://claude.ai/new?q=%s", label: "Ask Claude", example: "claude/draft a reply to this, or type claude, press Tab, then the question" },
+  claude: { site: true, url: "https://claude.ai/new", search: "https://claude.ai/new?q=%s", label: "Ask Claude", example: "claude/draft a reply to this, or type claude, press Tab, then the question" },
 };
 
 export const NEXT_TITLE = "⏭️ Next";
@@ -53,11 +53,14 @@ async function allLinks() {
   return (await barChildren()).flatMap((n) => (n.url ? [n] : leaves(n)));
 }
 
-// Which bookmark carries each built-in name: the first one on the bar that is that site.
+// Which bookmark carries each built-in name: the one on that site with the shortest address
+// (your Claude bookmark, not a page saved from inside Claude), the first on the bar if they tie.
+const depth = (url) => new URL(url).pathname.length;
 function claimsIn(links) {
   const claims = new Map();
   for (const [name, b] of Object.entries(BUILTIN)) {
-    const mine = b.site && links.find((l) => hostOf(l.url) === hostOf(b.url));
+    if (!b.site) continue;
+    const [mine] = links.filter((l) => hostOf(l.url) === hostOf(b.url)).sort((x, y) => depth(x.url) - depth(y.url));
     if (mine) claims.set(name, mine.url);
   }
   return claims;
@@ -82,11 +85,12 @@ export async function aliasTable() {
   for (const [name, url] of claimsIn(links)) if (!table.has(name)) table.set(name, url);
   for (const l of links) {
     const f = firstWord(l.title);
-    if (f && firstCount.get(f) === 1 && !table.has(f)) table.set(f, l.url);
+    // A built-in name is never handed out automatically: it would show on the tile but open the built-in.
+    if (f && !BUILTIN[f] && firstCount.get(f) === 1 && !table.has(f)) table.set(f, l.url);
   }
   for (const l of links) {
     const s = slug(l.title);
-    if (s && !table.has(s)) table.set(s, l.url);
+    if (s && !BUILTIN[s] && !table.has(s)) table.set(s, l.url);
   }
   return table;
 }

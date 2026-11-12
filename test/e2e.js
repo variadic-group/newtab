@@ -23,10 +23,8 @@ const p = await open();
 await p.waitForSelector(".card");
 
 // ---------- where you are ----------
-ok("first run asks where you are and looks nothing up", !(await p.$("#ask[hidden]")) && !!(await p.$("#glSun[hidden]")) && !!(await p.$("#glWx[hidden]")) && net.points.length === 0 && /\d/.test(await text(p, "#glTime")), { lookups: net.points });
-await p.click('#askForm button:has-text("Use this computer")');
 await p.waitForFunction(() => /^\d+°$/.test(document.getElementById("glTemp").textContent) && !document.getElementById("glRadar").hidden, null, { timeout: 8000 }).catch(() => {});
-ok("\"Use this computer's location\" saves a rounded place and the forecast follows it", (await place()).source === "device" && (await place()).lat === 40.71 && net.points.join() === "40.71,-74.01" && !!(await p.$("#ask[hidden]")), { place: await place(), lookups: net.points });
+ok("the first new tab asks the computer where it is, saves that rounded, and the forecast follows", (await place()).source === "device" && (await place()).lat === 40.71 && net.points.join() === "40.71,-74.01" && !!(await p.$("#ask[hidden]")), { place: await place(), lookups: net.points });
 
 // ---------- layout, the glance, the footer ----------
 ok("tabs: spaces, then Today and Shortcuts", true, [await p.$$eval("#spaces .tab", (x) => x.map((e) => e.textContent)), await p.$$eval("#pages .tab", (x) => x.map((e) => e.textContent))]);
@@ -119,7 +117,8 @@ ok("Open all makes one named tab group", groups.titles.join() === "✉️ Worksp
 // ---------- shortcuts page ----------
 await p.bringToFront(); await p.click('#pages .tab:has-text("Shortcuts")'); await p.waitForSelector(".sc-card");
 const keys = () => p.$$eval("#scBody .key", (x) => x.map((e) => e.textContent));
-ok("built-in names with no bookmark of their own are listed under Always there", (await p.$$eval(".key.fixed", (x) => x.map((e) => e.textContent))).join() === "g/,claude/");
+ok("built-in names with no bookmark of their own are listed under Always there", (await p.$$eval(".key.fixed", (x) => x.map((e) => e.textContent))).join() === "g/");
+ok("claude/ is carried by the Claude bookmark, not by a page saved from inside Claude", (await keys()).filter((k) => k === "claude/").length === 1 && (await text(p, '.sc-row:has-text("claude.ai") >> nth=0')).includes("Plan") && (await text(p, '.sc-row:has(.key:text-is("claude/")) .t')) === "Claude", await p.$$eval('.sc-row:has-text("claude.ai")', (x) => x.map((e) => e.textContent.slice(0, 40))));
 ok("a bookmark of a built-in's site carries its name, once: Calendar is cal/, Gmail is mail/", (await keys()).filter((k) => k === "cal/").length === 1 && (await keys()).filter((k) => k === "mail/").length === 1 && !(await keys()).some((k) => ["calendar/", "gmail/"].includes(k)) && /mail\/invoice/.test(await text(p, '.sc-row:has-text("Gmail") .sc-note')), await keys());
 ok("Chrome's own search shortcuts are one click from the Shortcuts page", !!(await p.$('#scBody [data-go="chrome://settings/searchEngines"]')));
 ok("no tasks/ shortcut; todo/ comes from the Todo list bookmark", !(await keys()).includes("tasks/") && (await keys()).includes("todo/"));
@@ -165,15 +164,30 @@ ok("no links to mail or calendar on Today", (await p.$$("#today a")).length === 
 await p.waitForSelector("#radarCard:not([hidden])", { timeout: 4000 }).catch(() => {});
 ok("radar shows once its image loads, as wide as its column up to 600 px", !(await p.$("#radarCard[hidden]")) && (await p.$eval("#radarImg", (i) => i.getBoundingClientRect().width)) >= 500 && /_loop\.gif/.test(await p.$eval("#radarImg", (i) => i.src)));
 
-// changing the place
-const pick = async (city) => { await p.click("#placeBtn"); await p.fill("#todayAskForm input", city); await p.click('#todayAskForm button:has-text("Search")'); await p.click("#todayAskForm .place-hits button"); };
-await pick("Oakland");
-await p.waitForFunction(() => document.getElementById("place").textContent.startsWith("Oakland") && document.querySelector(".wx-temp"), null, { timeout: 8000 }).catch(() => {});
-ok("a typed city becomes the place and the forecast is fetched for it, with one search per press", (await place()).source === "typed" && (await text(p, "#place")) === "Oakland, California, United States" && net.points.at(-1) === "37.8,-122.27" && net.searches.join() === "Oakland", { place: await place(), lookups: net.points, searches: net.searches });
-await pick("Paris");
+// changing the place: a city, a ZIP code, a street address, a place abroad, nothing at all
+const search = async (words, choose) => {
+  if (await p.$("#todayAsk[hidden]")) await p.click("#placeBtn");
+  await p.fill("#todayAskForm input", words); await p.click('#todayAskForm button:has-text("Search")');
+  if (choose) { await p.waitForSelector("#todayAskForm .place-hits button"); const labels = await p.$$eval("#todayAskForm .place-hits button", (x) => x.map((e) => e.textContent)); await p.click("#todayAskForm .place-hits button"); return labels; }
+};
+const settled = (name) => p.waitForFunction((n) => document.getElementById("place").textContent === n && document.querySelector(".wx-temp"), name, { timeout: 8000 }).catch(() => {});
+let offered = await search("Oakland", true);
+await settled("Oakland, California");
+ok("a typed city with more than one match is offered as a choice; the pick becomes the place and its forecast is fetched, with one search per press", offered.join("; ") === "Oakland, California; Oakland County, Michigan" && (await place()).source === "typed" && (await text(p, "#place")) === "Oakland, California" && net.points.at(-1) === "37.8,-122.27" && net.searches.join() === "Oakland", { offered, place: await place(), lookups: net.points });
+offered = await search("94103", true);
+await settled("San Francisco, California");
+ok("a ZIP code works: this country's match comes first, named by its town", offered[0] === "94103 · San Francisco, California" && (await place()).lat === 37.77 && (await text(p, "#place")) === "San Francisco, California", offered);
+await search("Oakland", true); await settled("Oakland, California");
+await search("1 Market St, San Francisco");
+await settled("San Francisco, California");
+ok("a street address works: its matches are one town, so it is set without a second click", (await place()).name === "San Francisco, California" && (await place()).lat === 37.79 && !!(await p.$("#todayAsk[hidden]")), await place());
+await search("Paris");
 await p.waitForFunction(() => /United States/.test(document.getElementById("wxNote").textContent), null, { timeout: 8000 }).catch(() => {});
-ok("outside the United States it says there is no forecast, and the sky still works", /National Weather Service covers the United States/.test(await text(p, "#wxNote")) && !(await p.$(".wx-temp")) && (await text(p, "#place")).startsWith("Paris") && /\d/.test(await text(p, "#rise")) && !!(await text(p, "#phase")), await text(p, "#wxNote"));
-await p.click("#placeBtn"); await p.click('#todayAskForm button:has-text("Use this computer")');
+ok("outside the United States it says there is no forecast, and the sky still works", /National Weather Service covers the United States/.test(await text(p, "#wxNote")) && !(await p.$(".wx-temp")) && (await text(p, "#place")) === "Paris, Île-de-France, France" && /\d/.test(await text(p, "#rise")) && !!(await text(p, "#phase")), await text(p, "#wxNote"));
+await search("nowhere");
+await p.waitForFunction(() => /Nothing found/.test(document.querySelector("#todayAskForm .note").textContent), null, { timeout: 5000 }).catch(() => {});
+ok("a search with no match says so and suggests what to type", (await text(p, "#todayAskForm .note")) === "Nothing found for “nowhere”. Try a city and state, or a ZIP code." && (await place()).name.startsWith("Paris"));
+await p.click('#todayAskForm button:has-text("Use this computer")');
 await p.waitForFunction(() => document.getElementById("place").textContent === "New York, NY" && document.querySelector(".wx-temp"), null, { timeout: 8000 }).catch(() => {});
 ok("and back to this computer's location", (await place()).source === "device" && (await text(p, "#place")) === "New York, NY" && !!(await p.$("#todayAsk[hidden]")));
 
@@ -269,6 +283,22 @@ await e.click("#extrasBtn"); await e.waitForSelector(".extra");
 ok("their switches read On", (await e.$$eval(".extra .btn", (x) => x.map((b) => b.textContent))).join() === "On,On");
 ok("no page errors with the extras on", g.errs.length === 0, g.errs);
 await g.ctx.close();
+
+// ---------- a computer that can't say where it is ----------
+const n = await launch({ locate: false });
+await seed(n.sw);
+const f = await n.open(); await f.waitForSelector(".card");
+await f.waitForFunction(() => /couldn't work out|isn't allowed|took too long/.test(document.querySelector("#askForm .note").textContent), null, { timeout: 15000 }).catch(() => {});
+ok("when the computer can't say where it is, the first new tab says why, asks, and looks nothing up", !(await f.$("#ask[hidden]")) && !!(await f.$("#glSun[hidden]")) && n.net.points.length === 0 && /Type a place/.test(await text(f, "#askForm .note")) && /\d/.test(await text(f, "#glTime")), await text(f, "#askForm .note"));
+await f.close();
+const f2 = await n.open(); await f2.waitForSelector(".card"); await f2.waitForTimeout(1200);
+ok("it asks the computer once, not on every new tab", (await text(f2, "#askForm .note")) === "" && !(await f2.$("#ask[hidden]")));
+await f2.fill("#askForm input", "94103"); await f2.press("#askForm input", "Enter"); await f2.waitForSelector("#askForm .place-hits button");
+await f2.click("#askForm .place-hits button");
+await f2.waitForFunction(() => /^\d+°$/.test(document.getElementById("glTemp").textContent), null, { timeout: 8000 }).catch(() => {});
+ok("typing a place there and pressing Enter sets it, and the strip fills in", (await n.sw.evaluate(async () => (await chrome.storage.local.get("place")).place.name)) === "San Francisco, California" && !!(await f2.$("#ask[hidden]")) && /^\d+°$/.test(await text(f2, "#glTemp")) && n.net.points.join() === "37.77,-122.41");
+ok("no page errors without a location", n.errs.length === 0, n.errs);
+await n.ctx.close();
 
 console.log(failed ? `${failed} FAILED` : "all passed");
 process.exit(failed ? 1 : 0);

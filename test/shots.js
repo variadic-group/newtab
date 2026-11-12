@@ -30,6 +30,8 @@ const view = async (at, tab) => {
 };
 
 const DAY = "2024-06-21T19:30:00Z", GOLDEN = "2024-06-22T00:12:00Z", DUSK = "2024-06-22T00:51:00Z", NIGHT = "2024-06-22T05:00:00Z", CRESCENT = "2024-04-11T00:20:00Z";
+// The first screenshot is the page asking where you are, as it does when the computer can't say.
+await sw.evaluate(() => chrome.storage.local.set({ placeTried: true }));
 let page = await view(DAY);
 await shot(page, "1-first-run");
 await page.close();

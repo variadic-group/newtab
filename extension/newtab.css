@@ -111,8 +111,9 @@ body:not(.editing) .edit-only { display: none; }
 .ask-text b { font: 600 15px var(--display); letter-spacing: 0; }
 .place-form { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; min-width: 0; }
 .place-form form { display: flex; gap: 6px; }
-.place-form input { width: 170px; font-size: 13px; border: 1px solid var(--line); border-radius: 9px; padding: 6px 10px; background: var(--bg); }
+.place-form input { width: 220px; font-size: 13px; border: 1px solid var(--line); border-radius: 9px; padding: 6px 10px; background: var(--bg); }
 .place-form .note, .place-form .cap, .place-hits { flex-basis: 100%; margin: 0; }
+.place-form .note { color: var(--ink); max-width: 68ch; }
 .place-hits { list-style: none; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
 .place-hits:empty { display: none; }
 .place-hits .mini { border: 1px solid var(--line); color: var(--ink); padding: 4px 9px; }

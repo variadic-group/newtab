@@ -96,8 +96,10 @@ New Tab is built and tested on Chrome 120 and later. Other Chromium browsers are
 
 ## First five minutes
 
-1. **Say where you are.** The strip at the top asks once: this computer's location, or a city.
-   Until you answer, nothing is assumed and nothing is looked up.
+1. **Check where you are.** The first new tab asks the computer for its location. If the
+   computer can't say (on a Mac, Chrome needs Location Services switched on for it), the strip
+   at the top says why and takes a city, a ZIP code or an address instead. No place is ever
+   assumed.
 2. **Shape the bar.** In Chrome's bookmark manager (the pencil offers a link to it), make one folder on
    the bookmarks bar per area of work, and folders inside for collections. Emoji in the names
    read well as tabs: `🏢 Work`, `✉️ Mail and calendar`, `💵 Money`.
@@ -114,11 +116,11 @@ New Tab is built and tested on Chrome 120 and later. Other Chromium browsers are
 | Tabs and tab groups | The Open tabs list; opening a collection as a group |
 | Web navigation | Noticing a typed short link. Chrome words this, with Tabs, as "read your browsing history"; nothing is stored or sent |
 | Storage | Your short names, shortcuts and note (synced by Chrome); your place and caches (this browser only) |
-| Location | Only when you click "Use this computer's location" |
+| Location | On the first new tab, and when you press "Use this computer's location". Chrome shows no location prompt on a new tab page, so the extension holds the permission itself |
 | `api.weather.gov` | The forecast |
 
 Three services are called, each with the least it needs: the National Weather Service gets your
-place rounded to about a kilometre; OpenStreetMap's Nominatim gets a city name when you press
+place rounded to about a kilometre; OpenStreetMap's Nominatim gets what you type when you press
 Search; Google's icon service gets the host names of your bookmarks. The full account is in
 [PRIVACY.md](PRIVACY.md).
 
@@ -157,7 +159,7 @@ No build step. The extension is the `extension` folder as it stands.
 ```
 npm install
 npx playwright install chromium
-npm test            # 13 astronomy checks in Node, then 101 checks in a real Chromium
+npm test            # 13 astronomy checks in Node, then 108 checks in a real Chromium
 npm run shots       # the screenshots in store/screenshots
 npm run zip         # newtab.zip, ready to upload or release
 ```
