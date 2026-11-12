@@ -14,7 +14,7 @@
     <nav id="spaces" class="tabs" role="tablist" aria-label="Spaces"></nav>
     <div class="right">
       <nav id="pages" class="tabs" role="tablist" aria-label="Pages"></nav>
-      <button type="button" class="mini edit-only" data-go="chrome://bookmarks/" title="Chrome's bookmark manager, for bulk moves and new folders">Bookmark manager ↗</button>
+      <button type="button" class="mini edit-only" data-go="chrome://bookmarks/" title="Chrome's bookmark manager, for bulk moves and new folders">Bookmarks in Chrome</button>
       <button type="button" id="edit" class="icon-btn" aria-pressed="false" aria-label="Edit bookmarks" title="Edit: rename, add and remove">
         <svg class="when-off" viewBox="0 0 20 20" aria-hidden="true"><path d="M3.2 16.8l.9-3.9L14.3 2.7a1.6 1.6 0 0 1 2.2 0l.8.8a1.6 1.6 0 0 1 0 2.2L7.1 15.9z"/><path d="M12.4 4.6l3 3"/></svg>
         <svg class="when-on" viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10.6l4 4 8-9.2"/></svg>
@@ -44,7 +44,7 @@
           <span id="glGlyph" class="gl-glyph"></span><b id="glTemp"></b>
           <span class="gl-lines"><span id="glText" class="gl-text"></span><span id="glHiLo" class="cap"></span></span>
         </span>
-        <span id="glRadar" class="gl-radar" hidden><img id="glRadarImg" alt=""><span class="cap">Radar<br>Today ›</span></span>
+        <span id="glRadar" class="gl-radar" hidden><img id="glRadarImg" alt=""><span class="cap">Radar</span></span>
         </button>
       </div>
       <div id="ask" class="ask" hidden>
@@ -165,7 +165,13 @@
   <section id="shortcuts" class="shortcuts" hidden>
     <header class="sc-head">
       <h1>Shortcuts</h1>
-      <p>Type one in the address bar and press Enter. Words after the slash search: <code>mail/invoice</code> looks in Gmail, and for a link with no search of its own, like <code>github/actions cache</code>, the web is searched for that site. Every bookmark gets its short name from its own name the moment it is saved; click one to change it.</p>
+      <p>Type a short name in the address bar and press Enter. Words after the slash search that place.</p>
+      <div class="try">
+        <label for="tryBar">Try one here</label>
+        <input id="tryBar" type="text" autocomplete="off" spellcheck="false" placeholder="mail/invoice from the printer">
+        <p id="tryOut" role="status"></p>
+      </div>
+      <p>Every bookmark gets its short name from its own name the moment it is saved. Click a name below to change it.</p>
     </header>
     <div id="scBody" class="sc-body"></div>
   </section>
@@ -175,11 +181,28 @@
 <footer class="foot">
   <p id="hint" class="hint"></p>
   <nav aria-label="Settings">
-    <button type="button" id="extrasBtn" class="mini" aria-expanded="false" aria-controls="extras">Extras</button>
-    <button type="button" id="version" class="mini" data-go="chrome://extensions/" title="Opens Chrome's Extensions page, where ↻ loads a newer copy."></button>
+    <button type="button" id="extrasBtn" class="mini" aria-expanded="false" aria-controls="extras">Settings</button>
+    <span id="version" class="cap"></span>
   </nav>
-  <section id="extras" class="extras" aria-label="Extras" hidden>
+  <section id="extras" class="extras" aria-label="Settings" hidden>
+    <div class="extra">
+      <div><b>Light and dark</b><p class="cap">Following the sun, the page turns dark at dusk where you are, and whenever your computer is set to dark.</p></div>
+      <select id="themePick" aria-label="Light and dark">
+        <option value="sun">Follow the sun</option>
+        <option value="light">Always light</option>
+        <option value="dark">Always dark</option>
+      </select>
+    </div>
+    <h3>Extras, off until you switch them on</h3>
     <div id="extrasBody"></div>
+    <h3>Kept in Chrome</h3>
+    <div class="in-chrome">
+      <button type="button" class="chip" id="selfPage">This extension, to reload or remove it</button>
+      <button type="button" class="chip" data-go="chrome://extensions/shortcuts">Its keyboard shortcut</button>
+      <button type="button" class="chip" data-go="chrome://bookmarks/">Bookmarks</button>
+      <button type="button" class="chip" data-go="chrome://settings/searchEngines">Search engines</button>
+      <button type="button" class="chip" data-go="chrome://settings/syncSetup">Sync</button>
+    </div>
   </section>
 </footer>
 

@@ -53,6 +53,7 @@ TYPE, DON'T CLICK
 • Every bookmark gets a short name the moment you save it: stripe/ opens Stripe
 • Add words to search that site: stripe/refund policy
 • Google's apps and Claude are always there and search inside themselves: mail/invoice from the printer, cal/dentist, drive/contract, docs/ sheets/ slides/ keep/, claude/what should I ask
+• Chrome's own pages have names too: history/that recipe, downloads/invoice, settings/cookies
 • Add your own: any name to any address
 
 PICK UP WHERE YOU LEFT OFF

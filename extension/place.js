@@ -165,7 +165,7 @@ export async function searchPlaces(q) {
     const town = a.city || a.town || a.village || a.hamlet || a.municipality || a.county || hit.name;
     const parts = [town, a.state || a.region, a.country_code === "us" ? "" : a.country].filter((part, i, all) => part && all.indexOf(part) === i);
     const name = parts.join(", ") || hit.display_name;
-    return { name, label: hit.addresstype === "postcode" && a.postcode ? `${a.postcode} · ${name}` : name, lat: round(hit.lat), lon: round(hit.lon) };
+    return { name, label: hit.addresstype === "postcode" && a.postcode ? `${a.postcode}, ${name}` : name, lat: round(hit.lat), lon: round(hit.lon) };
   }).filter((hit) => !seen.has(hit.name) && seen.add(hit.name)).slice(0, 5);
 }
 

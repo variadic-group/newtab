@@ -17,6 +17,17 @@ export const BUILTIN = {
   claude: { own: /^https:\/\/claude\.ai\/(new\/?)?([?#]|$)/, url: "https://claude.ai/new", search: "https://claude.ai/new?q=%s", label: "Claude", example: "claude/draft a reply to this" },
 };
 
+// Chrome's own pages have names too, and words after one search inside the page. These are not
+// reserved the way the apps above are: a bookmark with the same name wins.
+export const CHROME_PAGES = {
+  history: { url: "chrome://history/", search: "chrome://history/?q=%s", label: "History", example: "history/that recipe" },
+  downloads: { url: "chrome://downloads/", search: "chrome://downloads/?q=%s", label: "Downloads", example: "downloads/invoice" },
+  bookmarks: { url: "chrome://bookmarks/", search: "chrome://bookmarks/?q=%s", label: "Bookmark manager", example: "bookmarks/tax" },
+  settings: { url: "chrome://settings/", search: "chrome://settings/?search=%s", label: "Settings", example: "settings/cookies" },
+  extensions: { url: "chrome://extensions/", label: "Extensions" },
+  passwords: { url: "chrome://password-manager/passwords", label: "Passwords" },
+};
+
 export const NEXT_TITLE = "⏭️ Next";
 
 export function slug(text) {
@@ -155,6 +166,8 @@ export async function resolve(name, rest, plain = false) {
   if (b && query) return b.search.replace("%s", encodeURIComponent(query));
   if (b) return (await claims()).get(key) || b.url;
   if (table.has(key)) return reach(table.get(key), query);
+  const page = CHROME_PAGES[key];
+  if (page) return query && page.search ? page.search.replace("%s", encodeURIComponent(query)) : page.url;
   if (plain) return null;
   const hits = [...table.keys()].filter((a) => a.startsWith(key));
   const urls = new Set(hits.map((a) => table.get(a)));

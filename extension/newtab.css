@@ -154,7 +154,7 @@ body:not(.editing) .card:not(:hover):not(:focus-within) .act { opacity: 0; }
 .group { margin-top: 6px; padding-top: 6px; border-top: 1px solid var(--line); border-radius: 0 0 10px 10px; }
 .group.drop { background: var(--accent-soft); }
 .group-head { display: flex; align-items: center; justify-content: space-between; gap: 6px; margin: 0 6px 2px; min-height: 22px; }
-.group h3 { font: 600 11px var(--body); text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin: 0; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.group h3 { font: 600 12.5px var(--body); color: var(--muted); margin: 0; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .group .note { margin: 2px 6px 4px; font-size: 12px; }
 .mini { border: 0; background: none; color: var(--muted); font: 500 12px var(--body); padding: 3px 6px; border-radius: 6px; cursor: pointer; }
 .mini:hover { color: var(--ink); background: var(--tile); }
@@ -223,7 +223,7 @@ button.key { cursor: text; }
 .rows .close { display: block; font-size: 15px; line-height: 1; padding: 3px 7px; opacity: 0.55; }
 .rows li:hover .close, .rows .close:focus-visible { opacity: 1; }
 .slot { display: contents; }
-.panel h3 { font: 600 11px var(--body); text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin: 10px 6px 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.panel h3 { font: 600 12.5px var(--body); color: var(--muted); margin: 10px 6px 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 /* Expanded, the note is the same box lifted over the page. */
 .notes.big { position: fixed; z-index: 30; left: 50%; top: 9vh; transform: translateX(-50%); width: min(760px, 92vw); padding: 16px 12px 12px; box-shadow: 0 24px 70px rgb(0 0 0 / 0.35); }
 .notes.big textarea { height: 64vh; font-size: 15px; resize: none; }
@@ -259,7 +259,7 @@ button.key { cursor: text; }
 .band.naut { fill: var(--tw-naut); }
 .band.astro { fill: var(--tw-astro); }
 .band.night { fill: var(--tw-night); }
-.band-name { font: 600 8.5px var(--body); letter-spacing: 0.1em; text-transform: uppercase; text-anchor: middle; fill: var(--ink); opacity: 0.6; }
+.band-name { font: 500 9.5px var(--body); text-anchor: middle; fill: var(--ink); opacity: 0.62; }
 .day-area { fill: url(#dayFill); }
 .df-a { stop-color: var(--sun-now); stop-opacity: 0.36; }
 .df-b { stop-color: var(--sun-now); stop-opacity: 0.05; }
@@ -327,10 +327,24 @@ button.key { cursor: text; }
 .sc-head h1 { font: 600 22px var(--display); margin: 0 0 4px; letter-spacing: -0.01em; }
 .sc-head p { margin: 0; color: var(--muted); max-width: 78ch; }
 .sc-head code { font: 12px var(--mono); color: var(--accent); background: var(--accent-soft); border-radius: 5px; padding: 1px 5px; }
+/* The address bar's stand-in: the one loud thing on the Shortcuts page. */
+.try { margin: 14px 0 12px; max-width: 760px; }
+.try label { display: block; font-size: 12.5px; color: var(--muted); margin-bottom: 5px; }
+.try input { width: 100%; font: 500 20px var(--mono); padding: 14px 20px; border: 1px solid var(--line); border-radius: 999px; background: var(--card); color: var(--ink); box-shadow: 0 1px 2px rgb(0 0 0 / 0.04); }
+.try input:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+.try input::placeholder { color: color-mix(in srgb, var(--muted) 60%, transparent); }
+#tryOut { min-height: 1.5em; margin: 8px 0 0 20px; font: 600 15px var(--display); color: var(--muted); }
+#tryOut.go { color: var(--ink); }
+#tryOut.go::after { content: " Enter goes there."; font: 400 13px var(--body); color: var(--muted); }
+button.sc-what { border: 0; background: none; padding: 0; font: inherit; cursor: pointer; text-align: left; }
+button.sc-what:hover .t { text-decoration: underline; }
+.key.page { color: var(--ink); background: var(--tile); }
+button.sc-note.eg { border: 0; background: none; padding: 0; font: 12px var(--mono); color: var(--muted); text-align: left; cursor: pointer; }
+button.sc-note.eg:hover { color: var(--accent); }
 .sc-body { columns: 3 330px; column-gap: 14px; }
 .sc-card { display: block; break-inside: avoid; margin: 0 0 14px; background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 14px 16px; }
 .sc-card h2 { font: 600 15px var(--display); margin: 0 0 8px; }
-.sc-card h3 { font: 600 11px var(--body); text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin: 12px 0 4px; }
+.sc-card h3 { font: 600 12.5px var(--body); color: var(--muted); margin: 14px 0 4px; }
 .sc-row { display: grid; grid-template-columns: 112px minmax(0, 1fr); gap: 2px 10px; align-items: center; padding: 4px 0; }
 .sc-row .key { justify-self: start; font-size: 12px; padding: 3px 7px; }
 .sc-what { display: flex; align-items: center; gap: 8px; min-width: 0; color: var(--ink); text-decoration: none; }
@@ -389,6 +403,7 @@ a.sc-what:hover .t { text-decoration: underline; }
 .way-say { display: flex; align-items: center; gap: 8px; margin: 4px 0 0; }
 .way-say b { font: 600 16px/1.25 var(--display); min-width: 0; overflow-wrap: anywhere; }
 .way-why { margin: 6px 0 0; font-size: 12.5px; line-height: 1.45; color: var(--muted); }
+.way .act { margin: 10px 0 0 -6px; color: var(--accent); font-weight: 600; }
 .resolvers { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 3px; font-size: 12.5px; }
 .resolvers li { display: flex; gap: 6px; min-width: 0; }
 .resolvers .fl { flex: none; }
@@ -434,8 +449,10 @@ a.sc-what:hover .t { text-decoration: underline; }
 .score i:first-child { border-radius: 4px 0 0 4px; }
 .score i:last-child { border-radius: 0 4px 4px 0; }
 .score i.on { background: var(--accent); }
-.switches { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 44px; align-items: start; }
-.sw { display: grid; grid-template-columns: minmax(0, 1fr) max-content; gap: 12px; align-items: center; padding: 11px 0; border-top: 1px solid var(--line); }
+.switches { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0 36px; align-items: start; }
+.sw { grid-template-columns: 1fr; }
+.sw { display: grid; gap: 4px; justify-items: start; padding: 11px 0; border-top: 1px solid var(--line); }
+.sw .mini { margin-left: 20px; }
 .sw-say { display: flex; align-items: center; gap: 8px; margin: 0; font-size: 14px; }
 .sw-say .state { color: var(--muted); }
 .sw .way-why { margin: 3px 0 0 26px; }
@@ -471,6 +488,11 @@ a.sc-what:hover .t { text-decoration: underline; }
 .foot .mini[aria-expanded="true"] { color: var(--ink); background: var(--tile); }
 #version { font-family: var(--mono); font-size: 11.5px; }
 .extras { flex: 0 1 460px; margin-left: auto; background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 4px 16px; color: var(--ink); }
+.extras h3 { margin: 14px 0 0; font: 600 12.5px var(--body); color: var(--muted); }
+.extras select { flex: none; font: 13px var(--body); padding: 6px 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--ink); }
+.in-chrome { display: flex; flex-wrap: wrap; gap: 6px; padding: 8px 0 12px; }
+.in-chrome .chip { color: var(--ink); }
+.foot nav { align-items: center; gap: 10px; }
 .extra { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 10px 0; }
 .extra + .extra { border-top: 1px solid var(--line); }
 .extra b { font: 600 14px var(--display); }

@@ -34,7 +34,9 @@ function applyTheme(place) {
     saved = n ? { from: +n.from, to: +n.to } : night ? { from: +now, to: +now + DAY_MS } : null;
   }
   if (saved) localStorage.setItem("night", JSON.stringify(saved)); else localStorage.removeItem("night");
-  document.documentElement.dataset.theme = night || matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+  // A choice made in Settings stands; otherwise the sun and the system decide.
+  const pick = localStorage.getItem("theme");
+  document.documentElement.dataset.theme = pick === "light" || pick === "dark" ? pick : night || matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
 }
 
 // ---------- the forecast ----------
@@ -200,13 +202,13 @@ function drawSky(place) {
   $("nextUp").textContent = next ? `${cap(next.label)} in ${span(next.at - now)}` : "";
   $("rise").textContent = fmtTime(t.sunrise);
   $("set").textContent = fmtTime(t.sunset);
-  const list = (...items) => cap(items.filter((i) => i[1]).map((i) => `${i[0]} ${fmtBare(i[1])}`).join(" · "));
+  const list = (...items) => cap(items.filter((i) => i[1]).map((i) => `${i[0]} ${fmtBare(i[1])}`).join(", "));
   $("riseSub").textContent = list(["first light", t.firstLight], ["dawn", t.dawn]);
   $("setSub").textContent = list(["dusk", t.dusk], ["last light", t.lastLight]);
   $("daylight").textContent = t.sunrise && t.sunset ? `${span(t.sunset - t.sunrise)} of daylight` : peak > 0 ? "The sun stays up today" : "The sun stays down today";
   const mt = moonTimes(now, lat, lon);
   const turn = up ? mt.set && `sets ${fmtTime(mt.set)}` : mt.rise && `rises ${fmtTime(mt.rise)}`;
-  $("moonLine").textContent = [`${phase.emoji} ${phase.name}`, `${Math.round(phase.fraction * 100)}% lit`, turn].filter(Boolean).join(" · ");
+  $("moonLine").textContent = [`${phase.emoji} ${phase.name}`, `${Math.round(phase.fraction * 100)}% lit`, turn].filter(Boolean).join(", ");
 }
 
 // ---------- drawing the forecast ----------
@@ -286,7 +288,7 @@ function showPlace(place, wx) {
 
 function drawWeather(wx, place) {
   showPlace(place, wx);
-  $("updated").textContent = `National Weather Service · ${fmtTime(new Date(wx.at))}`;
+  $("updated").textContent = `National Weather Service, ${fmtTime(new Date(wx.at))}`;
   const { hours, days, now, today } = nowOf(wx);
 
   const facts = [];
@@ -295,10 +297,10 @@ function drawWeather(wx, place) {
   facts.push(`Wind ${now.wind}`);
   if (now.pop) facts.push(`Rain ${now.pop}%`);
   const desc = el("div", "wx-desc");
-  desc.append(el("div", "wx-text", now.text), el("div", "cap", facts.join(" · ")));
+  desc.append(el("div", "wx-text", now.text), el("div", "cap", facts.join(", ")));
   const picture = glyph(now.text, now.day, moonPhase(new Date()).emoji);
   $("wxNow").replaceChildren(el("div", "wx-glyph", picture), el("div", "wx-temp", `${now.temp}°`), desc);
-  $("skyWx").textContent = `${picture} ${now.temp}° · ${now.text}`;
+  $("skyWx").textContent = `${picture} ${now.temp}° and ${now.text.toLowerCase()}`;
 
   $("wxHours").innerHTML = hours.length > 3 ? hourChart(hours) : "";
 
@@ -329,7 +331,7 @@ function drawWeather(wx, place) {
       img.src = src;
     }
     $("radarLink").href = `https://radar.weather.gov/station/${wx.station}/standard`;
-    $("radarLink").textContent = `${wx.station} · open on weather.gov`;
+    $("radarLink").textContent = `Station ${wx.station} on weather.gov`;
   }
 }
 
@@ -445,7 +447,7 @@ export async function renderGlance() {
   $("glGlyph").textContent = glyph(now.text, now.day, moonPhase(at).emoji);
   $("glTemp").textContent = `${now.temp}°`;
   $("glText").textContent = now.text;
-  $("glHiLo").textContent = [today.hi != null && `High ${today.hi}°`, today.lo != null && `Low ${today.lo}°`, now.pop >= 20 && `Rain ${now.pop}%`].filter(Boolean).join(" · ");
+  $("glHiLo").textContent = [today.hi != null && `${today.hi}° high`, today.lo != null && `${today.lo}° low`, now.pop >= 20 && `${now.pop}% rain`].filter(Boolean).join(", ");
   if (src && img.src !== src) {
     img.onerror = () => { img.dataset.failed = src; $("glRadar").hidden = true; };
     img.src = src;

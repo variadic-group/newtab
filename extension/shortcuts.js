@@ -1,7 +1,55 @@
 // The Shortcuts page: every short link the address bar understands, and where each one goes.
 import { el } from "./dom.js";
 import { siteIcon, host } from "./icons.js";
-import { BUILTIN, barChildren, leaves, aliasTable, aliasFor, claims, customAliases, customLinks, slug } from "./shared.js";
+import { BUILTIN, CHROME_PAGES, barChildren, leaves, aliasTable, aliasFor, claims, customAliases, customLinks, slug, resolve } from "./shared.js";
+
+// ---------- try one ----------
+// The box at the top of the page is the address bar's stand-in: type a short link and it says
+// where that would go, in words; Enter goes there. It asks the same code the address bar does.
+async function explain(typed) {
+  const m = /^([^\s/]+)\/?(.*)$/.exec(typed.trim());
+  if (!m) return null;
+  const [, name, rest] = m;
+  const words = rest.trim();
+  const target = await resolve(name, rest);
+  if (!target) return { say: `No short name starts with “${name}”.` };
+  if (typeof target !== "string") return { target, say: `Searches the web for “${words}” on ${target.search.split(" site:").pop()}.` };
+  const page = Object.values(CHROME_PAGES).find((c) => target.startsWith(c.url));
+  if (page) return { target, say: words && page.search ? `Searches Chrome's ${page.label.toLowerCase()} for “${words}”.` : `Opens Chrome's ${page.label.toLowerCase()}.` };
+  const app = Object.values(BUILTIN).find((b) => b.own.test(target) || target.startsWith(b.search.split("%s")[0]));
+  if (app) return { target, say: words ? `Searches ${app.label} for “${words}”.` : `Opens ${app.label}.` };
+  const mine = (await barChildren()).flatMap((n) => (n.url ? [n] : leaves(n))).find((l) => l.url === target);
+  return { target, say: words ? `Opens ${host(target)} with “${words}”.` : `Opens ${mine ? mine.title : host(target)}.` };
+}
+
+let wired = false;
+function wireTry() {
+  if (wired) return;
+  wired = true;
+  const bar = document.getElementById("tryBar"), out = document.getElementById("tryOut");
+  let found = null;
+  const read = async () => {
+    const typed = bar.value;
+    found = typed.trim() ? await explain(typed) : null;
+    if (typed !== bar.value) return; // more was typed while this was worked out
+    out.textContent = found ? found.say : "";
+    out.classList.toggle("go", !!(found && found.target));
+  };
+  bar.oninput = read;
+  bar.onkeydown = (e) => {
+    if (e.key !== "Enter" || !found || !found.target) return;
+    if (typeof found.target === "string") chrome.tabs.update({ url: found.target });
+    else chrome.search.query({ text: found.target.search, disposition: "CURRENT_TAB" });
+  };
+}
+// An example on the page is a button: pressing it types the example into the box.
+function example(text) {
+  const b = el("button", "sc-note eg", text);
+  b.type = "button";
+  b.title = "Try it in the box at the top";
+  b.onclick = () => { const bar = document.getElementById("tryBar"); bar.value = text; bar.focus(); bar.oninput(); bar.scrollIntoView({ block: "nearest" }); };
+  return b;
+}
 
 // Turns a link's short name into a text box; an empty name goes back to the automatic one.
 export function editAlias(pill, link, done) {
@@ -38,7 +86,7 @@ export function aliasPill(link, table, done) {
 function row(key, what, note) {
   const r = el("div", "sc-row");
   r.append(key, what);
-  if (note) r.append(el("div", "sc-note", note));
+  if (note) r.append(example(note));
   return r;
 }
 
@@ -92,10 +140,10 @@ async function ownCard(done) {
     done();
   };
   card.append(form, el("p", "sc-note solo", "Example: name hn, address https://hn.algolia.com/?q=%s, then hn/rust searches it."));
-  const chromes = el("button", "mini", "Chrome's own search shortcuts ↗");
+  const chromes = el("button", "mini", "Search engines in Chrome");
   chromes.type = "button";
   chromes.dataset.go = "chrome://settings/searchEngines";
-  chromes.title = "Chrome keeps its own list, which an extension can't read or change";
+  chromes.title = "Chrome keeps its own list of search shortcuts, which an extension can't read or change";
   const more = Object.entries(SUGGEST).filter(([key]) => !links[key]);
   if (more.length) {
     const row = el("div", "sc-suggest");
@@ -113,7 +161,29 @@ async function ownCard(done) {
   return card;
 }
 
+// Chrome's own pages, by name. A bookmark that already goes by one of these keeps it.
+async function chromeCard(table) {
+  const card = el("article", "sc-card");
+  card.append(el("h2", null, "Chrome's own pages"), el("p", "sc-note lead", "Chrome's pages have names too, and words after one search inside it. A bookmark with the same name wins."));
+  for (const [name, page] of Object.entries(CHROME_PAGES)) {
+    if (table.has(name)) continue;
+    const what = el("button", "sc-what");
+    what.type = "button";
+    what.dataset.go = page.url;
+    what.append(el("span", "t", page.label), el("span", "h", "in Chrome"));
+    card.append(row(el("code", "key page", `${name}/`), what, page.example));
+  }
+  // The key that saves a page to Up next is Chrome's to change.
+  const [save] = (await chrome.commands.getAll()).filter((c) => c.name === "_execute_action");
+  const keys = el("button", "mini", "Keyboard shortcuts in Chrome");
+  keys.type = "button";
+  keys.dataset.go = "chrome://extensions/shortcuts";
+  card.append(el("p", "sc-note solo", save && save.shortcut ? `${save.shortcut} adds the page you are on to Up next.` : "No key is set for adding the page you are on to Up next."), keys);
+  return card;
+}
+
 export async function renderShortcuts(root, done) {
+  wireTry();
   const table = await aliasTable();
   const cards = [];
 
@@ -130,7 +200,7 @@ export async function renderShortcuts(root, done) {
     if (carried.has(name)) what.append(el("span", "h", "your bookmark"));
     built.append(row(el("code", "key fixed", `${name}/`), what, b.example));
   }
-  cards.push(built, await ownCard(done));
+  cards.push(built, await chromeCard(table), await ownCard(done));
   const listed = (l) => { const name = aliasFor(l, table); return !(BUILTIN[name] && carried.get(name) === l.url); };
 
   for (const space of (await barChildren()).filter((k) => !k.url)) {

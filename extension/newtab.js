@@ -368,7 +368,7 @@ function tileFor(link, table) {
   const a = el("a", "tile");
   a.href = link.url;
   const alias = aliasFor(link, table);
-  a.title = alias ? `${alias}/  ·  ${host(link.url)}` : host(link.url);
+  a.title = alias ? `${host(link.url)}, or type ${alias}/` : host(link.url);
   const name = el("span", "name", label(link));
   name.dataset.id = link.id;
   // In Edit, a click on the name renames the bookmark. The tile stops being draggable meanwhile,
@@ -545,7 +545,7 @@ async function saveTabs(space) {
   const tabs = await otherTabs();
   if (!tabs.length) return;
   const stamp = new Date().toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
-  const folder = await chrome.bookmarks.create({ parentId: space.node.id, title: `🗂️ Tabs · ${stamp}` });
+  const folder = await chrome.bookmarks.create({ parentId: space.node.id, title: `🗂️ Tabs, ${stamp}` });
   for (const t of tabs) await chrome.bookmarks.create({ parentId: folder.id, title: t.title || t.url, url: t.url });
   toast(`Saved ${tabs.length} tab${tabs.length === 1 ? "" : "s"} as a new collection in ${space.title}.`);
 }
@@ -640,7 +640,7 @@ chrome.permissions.onRemoved.addListener(drawExtras);
 const hint = $("hint");
 hint.append("Type in the address bar: ");
 for (const name of ["mail", "cal", "drive", "claude"]) hint.append(el("code", null, `${name}/`), " ");
-const all = el("button", "mini", "All shortcuts ›");
+const all = el("button", "mini", "All shortcuts");
 all.type = "button";
 all.id = "goShortcuts";
 all.onclick = () => show(KEYS);
@@ -650,6 +650,18 @@ document.addEventListener("click", (e) => {
   if (go) chrome.tabs.update({ url: go.dataset.go });
 });
 $("version").textContent = `v${chrome.runtime.getManifest().version}`;
+$("selfPage").dataset.go = `chrome://extensions/?id=${chrome.runtime.id}`;
+
+// Light and dark: follow the sun, or stay one way. The choice travels with your Chrome profile,
+// and a copy is kept where the page can read it before it first paints.
+const applyPick = (pick) => {
+  if (pick === "light" || pick === "dark") localStorage.setItem("theme", pick); else localStorage.removeItem("theme");
+  $("themePick").value = pick === "light" || pick === "dark" ? pick : "sun";
+  tickTheme();
+};
+$("themePick").onchange = () => { applyPick($("themePick").value); chrome.storage.sync.set({ theme: $("themePick").value }); };
+chrome.storage.sync.get("theme").then(({ theme }) => applyPick(theme));
+chrome.storage.onChanged.addListener((changes, area) => { if (area === "sync" && changes.theme) applyPick(changes.theme.newValue); });
 
 // Redrawing replaces the text boxes, so a change from outside (another tab, sync) waits while one
 // of them is being typed in.

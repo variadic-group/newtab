@@ -216,7 +216,19 @@ function way(name, kind, say, why) {
   return box;
 }
 
-function answers({ v4, v6, at, rtc, dns }) {
+// A thing to do about an answer, beside it. One that opens a page of Chrome's says so.
+function act(label, run, go) {
+  const b = el("button", "mini act", label);
+  b.type = "button";
+  if (go) b.dataset.go = go; else b.onclick = run;
+  return b;
+}
+
+// A sign is kept for what matters and can be acted on. Red is your real address getting out.
+// Amber is something going around a VPN that you can change. Green is a VPN doing what it is
+// for. With nothing carrying you elsewhere (`away` false) these are plain facts, not verdicts,
+// and so is anything you can't change from here, like the clock.
+function answers({ v4, v6, at, rtc, dns }, away, limitWebrtc) {
   const known = [v4 && v4.ip, v6 && v6.ip].filter(Boolean);
 
   const network = way("Network", "plain", at.isp || "Unknown", [
@@ -228,8 +240,8 @@ function answers({ v4, v6, at, rtc, dns }) {
   const mine = Intl.DateTimeFormat().resolvedOptions().timeZone;
   const there = at.zone ? offsetOf(at.zone) : null;
   const clock = there === null ? way("Clock", "plain", "Can't compare", "The address has no time zone on record.")
-    : there === -new Date().getTimezoneOffset() ? way("Clock", "good", "Matches", `Your clock (${mine}) agrees with where your address is.`)
-      : way("Clock", "warn", "Doesn't match", `Your clock says ${mine}; your address says ${at.zone}. A site can tell.`);
+    : there === -new Date().getTimezoneOffset() ? way("Clock", away ? "good" : "plain", "Matches", `Your clock (${mine}) agrees with where your address is.`)
+      : way("Clock", "plain", "Differs from your address", `Your clock says ${mine}; your address says ${at.zone}. A site can tell you are not where your address is.`);
 
   let webrtc;
   if (!rtc) webrtc = way("WebRTC", "plain", "Couldn't run", "The check couldn't run in this browser.");
@@ -237,9 +249,11 @@ function answers({ v4, v6, at, rtc, dns }) {
     const open = [...rtc.open];
     const strays = open.filter((a) => !known.includes(a));
     const local = rtc.local.size ? `Your address on the local network is visible to sites: ${[...rtc.local].join(", ")}.` : rtc.hidden ? "Your address on the local network is hidden behind a random name." : "";
-    webrtc = !open.length ? way("WebRTC", "good", "Shows nothing", ["No public address came back: it is blocked or limited here.", local].filter(Boolean))
+    webrtc = !open.length ? way("WebRTC", away ? "good" : "plain", "Shows nothing", ["No public address came back: it is blocked or limited here.", local].filter(Boolean))
       : strays.length ? way("WebRTC", "bad", "Shows another address", [`Sites can see ${strays.join(" and ")} through it, not the address above. On a VPN, that is your real address getting past it.`, local].filter(Boolean))
-        : way("WebRTC", "good", "No leak", ["It shows sites the same address as your browsing.", local].filter(Boolean));
+        : way("WebRTC", away ? "good" : "plain", away ? "No leak" : "Same address", ["It shows sites the same address as your browsing.", local].filter(Boolean));
+    // What WebRTC gives away can be narrowed from here: the one Chrome setting with no switch.
+    if (strays.length || rtc.local.size) webrtc.append(act("Limit WebRTC to your browsing's route", limitWebrtc));
   }
 
   let lookups;
@@ -248,7 +262,7 @@ function answers({ v4, v6, at, rtc, dns }) {
     const lands = [...new Set(dns.map((g) => g.country).filter(Boolean))];
     const same = lands.length > 0 && lands.every((c) => c === at.country);
     const own = dns.every((g) => at.isp && g.isp === at.isp);
-    const kind = own || same ? "good" : lands.length ? "warn" : "plain";
+    const kind = !away ? "plain" : own || same ? "good" : lands.length ? "warn" : "plain";
     const list = el("ul", "resolvers");
     for (const g of dns.slice(0, 3)) {
       const li = el("li");
@@ -262,6 +276,7 @@ function answers({ v4, v6, at, rtc, dns }) {
           : lands.length ? `Not in ${at.country || "the country"} where your traffic comes out. On a VPN, that means lookups are going around it.`
             : "Whoever runs these servers sees every name you look up.",
     ]);
+    if (kind === "warn") lookups.append(act("Choose your DNS in Chrome", null, "chrome://settings/security"));
   }
   return [network, clock, webrtc, lookups];
 }
@@ -287,8 +302,10 @@ function heroPanel() {
   box.append(top, ways);
 
   // The sentence and the map as soon as the address is known; the four answers when DNS is in.
+  let away = false;
   const landed = (at, place) => {
     const { km, near } = map.draw({ place, at });
+    away = km !== null && !near;
     line.textContent = `You come out in ${cityOf(at)}. ${flag(at.code)}`.trim();
     sub.textContent = km === null ? (place ? "How far that is from your place isn't known." : "Set a place on Today and this says how far that is from you.")
       : near ? "That is where you are, near enough. Nothing is carrying you elsewhere, or it comes out close by."
@@ -297,13 +314,21 @@ function heroPanel() {
     world.classList.remove("busy");
     world.classList.add("landed");
   };
+  // Narrowing WebRTC is a change to Chrome, so Chrome asks first; then the check runs again to
+  // show what difference it made.
+  const limitWebrtc = async () => {
+    if (!(await chrome.permissions.request(ASK))) return;
+    await chrome.privacy.network.webRTCIPHandlingPolicy.set({ value: "default_public_interface_only" });
+    if (privacyBox) privacyCard(privacyBox);
+    run();
+  };
   const run = async () => {
     again.disabled = true;
     world.classList.add("busy");
     world.classList.remove("landed");
     try {
       const found = await check((at, place) => { landed(at, place); ways.replaceChildren(el("p", "way-why", "Looking for the servers that answer your lookups…")); });
-      ways.replaceChildren(...answers(found));
+      ways.replaceChildren(...answers(found, away, limitWebrtc));
     } catch (err) {
       console.warn("check:", err.message);
       line.textContent = "Couldn't find where you come out.";
@@ -558,16 +583,17 @@ async function fingerprintCard() {
 // ---------- Chrome's privacy switches ----------
 // Each switch Chrome lets an extension read: where it lives in chrome.privacy, what it means,
 // which way is the private one, and the Chrome page where it is changed. `null` for the private
-// way means there isn't one to prefer.
+// way means it is a trade you make, not a fault: it is shown without a verdict. The last item
+// is how much it matters when set the other way: amber, or red for the one that protects you.
 const SWITCHES = [
+  ["services", "safeBrowsingEnabled", "Safe Browsing", "on", "off", true, "chrome://settings/security", "Warns before a dangerous site or download.", "bad"],
   ["websites", "thirdPartyCookiesAllowed", "Third-party cookies", "allowed", "blocked", false, "chrome://settings/cookies", "Cookies from sites other than the one you are on, which is how you are followed between sites."],
-  ["services", "safeBrowsingEnabled", "Safe Browsing", "on", "off", true, "chrome://settings/security", "Warns before a dangerous site or download."],
   ["websites", "topicsEnabled", "Ad topics", "on", "off", false, "chrome://settings/adPrivacy", "Chrome works out your interests from your history and tells sites."],
   ["websites", "fledgeEnabled", "Site-suggested ads", "on", "off", false, "chrome://settings/adPrivacy", "Sites you visit can pick ads to show you elsewhere."],
   ["websites", "adMeasurementEnabled", "Ad measurement", "on", "off", false, "chrome://settings/adPrivacy", "Sites and advertisers measure how their ads did, using your browser."],
-  ["network", "networkPredictionEnabled", "Preload pages", "on", "off", false, "chrome://settings/performance", "Chrome opens pages it guesses you will visit; those sites see you arrive before you click."],
-  ["services", "searchSuggestEnabled", "Search suggestions", "on", "off", false, "chrome://settings/syncSetup", "What you type in the address bar goes to your search engine as you type."],
-  ["websites", "doNotTrackEnabled", "Do Not Track request", "sent", "not sent", true, "chrome://settings/cookies", "Asks sites not to track you. Most ignore it."],
+  ["network", "networkPredictionEnabled", "Preload pages", "on", "off", null, "chrome://settings/performance", "Faster pages, at the cost that sites Chrome guesses you will visit see you arrive before you click."],
+  ["services", "searchSuggestEnabled", "Search suggestions", "on", "off", null, "chrome://settings/syncSetup", "Suggestions as you type, at the cost that what you type goes to your search engine before you press Enter."],
+  ["websites", "doNotTrackEnabled", "Do Not Track request", "sent", "not sent", null, "chrome://settings/cookies", "Asks sites not to track you. Most ignore it."],
   ["services", "passwordSavingEnabled", "Offer to save passwords", "on", "off", null, "chrome://password-manager/settings", "Off is right if a password manager does this for you."],
 ];
 // WebRTC's route has no switch in Chrome's settings; an extension is the only way to set it.
@@ -587,12 +613,12 @@ async function privacyCard(box = card("Chrome's privacy switches", "wide")) {
     go.onclick = async () => { if (await chrome.permissions.request(ASK)) privacyCard(box); };
     body.push(el("p", "sc-note", "How Chrome itself is set, read from Chrome and shown here with which way is the private one. Chrome will ask to let this page “change your privacy-related settings”. It changes one, and only when you choose to: the route WebRTC takes, which has no switch in Chrome."), go);
   } else {
-    const rows = { warn: [], good: [], plain: [] };
-    for (const [area, key, name, on, off, wanted, page, why] of SWITCHES) {
+    const rows = { bad: [], warn: [], good: [], plain: [] };
+    for (const [area, key, name, on, off, wanted, page, why, matters = "warn"] of SWITCHES) {
       const setting = chrome.privacy[area] && chrome.privacy[area][key];
       if (!setting) continue; // a Chrome without this switch
       const { value } = await setting.get({});
-      const kind = wanted === null ? "plain" : value === wanted ? "good" : "warn";
+      const kind = wanted === null ? "plain" : value === wanted ? "good" : matters;
       const change = el("button", "mini", "Change in Chrome");
       change.type = "button";
       change.dataset.go = page;
@@ -605,7 +631,7 @@ async function privacyCard(box = card("Chrome's privacy switches", "wide")) {
       row.append(what, change);
       rows[kind].push(row);
     }
-    const judged = rows.good.length + rows.warn.length;
+    const judged = rows.good.length + rows.warn.length + rows.bad.length;
     const score = el("div", "score");
     score.setAttribute("role", "img");
     score.setAttribute("aria-label", `${rows.good.length} of ${judged} set the private way`);
@@ -618,8 +644,9 @@ async function privacyCard(box = card("Chrome's privacy switches", "wide")) {
       col.append(el("h3", null, title), ...list);
       groups.append(col);
     };
-    group("Worth a look", rows.warn);
-    group("Already private", [...rows.good, ...rows.plain]);
+    group("Worth a look", [...rows.bad, ...rows.warn]);
+    group("Already private", rows.good);
+    group("Your call", rows.plain);
 
     const route = chrome.privacy.network.webRTCIPHandlingPolicy;
     const now = await route.get({});
@@ -651,6 +678,7 @@ async function privacyCard(box = card("Chrome's privacy switches", "wide")) {
 // Built once, so what was found stays on the page while the tab is open. The check starts as
 // the page is built; the cards that need no network are already there when it lands.
 let built = false;
+let privacyBox = null;
 export async function renderTools(root) {
   if (built) return;
   built = true;
@@ -658,5 +686,6 @@ export async function renderTools(root) {
   const grid = el("div", "tl-grid");
   root.replaceChildren(hero.box, grid);
   hero.run();
-  grid.append(await fingerprintCard(), speedCard(), await privacyCard());
+  privacyBox = await privacyCard();
+  grid.append(await fingerprintCard(), speedCard(), privacyBox);
 }

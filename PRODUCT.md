@@ -4,7 +4,7 @@ The reasoning behind the product: who it serves, what they are trying to do at t
 tab opens, and how each of those moments goes. Read it before adding a feature. The README says
 what the product does; this says why, and what it refuses to become.
 
-Last walked through end to end at 3.6.0 (2026-11-12).
+Last walked through end to end at 3.7.0 (2026-11-12).
 
 ## Who it is for
 
@@ -68,6 +68,10 @@ or the network is in another time zone (a VPN), it asks for a city, ZIP or addre
 **Go somewhere.** Click a tile, or type its short name and Enter. Names are shown on the tiles
 while editing and listed on the Shortcuts page. *Held to:* no name ever has to be set up, and
 each place has exactly one name on the Shortcuts page.
+
+**Learn the names.** The Shortcuts page opens with a box that stands in for the address bar:
+type a short link and it says in words where that goes. *Held to:* it asks the same code the
+address bar does, so it cannot say one thing and do another.
 
 **Find something.** Words after a short name search: inside the app for Google's apps and
 Claude, wherever the person said for shortcuts they added, and on the web for that site for

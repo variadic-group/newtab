@@ -50,6 +50,11 @@ This page adds a face to that store and keeps nothing of its own:
   themselves: `mail/invoice from the printer`, `cal/dentist`, `drive/contract`,
   `docs/board minutes`, `sheets/budget`, `slides/pitch`, `keep/gift ideas`,
   `claude/draft a reply to this`. Or type `claude`, press Tab, and ask.
+- **Chrome's own pages have names too:** `history/that recipe`, `downloads/invoice`,
+  `bookmarks/tax`, `settings/cookies`, `extensions/`, `passwords/`. A bookmark with the same
+  name wins.
+- **Try one before you trust it.** The box at the top of the Shortcuts page is the address
+  bar's stand-in: type a short link and it says, in words, where that goes. Enter goes there.
 
 **Pick up where you left off**
 - **Up next:** pages to come back to, in order. One click on the toolbar button, Alt+Shift+S,
@@ -74,7 +79,9 @@ This page adds a face to that store and keeps nothing of its own:
   - **Where you come out**, as a sentence and a map: your place, the city your traffic leaves
     from, and the way round the world between them. Under it, four plain answers: whose network
     you are on, whether your clock agrees with that address, what WebRTC shows a site, and
-    whose servers answer your DNS lookups.
+    whose servers answer your DNS lookups. A sign is kept for what matters and can be acted
+    on: red for your real address getting out, amber for something going around a VPN, each
+    with the thing to do about it beside it.
   - **Fingerprint** draws the mark a tracking script would know this browser by, worked out on
     your computer, and lists what it is made of in plain words, by how far each thing narrows
     you down.
@@ -168,7 +175,10 @@ Tools tab ask ipleak.net when you open that tab, and Cloudflare when you run the
 The full account is in
 [PRIVACY.md](PRIVACY.md).
 
-**Extras** (footer → Extras) are off until you switch them on, and Chrome asks at that moment:
+**Settings** (in the footer) holds the page light or dark, or lets it follow the sun, and links
+to what Chrome keeps: this extension, its keyboard shortcut, bookmarks, search engines, sync.
+
+**Extras**, also in Settings, are off until you switch them on, and Chrome asks at that moment:
 
 - your Gmail unread count in the top strip;
 - the Google Docs, Sheets and Slides you opened lately;
@@ -226,7 +236,7 @@ No build step. The extension is the `extension` folder as it stands.
 ```
 npm install
 npx playwright install chromium
-npm test            # 13 astronomy checks in Node, then 163 checks in a real Chromium
+npm test            # 13 astronomy checks in Node, then 170 checks in a real Chromium
 npm run shots       # the screenshots in store/screenshots
 npm run zip         # newtab.zip, ready to upload or release
 ```
