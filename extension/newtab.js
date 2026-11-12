@@ -4,7 +4,7 @@ import { BUILTIN, claims, barChildren, bookmarkBars, leaves, aliasTable, aliasFo
 import { renderShortcuts, aliasPill } from "./shortcuts.js";
 import { renderToday, tickToday, tickTheme, renderGlance, warmWeather } from "./today.js";
 import { placeForm, getPlace, leftBehind, keepPlace, useDevice, couldBeHere } from "./place.js";
-import { renderExtras, renderMail, renderFiles, renderClosed, renderOften } from "./extras.js";
+import { renderExtras, renderMail, renderRecent } from "./extras.js";
 import { renderTools } from "./tools.js";
 import { loadNotes, wireNotes, bigNote, noteIsBig } from "./notes.js";
 import { setupRows } from "./setup.js";
@@ -13,10 +13,11 @@ import { wireFind, clearFind } from "./find.js";
 const TODAY = "today";
 const KEYS = "shortcuts";
 const TOOLS = "tools";
+const RECENT = "recent";
 // With nothing on the bookmarks bar there is no space to show, so the links area itself says
 // how to bring links in. It is a page only in that it isn't a folder.
 const BARE = "bare";
-const isPage = (id) => id === TODAY || id === KEYS || id === TOOLS || id === BARE;
+const isPage = (id) => id === TODAY || id === KEYS || id === TOOLS || id === RECENT || id === BARE;
 let current = null;
 let pendingRename = null;
 
@@ -129,13 +130,14 @@ async function render() {
   renameNew($("spaces"));
   fitSpaces();
   // The pages live behind the mark at the top left. While you are on one, the bar says which.
-  $("pages").replaceChildren(tabFor(TODAY, "☀️ Today"), tabFor(KEYS, "⌨️ Shortcuts"), tabFor(TOOLS, "🛠️ Tools"));
-  const where = { [TODAY]: "☀️ Today", [KEYS]: "⌨️ Shortcuts", [TOOLS]: "🛠️ Tools" }[current];
+  $("pages").replaceChildren(tabFor(TODAY, "☀️ Today"), tabFor(RECENT, "🕘 Recent"), tabFor(KEYS, "⌨️ Shortcuts"), tabFor(TOOLS, "🛠️ Tools"));
+  const where = { [TODAY]: "☀️ Today", [RECENT]: "🕘 Recent", [KEYS]: "⌨️ Shortcuts", [TOOLS]: "🛠️ Tools" }[current];
   $("here").hidden = !where;
   $("here").textContent = where || "";
   $("today").hidden = current !== TODAY;
   $("shortcuts").hidden = current !== KEYS;
   $("tools").hidden = current !== TOOLS;
+  $("recent").hidden = current !== RECENT;
   const bare = current === BARE;
   $("space").hidden = isPage(current) && !bare;
   // The pencil is for the links: it shows on a space, and nowhere else.
@@ -145,12 +147,15 @@ async function render() {
   if (current === TODAY) return renderToday();
   if (current === KEYS) return renderShortcuts($("scBody"), render);
   if (current === TOOLS) return renderTools($("toolsBody"));
+  if (current === RECENT) return renderRecent($("recentBody"), render);
   // The time and date open your calendar: your own Calendar bookmark if you keep one.
   $("glCal").href = (await claims()).get("cal") || BUILTIN.cal.url;
   const space = all.find((s) => s.id === current);
   if (space) await renderSpace(space);
   $("saveTabs").hidden = !space || !!space.pinned;
-  await Promise.all([renderGlance(), renderNext(), renderTabs(), renderMail(), renderFiles(), renderClosed(), renderOften()]);
+  await Promise.all([renderGlance(), renderNext(), renderTabs()]);
+  // After the links are drawn, so the unread count can sit on the Gmail ones.
+  await renderMail();
 }
 
 function show(id) {
@@ -661,7 +666,7 @@ $("placeBtn").onclick = () => changePlace();
 
 // Settings is a sheet lifted over the page. Extras are switched on and off in it; each is a
 // permission Chrome asks for.
-const drawExtras = () => { renderExtras(drawExtras); if (!isPage(current)) { renderMail(); renderFiles(); renderClosed(); renderOften(); } };
+const drawExtras = () => { renderExtras(drawExtras); if (!isPage(current)) renderMail(); else if (current === RECENT) render(); };
 const settings = (open) => {
   $("extras").hidden = !open;
   $("extrasBtn").setAttribute("aria-expanded", String(open));
@@ -791,6 +796,7 @@ wireFind([
   { title: "Today", where: "The sky, the radar and the forecast", run: () => show(TODAY) },
   { title: "Shortcuts", where: "Every short name", run: () => show(KEYS) },
   { title: "Tools", where: "Your connection and what it gives away", run: () => show(TOOLS) },
+  { title: "Recent", where: "Closed tabs, other devices, Google files, most visited", run: () => show(RECENT) },
   { title: "Settings and extras", where: "Light and dark, an accent, a list, extras", run: () => settings(true) },
 ]);
 await loadIcons();
@@ -815,3 +821,9 @@ if (set && (await leftBehind(set))) {
     { label: "Keep", run: keepPlace },
   ], { ms: 30000 });
 }
+
+// The side column stays in view only while it fits in the window (see .side in the CSS).
+const side = document.querySelector(".side");
+const fitSide = () => side.classList.toggle("tall", side.scrollHeight > innerHeight - 82);
+new ResizeObserver(fitSide).observe(side);
+addEventListener("resize", fitSide);

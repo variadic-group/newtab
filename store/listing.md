@@ -73,7 +73,7 @@ PICK UP WHERE YOU LEFT OFF
 LOOK UP
 • The sun's real path across the day, the three twilights, and the moon in its true phase
 • Sunrise, sunset and the radar for where you are, at the top
-• A map of where it is day right now; point along the hourly forecast and watch sunrise cross it
+• A map of where it is day right now, with the sun where it is overhead; point at the sky, the hours or the map and all three move to that moment, with the weather and the light then
 • The page turns dark when night falls where you are; or hold it light or dark, and pick an accent
 • Forecast, hourly chart, seven days and radar from the National Weather Service (United States)
 
@@ -86,7 +86,7 @@ CHECK, WHEN YOU WANT TO
 PRIVATE BY CONSTRUCTION
 • No account, no server, no analytics, no ads, no affiliate links
 • Your links stay Chrome bookmarks
-• Four extras (unread mail count, recent Google files, closed tabs and other devices, most visited) are off until you switch them on
+• Four extras are off until you switch them on: an unread count on your Gmail icon, and a Recent page with closed tabs, your other devices' tabs, recent Google files and most visited
 
 Free and open source.
 ```
@@ -117,8 +117,8 @@ Free and open source.
 | Optional `history` | Only if the user switches on "Recent files": lists the Google Docs, Sheets and Slides they opened lately. Read locally; nothing is sent. |
 | Optional `privacy` | Only when the user opens "Chrome's privacy switches" on the Tools tab: reads Chrome's privacy settings to show how each is set. The one it can change is the WebRTC IP handling policy, which has no switch in Chrome's settings, and only when the user picks a value; choosing the default clears it. |
 | Optional `sessions` | Only if the user switches on "Closed tabs and other devices": lists recently closed tabs to reopen, and the tabs open on the user's other signed-in devices. Read locally; nothing is sent. |
-| Optional `topSites` | Only if the user switches on "Most visited": shows a row of the user's most visited sites. Read locally. |
-| Optional host `mail.google.com` | Only if the user switches on "Unread mail": reads the unread count from Gmail's inbox feed. Only the number is kept, locally. |
+| Optional `topSites` | Only if the user switches on "Most visited": lists the user's most visited sites on the Recent page. Read locally. |
+| Optional host `mail.google.com` | Only if the user switches on "Unread mail": reads the unread count and the newest five unread senders and subjects from Gmail's inbox feed, shown as a badge on Gmail links. Kept locally, never sent. |
 
 **Remote code:** No. All code is in the package.
 
@@ -128,8 +128,8 @@ Free and open source.
   Weather Service to fetch their forecast. When the computer won't give a location, BigDataCloud
   is asked which city the connection's IP address is in. Not sold, not used for anything else.
 - *Web history:* only with the optional "Recent files" switch; read on the device, never sent.
-- *Personal communications:* only with the optional "Unread mail" switch; the count alone, kept
-  on the device.
+- *Personal communications:* only with the optional "Unread mail" switch; the count and the
+  newest five senders and subjects, kept on the device, never sent.
 - *User activity / web history:* also with the optional "Closed tabs and other devices" and
   "Most visited" switches; read on the device, never sent.
 - The Tools tab's checks contact ipleak.net and two STUN servers only when the user opens that

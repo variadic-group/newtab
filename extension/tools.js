@@ -9,7 +9,7 @@
 // https://ipleak.net/ (API section, checked 2026-11-12)
 import { el } from "./dom.js";
 import { getPlace, offsetOf, useDevice, couldBeHere } from "./place.js";
-import { CELLS, MAP, dots, spot, svg } from "./world.js";
+import { MAP, dots, spot, svg, daylight, sunMark } from "./world.js";
 
 const CF = "https://speed.cloudflare.com";
 const within = (ms) => ({ cache: "no-store", signal: AbortSignal.timeout(ms) });
@@ -168,11 +168,17 @@ function pin(cls, at, name, note, other) {
 function worldMap() {
   const art = svg("svg", { viewBox: `0 0 ${MAP.w} ${MAP.h}`, role: "img", "aria-label": "A map of the world" });
   const over = svg("g");
-  art.append(svg("path", { class: "land", d: dots(CELLS) }), over);
+  // The land lit where it is day now, dimmer where it is night, with the sun where it is
+  // overhead: at a glance, whether it is day or night where your traffic comes out.
+  const day = svg("path", { class: "land" }), night = svg("path", { class: "land dark" }), sun = svg("g");
+  const light = () => { const d = daylight(new Date()); day.setAttribute("d", dots(d.lit)); night.setAttribute("d", dots(d.dark)); sun.replaceChildren(sunMark(d.sun)); };
+  light();
+  art.append(night, day, sun, over);
   return {
     art,
     // Where you are set to be, where your traffic comes out, and the way between them.
     draw({ place, at }) {
+      light();
       const out = at && at.lat !== null && at.lon !== null ? { lat: at.lat, lon: at.lon } : null;
       const km = place && out ? kmBetween(place, out) : null;
       const near = km !== null && km <= 150;

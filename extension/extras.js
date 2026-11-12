@@ -1,15 +1,16 @@
 // Things this page shows only if you turn them on, each behind a permission Chrome asks you for
-// at that moment: your unread mail count, the Google files you opened lately, the tabs you
-// closed and the ones open on your other devices, and the sites you visit most. Whether one is
-// on is simply whether its permission is held.
+// at that moment: your unread mail count, as a badge on your Gmail links; and, on the Recent
+// page, the tabs you closed, the ones open on your other devices, the Google files you opened
+// lately and the sites you visit most. Whether one is on is simply whether its permission is
+// held.
 import { $, el } from "./dom.js";
 import { siteIcon, host } from "./icons.js";
 
 const EXTRAS = {
-  mail: { ask: { origins: ["https://mail.google.com/*"] }, label: "Unread mail", note: "How many unread messages are in your Gmail inbox, in the strip at the top. Chrome will ask to read mail.google.com." },
-  docs: { ask: { permissions: ["history"] }, label: "Recent files", note: "The Google Docs, Sheets, Slides and Forms you opened lately, from this browser's history. Chrome will ask to read your history." },
-  closed: { ask: { permissions: ["sessions"] }, label: "Closed tabs and other devices", note: "Tabs you closed lately, to reopen, and the tabs open on your phone and other computers signed in to this Chrome profile. Chrome will ask to read your history on your signed-in devices." },
-  often: { ask: { permissions: ["topSites"] }, label: "Most visited", note: "A row of the sites you go to most, above your collections. Chrome will ask to read your most visited sites." },
+  mail: { ask: { origins: ["https://mail.google.com/*"] }, label: "Unread mail", note: "How many unread messages are in your Gmail inbox, as a badge on your Gmail links, with who they are from when you point at it. Chrome will ask to read mail.google.com." },
+  docs: { ask: { permissions: ["history"] }, label: "Recent files", note: "The Google Docs, Sheets, Slides and Forms you opened lately, from this browser's history, on the Recent page. Chrome will ask to read your history." },
+  closed: { ask: { permissions: ["sessions"] }, label: "Closed tabs and other devices", note: "Tabs you closed lately, to reopen, and the tabs open on your phone and other computers signed in to this Chrome profile, on the Recent page. Chrome will ask to read your history on your signed-in devices." },
+  often: { ask: { permissions: ["topSites"] }, label: "Most visited", note: "The sites you go to most, on the Recent page. Chrome will ask to read your most visited sites." },
 };
 const isOn = (name) => chrome.permissions.contains(EXTRAS[name].ask);
 
@@ -38,31 +39,59 @@ export async function renderExtras(done) {
 
 // ---------- unread mail ----------
 const MAIL_FRESH_MS = 5 * 60e3;
+const GMAIL = /^https:\/\/mail\.google\.com\//;
 
 // Gmail's inbox feed, read with the browser's own sign-in: the first account in this profile.
+// It carries the count and the newest unread messages' senders and subjects.
 async function unread() {
   const r = await fetch("https://mail.google.com/mail/u/0/feed/atom", { credentials: "include", cache: "no-store" });
   if (!r.ok) throw new Error(`Gmail answered ${r.status}`);
-  const count = new DOMParser().parseFromString(await r.text(), "application/xml").querySelector("fullcount");
+  const doc = new DOMParser().parseFromString(await r.text(), "application/xml");
+  const count = doc.querySelector("fullcount");
   if (!count) throw new Error("Gmail sent no count; this profile may not be signed in to it");
-  return +count.textContent;
+  const latest = [...doc.querySelectorAll("entry")].slice(0, 5).map((e) => ({
+    from: (e.querySelector("author > name") || {}).textContent || "",
+    subject: (e.querySelector("title") || {}).textContent || "(no subject)",
+  }));
+  return { count: +count.textContent, latest };
+}
+
+// The count sits on every Gmail link on the page, the way an app's icon carries one. Pointing at
+// it says who the newest are from. With no Gmail link in view, the strip at the top carries it.
+function badge(mail) {
+  const say = mail.count
+    ? [`${mail.count} unread in your inbox`, ...(mail.latest || []).map((m) => `${m.from}: ${m.subject}`)].join("\n")
+    : "Nothing unread in your inbox";
+  let shown = 0;
+  for (const a of document.querySelectorAll("#collections a.tile")) {
+    if (!GMAIL.test(a.href)) continue;
+    const icon = a.querySelector(".sico");
+    let b = icon.querySelector(".badge");
+    if (!mail.count) { if (b) b.remove(); shown++; continue; }
+    if (!b) { b = el("b", "badge"); icon.append(b); }
+    b.textContent = mail.count > 99 ? "99+" : String(mail.count);
+    b.title = say;
+    shown++;
+  }
+  $("glMailCount").textContent = mail.count;
+  $("glMail").title = say;
+  $("glMail").hidden = shown > 0;
 }
 
 export async function renderMail() {
-  const chip = $("glMail");
-  if (!(await isOn("mail"))) { chip.hidden = true; return; }
+  const clear = () => { document.querySelectorAll("#collections .sico .badge").forEach((b) => b.remove()); $("glMail").hidden = true; };
+  if (!(await isOn("mail"))) return clear();
   const { mail } = await chrome.storage.local.get("mail");
-  const show = (m) => { $("glMailCount").textContent = m.count; chip.hidden = false; };
-  if (mail) show(mail);
+  if (mail) badge(mail);
   if (mail && Date.now() - mail.at < MAIL_FRESH_MS) return;
   try {
-    const fresh = { count: await unread(), at: Date.now() };
+    const fresh = { ...(await unread()), at: Date.now() };
     await chrome.storage.local.set({ mail: fresh });
-    show(fresh);
+    badge(fresh);
   } catch (err) {
-    // The chip keeps the last count it had, or stays away if it never had one.
+    // The badge keeps the last count it had, or stays away if it never had one.
     console.warn("mail:", err.message);
-    chip.hidden = !mail;
+    if (!mail) clear();
   }
 }
 
@@ -80,22 +109,6 @@ async function recentFiles() {
   return [...files.values()].slice(0, 6);
 }
 
-export async function renderFiles() {
-  const on = await isOn("docs");
-  $("filesPanel").hidden = !on;
-  if (!on) return;
-  const files = await recentFiles();
-  $("filesEmpty").hidden = files.length > 0;
-  $("files").replaceChildren(...files.map((f) => {
-    const a = el("a", "row");
-    a.href = f.url;
-    a.append(siteIcon(f.url, f.title), el("span", "t", f.title));
-    const li = el("li");
-    li.append(a);
-    return li;
-  }));
-}
-
 // ---------- closed tabs and other devices ----------
 const web = (tab) => !!tab && /^https?:/.test(tab.url || "");
 const row = (tab) => {
@@ -108,43 +121,78 @@ const row = (tab) => {
   return li;
 };
 
-let watchingSessions = false;
-export async function renderClosed() {
-  const on = await isOn("closed");
-  $("closedPanel").hidden = !on;
-  if (!on) return;
-  // The list changes as tabs close; the listener can only be added once the permission is held.
-  if (!watchingSessions) { watchingSessions = true; chrome.sessions.onChanged.addListener(renderClosed); }
-  const [closed, devices] = await Promise.all([chrome.sessions.getRecentlyClosed({ maxResults: 10 }), chrome.sessions.getDevices({ maxResults: 4 })]);
-  // A closed tab comes back where it was, with its history; a closed window comes back whole.
+// ---------- the Recent page ----------
+// Where you were: four cards, each its own extra. One that is off says what it would show and
+// asks for its permission from its own button, since Chrome only asks straight from a click.
+function card(title, sub) {
+  const c = el("article", "sc-card");
+  c.append(el("h2", null, title), el("p", "cap", sub));
+  return c;
+}
+function rowsOf(items, none) {
+  if (!items.length) return el("p", "note", none);
+  const list = el("ul", "rows");
+  list.append(...items);
+  return list;
+}
+async function offer(c, name, redraw) {
+  const b = el("button", "btn", "Show them");
+  b.type = "button";
+  b.onclick = async () => { if (await chrome.permissions.request(EXTRAS[name].ask)) redraw(); };
+  c.append(b);
+  return c;
+}
+
+async function closedCard(redraw) {
+  const c = card("Recently closed", "Tabs and windows you closed, to reopen where they were, with their history.");
+  if (!(await isOn("closed"))) return offer(c, "closed", redraw);
+  const closed = await chrome.sessions.getRecentlyClosed({ maxResults: 25 });
   const items = closed.map((s) => {
     const tabs = (s.window ? s.window.tabs : [s.tab]).filter(web);
     if (!tabs.length) return null;
     const li = row(s.window && tabs.length > 1 ? { ...tabs[0], title: `Window: ${tabs[0].title || host(tabs[0].url)} and ${tabs.length - 1} more` } : tabs[0]);
     li.firstChild.onclick = (e) => { e.preventDefault(); chrome.sessions.restore((s.window || s.tab).sessionId); };
     return li;
-  }).filter(Boolean).slice(0, 6);
-  $("closed").replaceChildren(...items);
-  $("closedEmpty").hidden = items.length > 0;
-  $("devices").replaceChildren(...devices.flatMap((d) => {
-    const tabs = d.sessions.flatMap((s) => (s.window ? s.window.tabs : [s.tab])).filter(web).slice(0, 6);
-    if (!tabs.length) return [];
-    const list = el("ul", "rows");
-    list.append(...tabs.map(row));
-    return [el("h3", null, d.deviceName), list];
-  }));
+  }).filter(Boolean).slice(0, 12);
+  c.append(rowsOf(items, "Tabs you close will show here, to reopen."));
+  return c;
+}
+async function devicesCard(redraw) {
+  const c = card("On your other devices", "The tabs open on your phone and other computers signed in to this Chrome profile.");
+  if (!(await isOn("closed"))) return offer(c, "closed", redraw);
+  const devices = await chrome.sessions.getDevices({ maxResults: 6 });
+  const parts = devices.flatMap((d) => {
+    const tabs = d.sessions.flatMap((s) => (s.window ? s.window.tabs : [s.tab])).filter(web).slice(0, 8);
+    return tabs.length ? [el("h3", null, d.deviceName), rowsOf(tabs.map(row), "")] : [];
+  });
+  c.append(...(parts.length ? parts : [el("p", "note", "No other device signed in to this profile has a tab open, or Chrome sync is off for open tabs.")]));
+  return c;
+}
+async function filesCard(redraw) {
+  const c = card("Google files", "The Docs, Sheets, Slides and Forms you opened in this browser in the last month.");
+  if (!(await isOn("docs"))) return offer(c, "docs", redraw);
+  const files = await recentFiles();
+  c.append(rowsOf(files.map((f) => {
+    const a = el("a", "row");
+    a.href = f.url;
+    a.append(siteIcon(f.url, f.title), el("span", "t", f.title));
+    const li = el("li");
+    li.append(a);
+    return li;
+  }), "Google Docs, Sheets and Slides you open will show here."));
+  return c;
+}
+async function oftenCard(redraw) {
+  const c = card("Most visited", "The sites you go to most, as Chrome counts them.");
+  if (!(await isOn("often"))) return offer(c, "often", redraw);
+  const sites = (await chrome.topSites.get()).filter(web).slice(0, 12);
+  c.append(rowsOf(sites.map(row), "Chrome hasn't counted any yet."));
+  return c;
 }
 
-// ---------- most visited ----------
-export async function renderOften() {
-  const on = await isOn("often");
-  const sites = on ? (await chrome.topSites.get()).filter(web).slice(0, 8) : [];
-  $("often").hidden = !sites.length;
-  $("often").replaceChildren(...sites.map((s) => {
-    const a = el("a", "pin");
-    a.href = s.url;
-    a.title = s.title || s.url;
-    a.append(siteIcon(s.url, s.title), el("span", "t", host(s.url).replace(/^www\./, "")));
-    return a;
-  }));
+let watchingSessions = false;
+export async function renderRecent(box, redraw) {
+  if (!watchingSessions && (await isOn("closed"))) { watchingSessions = true; chrome.sessions.onChanged.addListener(redraw); }
+  const cards = await Promise.all([closedCard(redraw), devicesCard(redraw), filesCard(redraw), oftenCard(redraw)]);
+  box.replaceChildren(...cards);
 }

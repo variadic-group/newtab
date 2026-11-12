@@ -163,9 +163,12 @@ sunset and the moon's phase, the temperature, a radar still. Today has the sky a
 beside it at the top, because where the person is, now, is most of what they came for; then
 now, the next 24 hours and the week. That is how it stood at the Tools pass, and it is the
 layout that was put back at 4.2.0. Beside the week sits a map of where it is day, which was
-asked for by name after it had been cut: the land the sun is over is lit, and pointing along
-the hours of the forecast moves it to that hour, so the hourly chart is the handle and no
-second control is needed. What stays cut: a separate strip to drag the day along (3.8.0,
+asked for by name after it had been cut: the land the sun is over is lit, with the sun where it
+is overhead. Since 4.5.0 the sky, the hours and the map are one clock: pointing at any of them
+moves all three to that moment, and the top of the sky reads it out (the time, the light, how
+long until it changes, the weather then from the hourly forecast). No second control is
+needed, and nothing is added to the page to get it. The Tools map lights the same day and
+night, so where your traffic comes out shows whether it is day there. What stays cut: a separate strip to drag the day along (3.8.0,
 4.1.0), and cities to add and pick between (3.8.0, 4.0.0). The cities made it unclear which
 place a number was for. The page is for one place, the person's own, and it
 turns dark at dusk there. On a trip, a place taken from the computer follows it (at once when
@@ -220,7 +223,13 @@ pointed elsewhere is how rare a fingerprint is, which needs a sample of other br
 
 **What only some want.** Unread mail, recent files, closed tabs and other devices, most
 visited: each is an extra, off until switched on, because each needs a permission Chrome warns
-about.
+about. Since 4.5.0 none of them sits beside the links: they made the side column one long box
+that scrolled inside itself. Unread mail is a badge on the Gmail icon, the way a phone shows
+it, and the rest are a Recent page in the menu, each card asking for its own permission. The
+side column is Up next, open tabs and notes, and scrolls with the page when it can't fit.
+*Not possible:* reading Chrome's notifications (an extension can send them, not read other
+sites'). *Not built:* the next meeting from Google Calendar, which needs a Google sign-in for
+the extension, an OAuth client in a Google Cloud project and Google's review for the store.
 
 **Leave.** Uninstall. Every link is where it always was, including the Up next folder.
 

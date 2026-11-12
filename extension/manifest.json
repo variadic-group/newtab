@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "New Tab",
-  "version": "4.4.0",
+  "version": "4.5.0",
   "description": "Your bookmarks as your new tab: tabs of icon tiles, short links in the address bar, and a sky clock with the forecast.",
   "chrome_url_overrides": {
     "newtab": "newtab.html"

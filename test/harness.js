@@ -168,7 +168,7 @@ export async function launch({ ext = shipped, icons = "stub", locate = true, vie
       net.searches.push(q);
       return route.fulfill({ json: PLACES[q.toLowerCase()] || [], headers: { "access-control-allow-origin": "*" } });
     }
-    if (u.startsWith("https://mail.google.com/mail/u/0/feed/atom")) return route.fulfill({ contentType: "application/atom+xml", body: `<?xml version="1.0"?><feed xmlns="http://purl.org/atom/ns#"><title>Inbox</title><fullcount>${net.unread}</fullcount></feed>` });
+    if (u.startsWith("https://mail.google.com/mail/u/0/feed/atom")) return route.fulfill({ contentType: "application/atom+xml", body: `<?xml version="1.0"?><feed xmlns="http://purl.org/atom/ns#"><title>Inbox</title><fullcount>${net.unread}</fullcount><entry><title>Engine notes</title><author><name>Ada Lovelace</name></author></entry><entry><title>Compiler draft</title><author><name>Grace Hopper</name></author></entry></feed>` });
     if (u.includes("gstatic.com/images/branding/product")) return icons === "letters" ? route.fulfill({ status: 404, body: "" }) : route.fulfill({ contentType: "image/png", body: png(96, colour(u)) });
     if (u.includes("/s2/favicons")) {
       const d = url.searchParams.get("domain");

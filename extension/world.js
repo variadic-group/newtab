@@ -26,3 +26,36 @@ export const CELLS = (() => {
 })();
 // Cells as one path of round dots.
 export const dots = (cells) => cells.map((c) => `M${c.x} ${c.y}h0`).join("");
+
+// Where on Earth the sun is straight overhead at `at`: its declination and the longitude where it
+// is noon. Good to a fraction of a degree, which is less than a cell.
+export function overhead(at) {
+  const n = (+at - Date.UTC(2000, 0, 1, 12)) / 864e5, r = Math.PI / 180;
+  const g = (357.528 + 0.9856003 * n) * r;
+  const along = (280.46 + 0.9856474 * n + 1.915 * Math.sin(g) + 0.02 * Math.sin(2 * g)) * r;
+  const tilt = (23.439 - 4e-7 * n) * r;
+  const ra = Math.atan2(Math.cos(tilt) * Math.sin(along), Math.cos(along)) / r;
+  const lon = (((ra - (280.46061837 + 360.98564736629 * n)) % 360) + 540) % 360 - 180;
+  return { lat: Math.asin(Math.sin(tilt) * Math.sin(along)) / r, lon };
+}
+// The land in daylight and the land in the dark at `at`.
+export function daylight(at) {
+  const sun = overhead(at), r = Math.PI / 180, lit = [], dark = [];
+  for (const c of CELLS) {
+    const up = Math.sin(c.lat * r) * Math.sin(sun.lat * r) + Math.cos(c.lat * r) * Math.cos(sun.lat * r) * Math.cos((c.lon - sun.lon) * r);
+    (up > 0 ? lit : dark).push(c);
+  }
+  return { lit, dark, sun };
+}
+// A small sun drawn where it is overhead.
+export function sunMark(sun, cls = "sun-over") {
+  const [x, y] = spot(sun);
+  const g = svg("g", { class: cls });
+  let rays = "";
+  for (let i = 0; i < 8; i++) {
+    const a = (i * Math.PI) / 4, c = Math.cos(a), s = Math.sin(a);
+    rays += `M${(x + 10 * c).toFixed(1)} ${(y + 10 * s).toFixed(1)}L${(x + 15 * c).toFixed(1)} ${(y + 15 * s).toFixed(1)}`;
+  }
+  g.append(svg("title", {}, "The sun is straight overhead here"), svg("path", { class: "rays", d: rays }), svg("circle", { class: "core", cx: x, cy: y, r: 6.5 }));
+  return g;
+}

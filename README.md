@@ -88,8 +88,12 @@ This page adds a face to that store and keeps nothing of its own:
   civil, nautical and astronomical twilights under the horizon, and the moon where it stands, lit
   on the side that faces the sun.
 - **Day and night on a map.** Beside the forecast, the land the sun is over is lit and the
-  rest is in the dark, with you on it. Point along the hours of the forecast and the map moves
-  to that hour, so sunrise can be watched crossing it.
+  rest is in the dark, with you on it and the sun where it is overhead.
+- **One clock to point at.** Point along the sky, the hourly forecast or the map and all three
+  move to that moment: the sun's path marks where the sun will be, the hours mark the hour, the
+  map is drawn for it, and the top of the sky says the time, the light, how long until it
+  changes and, within the next day, the weather then. Pointing at the map puts the sun over
+  that spot, at the next moment it is there.
 - **The page goes dark when night falls** where you are, and light again at dawn. Settings can
   hold it light or dark, and has four accent colours.
 - **Forecast and radar** from the National Weather Service: now, the next 24 hours, seven
@@ -230,10 +234,11 @@ to what Chrome keeps: this extension, its keyboard shortcut, bookmarks, search e
 
 **Extras**, also in Settings, are off until you switch them on, and Chrome asks at that moment:
 
-- your Gmail unread count in the top strip;
-- the Google Docs, Sheets and Slides you opened lately;
-- the tabs you closed lately, to reopen, and the tabs open on your phone and other computers;
-- a row of the sites you visit most.
+- your Gmail unread count, as a badge on your Gmail links, with who the newest are from when
+  you point at it (in the top strip on a space with no Gmail link);
+- on the **Recent** page (in the menu): the tabs you closed lately, to reopen; the tabs open on
+  your phone and other computers; the Google Docs, Sheets and Slides you opened lately; and
+  the sites you visit most. Each card there asks for its own permission.
 
 The Tools tab asks for one more the first time you open **Chrome's privacy switches**: Chrome
 words it as "change your privacy-related settings". The page reads them, and changes only the

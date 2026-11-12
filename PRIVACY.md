@@ -57,8 +57,9 @@ Removing the extension deletes all of it. Your bookmarks stay, including the `‚è
 
 Each is off until you turn it on, and Chrome asks you for the permission at that moment.
 
-- **Unread mail** reads the count from Gmail's inbox feed (`mail.google.com`) using your
-  browser's own sign-in. Only the number is kept, on this computer.
+- **Unread mail** reads Gmail's inbox feed (`mail.google.com`) using your browser's own
+  sign-in. The count, and the sender and subject of the newest five unread messages (shown when
+  you point at the badge), are kept on this computer and sent nowhere.
 - **Recent files** reads this browser's history for Google Docs, Sheets, Slides and Forms you
   opened in the last 30 days, to list them. Nothing is sent anywhere.
 - **Closed tabs and other devices** reads Chrome's list of tabs you closed lately and of tabs

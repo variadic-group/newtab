@@ -4,7 +4,7 @@
 import { $, el } from "./dom.js";
 import { getPlace, placeKey, placeMoved } from "./place.js";
 import { sunPosition, sunTimes, moonPosition, moonPhase, moonTimes, lightPhase, nextLight, nightSpan, skyColors } from "./sky.js";
-import { CELLS, dots, spot, svg as mapSvg } from "./world.js";
+import { MAP, dots, spot, daylight, overhead, sunMark, svg as mapSvg } from "./world.js";
 
 const FRESH_MS = 20 * 60e3;
 const DAY_MS = 864e5;
@@ -202,6 +202,8 @@ function drawSky(place) {
   const next = nextLight(now, lat, lon);
   $("phase").textContent = lightPhase(sun.altitude);
   $("nextUp").textContent = next ? `${cap(next.label)} in ${span(next.at - now)}` : "";
+  skyMidnight = +t.midnight;
+  if (pointed) sayThen(place);
   $("rise").textContent = fmtTime(t.sunrise);
   $("set").textContent = fmtTime(t.sunset);
   const list = (...items) => cap(items.filter((i) => i[1]).map((i) => `${i[0]} ${fmtBare(i[1])}`).join(", "));
@@ -302,10 +304,12 @@ function drawWeather(wx, place) {
   desc.append(el("div", "wx-text", now.text), el("div", "cap", facts.join(", ")));
   const picture = glyph(now.text, now.day, moonPhase(new Date()).emoji);
   $("wxNow").replaceChildren(el("div", "wx-glyph", picture), el("div", "wx-temp", `${now.temp}°`), desc);
-  $("skyWx").textContent = `${picture} ${now.temp}° and ${now.text.toLowerCase()}`;
+  skyWxNow = `${picture} ${now.temp}° and ${now.text.toLowerCase()}`;
+  $("skyWx").textContent = skyWxNow;
 
   $("wxHours").innerHTML = hours.length > 3 ? hourChart(hours) : "";
-  followHours(place, hours);
+  hoursNow = hours.length > 3 ? hours : [];
+  followHours(place);
 
   const lows = days.map((d) => (d.lo != null ? d.lo : d.hi)), highs = days.map((d) => (d.hi != null ? d.hi : d.lo));
   const min = Math.min(...lows), max = Math.max(...highs), range = max - min || 1;
@@ -343,11 +347,12 @@ function drawWeather(wx, place) {
 
 function clearWeather(place, text) {
   showPlace(place);
+  hoursNow = [];
+  skyWxNow = "";
   $("updated").textContent = "";
   $("skyWx").textContent = "";
   $("wxNow").replaceChildren();
   $("wxHours").replaceChildren();
-  $("worldHint").hidden = true;
   $("wxDays").replaceChildren();
   $("radarCard").hidden = true;
   $("wxNote").textContent = text;
@@ -357,6 +362,7 @@ function clearWeather(place, text) {
 // A forecast that arrives, or fails, after the place has changed is for somewhere else: the
 // page has moved on and is left alone.
 const still = async (place) => { const now = await getPlace(); return !!now && placeKey(now) === placeKey(place); };
+const ABROAD = "No forecast for this place: the National Weather Service covers the United States. The sun and the moon are still right.";
 async function update(place, hadForecast) {
   const note = $("wxNote");
   try {
@@ -372,56 +378,116 @@ async function update(place, hadForecast) {
       note.hidden = false;
     } else {
       clearWeather(place, err.status === 404
-        ? "No forecast for this place: the National Weather Service covers the United States. The sun and the moon are still right."
+        ? ABROAD
         : `The forecast didn't load (${err.message}). It tries again the next time you open this tab.`);
     }
   }
 }
 
-// ---------- the world at the same moment ----------
-// Beside the forecast is a map of where it is day: the land the sun is over is lit, the rest is
-// in the dark, and you are the pin. It is drawn for now. Pointing along the hours of the chart
-// moves it to that hour, so sunrise can be watched crossing the map; taking the pointer away
-// puts it back.
-let pointed = null;
+// ---------- one moment, pointed at ----------
+// The sky, the next 24 hours and the map of day and night are one clock. Pointing along any of
+// them picks a moment: the sun's path marks where the sun will be, the hours mark the hour, the
+// map is drawn for it, and the top of the sky says what it will be like then. Taking the pointer
+// away puts everything back to now.
+let pointed = null, hoursNow = [], skyMidnight = 0, skyWxNow = "";
+
+// Where a moment falls along the hours: a fractional index, or null off the chart. The first
+// point is now; each one after is the top of an hour.
+function hourIndex(at) {
+  if (!hoursNow.length || at < Date.now()) return null;
+  for (let i = 0; i < hoursNow.length - 1; i++) {
+    const from = i ? Date.parse(hoursNow[i].start) : Date.now(), to = Date.parse(hoursNow[i + 1].start);
+    if (at < to) return i + (at - from) / (to - from);
+  }
+  return null;
+}
+// The weather at a moment, read off the hours: the temperature between the two either side.
+function weatherAt(at) {
+  const i = hourIndex(at);
+  if (i === null) return "";
+  const a = hoursNow[Math.floor(i)], b = hoursNow[Math.min(hoursNow.length - 1, Math.floor(i) + 1)];
+  const temp = Math.round(a.temp + (b.temp - a.temp) * (i - Math.floor(i)));
+  return `${glyph(a.text, a.day, moonPhase(new Date(at)).emoji)} ${temp}° and ${a.text.toLowerCase()}`;
+}
+function sayThen(place) {
+  const at = new Date(pointed), now = new Date();
+  const days = Math.round((new Date(at).setHours(12, 0, 0, 0) - new Date(now).setHours(12, 0, 0, 0)) / DAY_MS);
+  const when = `${fmtTime(at)}${days === 1 ? " tomorrow" : days === -1 ? " yesterday" : ""}`;
+  const next = nextLight(at, place.lat, place.lon);
+  $("phase").textContent = `At ${when}`;
+  $("nextUp").textContent = `${lightPhase(sunPosition(at, place.lat, place.lon).altitude)}${next ? `, ${next.label} in ${span(next.at - at)}` : ""}`;
+  $("skyWx").textContent = weatherAt(+at);
+}
+function point(place, at) {
+  pointed = at;
+  const mark = $("skyThen");
+  if (at === null) {
+    mark.style.display = "none";
+    drawSky(place);
+    $("skyWx").textContent = skyWxNow;
+  } else {
+    const x = ((((at - skyMidnight) / DAY_MS) % 1) + 1) % 1 * W;
+    const y = yOf(sunPosition(new Date(at), place.lat, place.lon).altitude);
+    $("skyThenLine").setAttribute("x1", x.toFixed(1)); $("skyThenLine").setAttribute("x2", x.toFixed(1));
+    $("skyThenSun").setAttribute("cx", x.toFixed(1)); $("skyThenSun").setAttribute("cy", y.toFixed(1));
+    mark.style.display = "";
+    sayThen(place);
+  }
+  const line = $("wxHours").querySelector(".hc-then"), i = at === null ? null : hourIndex(at);
+  if (line) {
+    line.style.display = i === null ? "none" : "";
+    if (i !== null) { const x = (24 + (i * (600 - 48)) / (hoursNow.length - 1)).toFixed(1); line.setAttribute("x1", x); line.setAttribute("x2", x); }
+  }
+  drawWorld(place);
+}
+// Pointing along a picture: `toTime` turns where the pointer is, as a share of the picture's
+// width, into a moment.
+function pointable(node, place, toTime) {
+  node.onpointermove = (e) => {
+    const r = node.getBoundingClientRect();
+    point(place, toTime(Math.max(0, Math.min(1, (e.clientX - r.left) / r.width))));
+  };
+  node.onpointerleave = () => point(place, null);
+}
+
 function drawWorld(place) {
   const at = pointed ? new Date(pointed) : new Date();
-  const lit = [], dark = [];
-  for (const c of CELLS) (sunPosition(at, c.lat, c.lon).altitude > 0 ? lit : dark).push(c);
+  const { lit, dark, sun } = daylight(at);
   $("worldDay").setAttribute("d", dots(lit));
   $("worldNight").setAttribute("d", dots(dark));
   const [x, y] = spot(place);
   const pin = mapSvg("g", { class: "pin you" });
   const left = x > 640;
   pin.append(mapSvg("circle", { class: "dot", cx: x, cy: y, r: 8 }), mapSvg("text", { x: x + (left ? -14 : 14), y: y + 8, "text-anchor": left ? "end" : "start" }, "You"));
-  $("worldPins").replaceChildren(pin);
+  $("worldPins").replaceChildren(sunMark(sun), pin);
   $("worldSay").textContent = pointed ? `Day and night at ${fmtTime(at)}` : "Day and night, now";
-  $("worldMap").setAttribute("aria-label", `Daylight is on ${Math.round((lit.length / CELLS.length) * 100)}% of the land`);
+  $("worldMap").setAttribute("aria-label", `Daylight is on ${Math.round((lit.length / (lit.length + dark.length)) * 100)}% of the land`);
 }
 
-// The chart of the next hours is also the handle on that map: where the pointer is along it is
-// an hour, marked on the chart, and the map is drawn for it.
-function followHours(place, hours) {
+// The hours chart gets its marker each time it is drawn.
+function followHours(place) {
   const chart = $("wxHours").querySelector("svg");
-  $("worldHint").hidden = !chart;
   if (!chart) return;
   const mark = mapSvg("line", { class: "hc-then", y1: 14, y2: 104 });
   mark.style.display = "none";
   chart.append(mark);
-  const step = (600 - 48) / (hours.length - 1);
-  chart.onpointermove = (e) => {
-    const r = chart.getBoundingClientRect();
-    const i = Math.max(0, Math.min(hours.length - 1, (((e.clientX - r.left) / r.width) * 600 - 24) / step));
-    // The first point on the chart is now; each one after is the top of an hour.
-    const whole = Math.floor(i), from = whole ? Date.parse(hours[whole].start) : Date.now();
-    const to = whole + 1 < hours.length ? Date.parse(hours[whole + 1].start) : from + 3600e3;
-    pointed = from + (i - whole) * (to - from);
-    mark.setAttribute("x1", (24 + i * step).toFixed(1));
-    mark.setAttribute("x2", (24 + i * step).toFixed(1));
-    mark.style.display = "";
-    drawWorld(place);
-  };
-  chart.onpointerleave = () => { pointed = null; mark.style.display = "none"; drawWorld(place); };
+  const step = (600 - 48) / (hoursNow.length - 1);
+  pointable(chart, place, (f) => {
+    const i = Math.max(0, Math.min(hoursNow.length - 1, (f * 600 - 24) / step)), whole = Math.floor(i);
+    const from = whole ? Date.parse(hoursNow[whole].start) : Date.now();
+    const to = whole + 1 < hoursNow.length ? Date.parse(hoursNow[whole + 1].start) : from + 3600e3;
+    return from + (i - whole) * (to - from);
+  });
+}
+// The sky runs from one solar midnight to the next; the map puts the sun over where you point,
+// at the next moment it is there.
+function followSky(place) {
+  pointable($("sky").querySelector(".sky-chart"), place, (f) => skyMidnight + f * DAY_MS);
+  pointable($("worldMap"), place, (f) => {
+    const lon = f * 360 - 180, now = Date.now();
+    const west = ((((overhead(new Date(now)).lon - lon) % 360) + 360) % 360);
+    return now + (west / 360) * DAY_MS;
+  });
 }
 
 // The place form shows itself while there is no place and goes once there is one. Opened by
@@ -438,7 +504,12 @@ export async function renderToday() {
   drawClock();
   drawSky(place);
   drawWorld(place);
+  followSky(place);
   const cached = await cachedWeather(place);
+  // A place the weather service has already said it doesn't cover is said so at once, and not
+  // asked again: that answer doesn't change.
+  const { wxWhy } = await chrome.storage.local.get("wxWhy");
+  if (!cached && wxWhy && wxWhy.key === placeKey(place) && wxWhy.abroad) return clearWeather(place, ABROAD);
   if (cached) { drawWeather(cached, place); $("wxNote").hidden = true; }
   else clearWeather(place, "Getting the forecast…");
   if (!cached || Date.now() - cached.at > FRESH_MS) update(place, !!cached);

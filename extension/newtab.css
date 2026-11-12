@@ -212,7 +212,6 @@ body:not(.editing) .tile .key { display: none; }
 .key { font: 11px var(--mono); color: var(--accent); background: var(--accent-soft); border: 0; border-radius: 6px; padding: 2px 6px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 button.key { cursor: text; }
 /* most visited: a quiet row of chips over the collections */
-.often { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 6px; min-width: 0; }
 .pin { display: inline-flex; align-items: center; gap: 6px; max-width: 190px; padding: 5px 11px 5px 7px; border: 1px solid var(--line); border-radius: 999px; background: var(--card); color: var(--ink); text-decoration: none; font-size: 12.5px; }
 .pin:hover { border-color: var(--muted); }
 .pin .sico { font-size: 16px; }
@@ -227,7 +226,13 @@ button.key { cursor: text; }
 /* ----- the side column ----- */
 /* The side is one surface: what is waiting, what is open and what you jotted, one under the
    other, parted by a line. */
-.side { position: sticky; top: 66px; min-width: 0; max-height: calc(100vh - 82px); overflow-y: auto; scrollbar-width: thin; background: var(--card); border: 1px solid var(--line); border-radius: 16px; }
+/* Up next, open tabs and notes stay in view while the links scroll, as long as they fit; a
+   column taller than the window scrolls with the page instead of inside itself. */
+.side { position: sticky; top: 66px; align-self: start; min-width: 0; background: var(--card); border: 1px solid var(--line); border-radius: 16px; }
+.side.tall { position: static; }
+/* Unread mail, on the Gmail icon. */
+.sico { position: relative; }
+.sico .badge { position: absolute; top: -7px; right: -11px; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px; background: #d93025; color: #fff; font: 700 11px/18px var(--body); text-align: center; box-shadow: 0 0 0 2px var(--card); font-variant-numeric: tabular-nums; }
 .panel { padding: 14px 8px 10px; min-width: 0; }
 .panel + .panel { border-top: 1px solid var(--line); }
 .panel.drop { box-shadow: inset 0 0 0 2px var(--accent); background: var(--accent-soft); }
@@ -339,6 +344,13 @@ button.key { cursor: text; }
 .land.night { stroke: color-mix(in srgb, var(--night) 46%, transparent); }
 .daymap .pin text { font-size: 24px; stroke-width: 6px; }
 .hc-then { stroke: var(--accent); stroke-width: 2; pointer-events: none; }
+/* The moment pointed at: a line through the sky and the sun where it will be then. */
+.then-line { stroke: var(--sky-ink); stroke-opacity: 0.4; stroke-width: 1.5; stroke-dasharray: 3 4; pointer-events: none; }
+.then-sun { fill: none; stroke: var(--sun-now); stroke-width: 3; pointer-events: none; }
+.sky-chart, #worldMap, .wx-hours svg { cursor: crosshair; }
+/* The sun where it is overhead, on both maps. */
+.sun-over .core { fill: none; stroke: var(--sun); stroke-width: 3; }
+.sun-over .rays { stroke: var(--sun); stroke-width: 2.5; stroke-linecap: round; }
 .wx-hours svg { cursor: crosshair; }
 @media (max-width: 1180px) { .wx { grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); } .daymap { grid-column: 1 / -1; } }
 .wx-main { display: grid; gap: 16px; min-width: 0; }
@@ -422,6 +434,7 @@ button.sc-what { border: 0; background: none; padding: 0; font: inherit; text-al
 .world { margin: 0; padding: 14px 14px 14px 0; }
 .world svg { display: block; width: 100%; height: auto; }
 .land { fill: none; stroke: color-mix(in srgb, var(--muted) 42%, transparent); stroke-width: 2.7; stroke-linecap: round; }
+.land.dark { stroke: color-mix(in srgb, var(--muted) 16%, transparent); }
 .route { fill: none; stroke: var(--ink); stroke-width: 1.8; stroke-linecap: round; stroke-dasharray: 1; }
 .pin .dot { stroke: var(--card); stroke-width: 2.5; }
 .pin.you .dot { fill: var(--accent); }
