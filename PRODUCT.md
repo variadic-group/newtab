@@ -222,9 +222,11 @@ what matters and can be acted on. Chrome's privacy switches are counted out of e
 ones with a private way to be set; only saving passwords is left as the person's call. A list of links to other people's test pages is not a feature. The one thing
 pointed elsewhere is how rare a fingerprint is, which needs a sample of other browsers.
 
-**Beyond the bookmarks.** Unread mail is always on, as a badge on a Gmail link in the space in
-view, the way a phone shows it; Gmail is asked only while one is on screen. The one extra, off
-until switched on, is the sites you visit most that you haven't saved, as a row above the
+**Beyond the bookmarks.** Unread mail is a badge on a Gmail link in the space in view, the way a
+phone shows it; Gmail is asked only while one is on screen. It was always on at 4.6.0 and went
+back behind a switch at 4.8.0: a required Gmail permission warns every installer about their
+mail and sends the extension to the store's slower review. The other extra, also off until
+switched on, is the sites you visit most that you haven't saved, as a row above the
 collections to drag into one, with × to put a site away for good. It serves the page's job,
 saving links, where a plain most-visited list didn't. *Cut at 4.6.0:* recently closed tabs,
 other devices' tabs and recent Google files. Chrome's History menu already holds the first two

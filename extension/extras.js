@@ -1,37 +1,48 @@
-// Two things beyond your bookmarks. Your unread mail count, always on, shown only as a badge on
-// a Gmail link in the space you are looking at. And, if you switch it on, the sites you visit
-// most that you haven't saved, as a row to drag into a collection.
+// Two things beyond your bookmarks, each off until switched on in Settings, when Chrome asks for
+// its permission: your unread mail count, as a badge on a Gmail link in the space you are looking
+// at; and the sites you visit most that you haven't saved, as a row to drag into a collection.
 import { $, el } from "./dom.js";
 import { siteIcon, host } from "./icons.js";
 
 const OFTEN = { permissions: ["topSites"] };
+const MAIL = { origins: ["https://mail.google.com/*"] };
 const isOften = () => chrome.permissions.contains(OFTEN);
+const isMail = () => chrome.permissions.contains(MAIL);
 
-// The switch, in Settings. Chrome only shows its permission prompt straight from a click, so the
+// The switches, in Settings. Chrome only shows its permission prompt straight from a click, so the
 // request is the first thing the click does. Sites you put away can be brought back from here.
-export async function renderExtras(done) {
-  const on = await isOften();
+function toggle(label, on, ask, done) {
   const b = el("button", "btn", on ? "On" : "Off");
   b.type = "button";
   b.setAttribute("aria-pressed", String(on));
-  b.setAttribute("aria-label", "Sites you visit but haven't saved");
+  b.setAttribute("aria-label", label);
   b.onclick = async () => {
-    if (on) await chrome.permissions.remove(OFTEN); else await chrome.permissions.request(OFTEN);
+    if (on) await chrome.permissions.remove(ask); else await chrome.permissions.request(ask);
     done();
   };
-  const { hiddenSites = [] } = await chrome.storage.sync.get("hiddenSites");
+  return b;
+}
+function row(label, note, button, ...more) {
   const text = el("div");
-  text.append(el("b", null, "Sites you visit but haven't saved"),
-    el("p", "cap", "A row above your collections of the sites you go to most that aren't in your bookmarks. Drag one onto a collection to keep it; × puts one away for good. Chrome will ask to read your most visited sites."));
+  text.append(el("b", null, label), el("p", "cap", note), ...more);
+  const r = el("div", "extra");
+  r.append(text, button);
+  return r;
+}
+export async function renderExtras(done) {
+  const [mailOn, oftenOn] = await Promise.all([isMail(), isOften()]);
+  const { hiddenSites = [] } = await chrome.storage.sync.get("hiddenSites");
+  const back = [];
   if (hiddenSites.length) {
-    const back = el("button", "mini", `Show the ${hiddenSites.length} you put away`);
-    back.type = "button";
-    back.onclick = async () => { await chrome.storage.sync.remove("hiddenSites"); done(); };
-    text.append(back);
+    const b = el("button", "mini", `Show the ${hiddenSites.length} you put away`);
+    b.type = "button";
+    b.onclick = async () => { await chrome.storage.sync.remove("hiddenSites"); done(); };
+    back.push(b);
   }
-  const row = el("div", "extra");
-  row.append(text, b);
-  $("extrasBody").replaceChildren(row);
+  $("extrasBody").replaceChildren(
+    row("Unread mail", "A count on your Gmail links, with who the newest are from when you point at it. Read with this browser's own Gmail sign-in and kept on this computer. Chrome will ask to read mail.google.com.", toggle("Unread mail", mailOn, MAIL, done)),
+    row("Sites you visit but haven't saved", "A row above your collections of the sites you go to most that aren't in your bookmarks. Drag one onto a collection to keep it; × puts one away for good. Chrome will ask to read your most visited sites.", toggle("Sites you visit but haven't saved", oftenOn, OFTEN, done), ...back),
+  );
 }
 
 // ---------- unread mail ----------
@@ -70,7 +81,7 @@ function badge(links, mail) {
 // Gmail is asked only when a Gmail link is on screen, and at most every five minutes.
 export async function renderMail() {
   const links = [...document.querySelectorAll("#collections a.tile")].filter((a) => GMAIL.test(a.href));
-  if (!links.length) return;
+  if (!links.length || !(await isMail())) return;
   const { mail } = await chrome.storage.local.get("mail");
   if (mail) badge(links, mail);
   if (mail && Date.now() - mail.at < MAIL_FRESH_MS) return;

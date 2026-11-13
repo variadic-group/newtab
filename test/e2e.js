@@ -63,7 +63,7 @@ ok("Settings has four accents; the one chosen travels with the profile and is th
 const sheet = await p.evaluate(() => { const s = document.getElementById("extras"); return { fixed: getComputedStyle(s).position, groups: [...s.querySelectorAll("h3")].map((h) => h.textContent) }; });
 await p.keyboard.press("Escape"); const byEsc = await p.$eval("#extras", (s) => s.hidden);
 await p.click("#extrasFoot"); const lit = await p.getAttribute("#extrasBtn", "aria-expanded"); await p.mouse.click(40, 500); const byPress = await p.$eval("#extras", (s) => s.hidden);
-ok("Settings is one sheet over the page, in groups, and Esc or a press outside it puts it away", sheet.fixed === "fixed" && sheet.groups.join() === "Your place,Look,Bring in your links,Extra, off until you switch it on,Kept in Chrome" && byEsc && lit === "true" && byPress, sheet);
+ok("Settings is one sheet over the page, in groups, and Esc or a press outside it puts it away", sheet.fixed === "fixed" && sheet.groups.join() === "Your place,Look,Bring in your links,Extras, off until you switch them on,Kept in Chrome" && byEsc && lit === "true" && byPress, sheet);
 await p.click("#extrasFoot"); await p.waitForFunction(() => document.getElementById("placeNow").textContent !== "");
 const placeSays = { now: await text(p, "#placeNow"), how: await text(p, "#placeHow"), form: await p.isVisible('#placeSet button:has-text("Use this computer\'s location")') && await p.isVisible("#placeSet input") };
 await p.keyboard.press("Escape");
@@ -455,12 +455,12 @@ ok("an old forecast stays up with a note when it can't refresh", !!(await q.$(".
 
 // ---------- extras are off until asked for ----------
 await q.click('#spaces .tab:has-text("Work")'); await q.waitForSelector(".card");
-await q.waitForSelector('.tile[href^="https://mail.google.com/"] .badge', { timeout: 5000 }).catch(() => {});
-ok("the unread count is always on: a badge on the Gmail link, and pointing at it says who the newest are from", (await text(q, '.tile[href^="https://mail.google.com/"] .badge')) === "7" && /^7 unread in your inbox\nAda Lovelace: Engine notes\nGrace Hopper: Compiler draft$/.test(await q.getAttribute('.tile[href^="https://mail.google.com/"] .badge', "title")) && manifest.host_permissions.includes("https://mail.google.com/*"), await q.getAttribute('.tile[href^="https://mail.google.com/"] .badge', "title").catch(() => ""));
+await q.waitForTimeout(600);
+ok("unread mail ships switched off, as an optional permission: no badge, no request to Gmail", (await q.$$(".badge")).length === 0 && !manifest.host_permissions.includes("https://mail.google.com/*") && manifest.optional_host_permissions.join() === "https://mail.google.com/*");
 ok("the side column is Up next, open tabs and notes only, and the menu has no page of extras", (await q.$$eval(".side .panel h2", (x) => x.map((h) => h.firstChild.textContent.trim()))).join() === "Up next,Open tabs,Notes" && !(await q.$("#recent")) && (await q.$$eval("#pages .tab", (x) => x.map((e) => e.textContent))).join() === "☀️ Today,⌨️ Shortcuts,🛠️ Tools");
-ok("sites you visit but haven't saved ship switched off, as an optional permission", !!(await q.$("#often[hidden]")) && manifest.optional_permissions.join() === "privacy,topSites" && !manifest.optional_host_permissions);
+ok("sites you visit but haven't saved ship switched off, as an optional permission", !!(await q.$("#often[hidden]")) && manifest.optional_permissions.join() === "privacy,topSites");
 await q.click("#extrasFoot"); await q.waitForSelector("#extrasBody .extra");
-ok("Settings has the one extra, off", (await q.$$eval("#extrasBody .extra .btn", (x) => x.map((e) => `${e.getAttribute("aria-label")}:${e.textContent}`))).join() === "Sites you visit but haven't saved:Off");
+ok("Settings has the two extras, both off", (await q.$$eval("#extrasBody .extra .btn", (x) => x.map((e) => `${e.getAttribute("aria-label")}:${e.textContent}`))).join() === "Unread mail:Off,Sites you visit but haven't saved:Off");
 
 // ---------- a busy tab ----------
 const before = (await q.$$("#tabs li")).length;
@@ -494,6 +494,9 @@ for (const u of ["https://news.example.org/", "https://weather.example.net/"]) {
 const e = await g.open(); await e.waitForSelector(".card");
 await e.click('#spaces .tab:has-text("Product")'); await e.waitForSelector(".card"); await e.waitForTimeout(600);
 ok("a space with no Gmail link shows no count anywhere", (await e.$$(".badge")).length === 0 && !(await e.$("#glMail")));
+await e.click('#spaces .tab:has-text("Work")'); await e.waitForSelector(".card");
+await e.waitForSelector('.tile[href^="https://mail.google.com/"] .badge', { timeout: 5000 }).catch(() => {});
+ok("with its permission, the unread count is a badge on the Gmail link, and pointing at it says who the newest are from", (await text(e, '.tile[href^="https://mail.google.com/"] .badge')) === "7" && /^7 unread in your inbox\nAda Lovelace: Engine notes\nGrace Hopper: Compiler draft$/.test(await e.getAttribute('.tile[href^="https://mail.google.com/"] .badge', "title")), await e.getAttribute('.tile[href^="https://mail.google.com/"] .badge', "title").catch(() => ""));
 await e.click('#spaces .tab:has-text("Work")'); await e.waitForSelector(".card");
 await e.waitForFunction(() => !document.getElementById("often").hidden && document.querySelectorAll("#often .chip-site").length > 0, null, { timeout: 5000 }).catch(() => {});
 const oftenSites = await e.$$eval("#often .chip-site .t", (x) => x.map((s) => s.textContent));
@@ -530,7 +533,7 @@ await g.sw.evaluate(() => chrome.privacy.network.webRTCIPHandlingPolicy.clear({}
 ok("the thing to do beside the WebRTC answer does it: Chrome's route is narrowed, and the switch below shows it", !fix || (fixed.value === "default_public_interface_only" && fixed.levelOfControl === "controlled_by_this_extension"), fixed);
 await e.click('#spaces .tab:has-text("Work")'); await e.waitForSelector(".card");
 await e.click("#extrasFoot"); await e.waitForSelector("#extrasBody .extra");
-ok("its switch reads On", (await e.$$eval("#extrasBody .extra .btn", (x) => x.map((b) => b.textContent))).join() === "On");
+ok("their switches read On", (await e.$$eval("#extrasBody .extra .btn", (x) => x.map((b) => b.textContent))).join() === "On,On");
 ok("no page errors with the extras on", g.errs.length === 0, g.errs);
 await g.ctx.close();
 

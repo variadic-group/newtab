@@ -36,7 +36,7 @@ are.
 - **Up next:** pages to come back to, saved with one click, Alt+Shift+S or a right-click.
 - **Open tabs and notes** beside your links: switch, close or file a tab; jot something down.
 - **Search everything you keep,** in every space, with your open tabs.
-- **Unread mail** as a badge on your Gmail icon.
+- **Unread mail** as a badge on your Gmail icon, if you switch it on.
 - **Sites you visit but haven't saved,** if you switch it on, ready to drag into a collection.
 - **Tiles or a list,** light, dark or following the sun, and four accents.
 - **Tools:** whether your VPN, DNS or WebRTC leaks, in plain words, plus a speed test and

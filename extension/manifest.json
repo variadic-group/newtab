@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "New Tab",
-  "version": "4.7.1",
+  "version": "4.8.0",
   "description": "Your bookmarks as your new tab: tabs of icon tiles, short links in the address bar, and a sky clock with the forecast.",
   "chrome_url_overrides": {
     "newtab": "newtab.html"
@@ -38,7 +38,9 @@
     "topSites"
   ],
   "host_permissions": [
-    "https://api.weather.gov/*",
+    "https://api.weather.gov/*"
+  ],
+  "optional_host_permissions": [
     "https://mail.google.com/*"
   ],
   "icons": {

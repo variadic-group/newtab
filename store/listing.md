@@ -55,7 +55,7 @@ ALSO IN THE BOX
 • Up next: pages to come back to, in one click
 • Open tabs and notes beside your links
 • Search everything you keep, in every space
-• Unread mail as a badge on your Gmail icon
+• Unread mail as a badge on your Gmail icon (optional)
 • Sites you visit but haven't saved, ready to drag into a collection (optional)
 • Tiles or a list; light, dark or following the sun
 • Tools: does your VPN, DNS or WebRTC leak? In plain words, plus a speed test
@@ -94,7 +94,7 @@ Free and open source.
 | `storage` | Keeps the user's short names, their own shortcuts, their notes, their choice of light, dark, accent and tiles or a list, the place they set and a cache of the forecast and icons. |
 | `geolocation` | On the first new tab and when the user clicks "Use this computer's location", to show sunrise, sunset and the local forecast. Chrome shows no location prompt on a new tab page, so the permission is declared. If the computer refuses, the page falls back to the city of the network connection (marked approximate), and the user can type a place instead. |
 | Host `api.weather.gov` | Fetches the forecast for the user's place from the National Weather Service. |
-| Host `mail.google.com` | While a Gmail link is on the page, reads Gmail's inbox feed with the browser's own sign-in to show the unread count as a badge on it, with the newest five senders and subjects when pointed at. Kept locally, never sent. |
+| Optional host `mail.google.com` | Only if the user switches on "Unread mail": while a Gmail link is on the page, reads Gmail's inbox feed with the browser's own sign-in to show the unread count as a badge on it, with the newest five senders and subjects when pointed at. Kept locally, never sent. |
 | Optional `privacy` | Only when the user opens "Chrome's privacy switches" on the Tools tab: reads Chrome's privacy settings to show how each is set. The one it can change is the WebRTC IP handling policy, which has no switch in Chrome's settings, and only when the user picks a value; choosing the default clears it. |
 | Optional `topSites` | Only if the user switches on "Sites you visit but haven't saved": shows the most visited sites not already bookmarked, to drag into a collection. Read locally. |
 
@@ -105,8 +105,9 @@ Free and open source.
 - *Location:* yes. The place the user sets, rounded to about a kilometre, is sent to the National
   Weather Service to fetch their forecast. When the computer won't give a location, BigDataCloud
   is asked which city the connection's IP address is in. Not sold, not used for anything else.
-- *Personal communications:* the unread count and the newest five unread senders and subjects
-  from Gmail, read while a Gmail link is on the page; kept on the device, never sent.
+- *Personal communications:* only with the optional "Unread mail" switch: the unread count and
+  the newest five unread senders and subjects from Gmail, read while a Gmail link is on the page;
+  kept on the device, never sent.
 - *User activity / web history:* only with the optional "Sites you visit but haven't saved"
   switch; Chrome's most visited list, read on the device, never sent.
 - The Tools tab's checks contact ipleak.net and two STUN servers only when the user opens that

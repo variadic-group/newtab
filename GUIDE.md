@@ -182,13 +182,13 @@ The full account is in
 **Settings** (in the footer) holds the page light or dark, or lets it follow the sun, and links
 to what Chrome keeps: this extension, its keyboard shortcut, bookmarks, search engines, sync.
 
-**Unread mail** is always on: a red count on any Gmail link in the space you are looking at,
-with who the newest are from when you point at it. Gmail is asked only while a Gmail link is
-on screen, using the browser's own sign-in.
+**Two extras**, in Settings, are off until you switch them on, and Chrome asks at that moment:
 
-**One extra**, in Settings, is off until you switch it on, and Chrome asks at that moment: a
-row of the sites you visit most that aren't in your bookmarks, above your collections. Drag
-one onto a collection to keep it; × puts one away for good (Settings brings them back).
+- **Unread mail:** a red count on any Gmail link in the space you are looking at, with who the
+  newest are from when you point at it. Gmail is asked only while a Gmail link is on screen,
+  using the browser's own sign-in.
+- **Sites you visit but haven't saved:** a row above your collections. Drag one onto a
+  collection to keep it; × puts one away for good (Settings brings them back).
 
 The Tools tab asks for one more the first time you open **Chrome's privacy switches**: Chrome
 words it as "change your privacy-related settings". The page reads them, and changes only the

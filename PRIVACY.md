@@ -55,7 +55,8 @@ Removing the extension deletes all of it. Your bookmarks stay, including the `‚è
 
 ## Unread mail
 
-Always on. While a Gmail link is on the page, it reads Gmail's inbox feed (`mail.google.com`)
+Off until you switch it on in Settings, when Chrome asks to read mail.google.com. While a Gmail
+link is on the page, it reads Gmail's inbox feed (`mail.google.com`)
 with your browser's own sign-in, at most every five minutes. The count, and the sender and
 subject of the newest five unread messages (shown when you point at the badge), are kept on
 this computer and sent nowhere.
