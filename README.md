@@ -112,7 +112,7 @@ request stubbed.
 Sun and moon positions are ported from [SunCalc](https://github.com/mourner/suncalc) by
 Volodymyr Agafonkin (BSD 2-Clause); see [THIRD-PARTY.md](extension/THIRD-PARTY.md). Weather and
 radar are from the U.S. National Weather Service. City search is © OpenStreetMap contributors.
-The approximate place is from BigDataCloud. The dotted map's land is from Natural Earth. What the product is for, flow by flow, is in
+The approximate place is from BigDataCloud. The dotted map's land is from Natural Earth. The promo film's music is "Happy Beats Business Moves Vol. 11" by Sascha Ende (ende.app, CC BY 4.0); its sounds are Kenney's (CC0). What the product is for, flow by flow, is in
 [PRODUCT.md](PRODUCT.md).
 
 ## Licence

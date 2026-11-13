@@ -1,0 +1,50 @@
+{
+  "name": "New Tab",
+  "bg": "#0b6e5f",
+  "accent": "#0b6e5f",
+  "markBg": "#0b6e5f",
+  "scenes": [
+    {
+      "kind": "card",
+      "at": 0.5,
+      "line": "Your bookmarks, as your new tab."
+    },
+    {
+      "kind": "shot",
+      "at": 4.68,
+      "head": "Your bookmarks are the page.",
+      "sub": "Each bookmarks-bar folder becomes a tab of icon tiles. Drag to arrange.",
+      "img": "../media/raw/space.png"
+    },
+    {
+      "kind": "shot",
+      "at": 8.859,
+      "head": "Type a name. Land there.",
+      "sub": "Short links in the address bar, for every bookmark and thirty well-known sites.",
+      "img": "../media/raw/short.png",
+      "keys": "translate/ buenos días",
+      "typeAt": 1.0,
+      "typeStep": 0.075
+    },
+    {
+      "kind": "shot",
+      "at": 13.039,
+      "head": "Your sky, your forecast.",
+      "sub": "The sun's real path, the hourly forecast and radar, for where you are.",
+      "img": "../media/raw/today.png"
+    },
+    {
+      "kind": "shot",
+      "at": 17.219,
+      "head": "See what your connection gives away.",
+      "sub": "VPN, DNS and WebRTC leaks in plain words, plus a speed test.",
+      "img": "../media/raw/tools.png"
+    },
+    {
+      "kind": "card",
+      "at": 21.399,
+      "line": "Free on the Chrome Web Store. No account."
+    }
+  ],
+  "duration": 25.28
+}

@@ -24,7 +24,10 @@ const view = async (at) => {
   await page.mouse.move(640, 795);
   return page;
 };
-const snap = async (page, name) => { await page.waitForTimeout(400); const file = path.join(raw, `${name}.png`); await page.screenshot({ path: file }); return file; };
+// The plain views are kept in store/media/raw for the promo film (store/video).
+const keep = path.join(out, "raw");
+fs.mkdirSync(keep, { recursive: true });
+const snap = async (page, name) => { await page.waitForTimeout(400); const file = path.join(keep, `${name}.png`); await page.screenshot({ path: file }); return file; };
 
 // ---------- the raw views
 let page = await view(DAY);

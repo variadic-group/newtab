@@ -67,6 +67,8 @@ No account, no server, no analytics, no ads. Your links stay Chrome bookmarks.
 Free and open source.
 ```
 
+**Promo video:** `store/media/promo-film.mp4` (25 s, 1920×1080), uploaded to YouTube as unlisted; paste its link in Global promo video. `store/media/promo-film-thumbnail.jpg` is its thumbnail. Made by `python3 store/video/build.py store/video/scenes.json store/media/promo-film.mp4` after `npm run media`.
+
 **Store icon:** `store/media/store-icon-128.png` (96 px of artwork in 16 px of clear border, as the store asks). **Small promo tile:** `store/media/promo-small-440x280.png`. **Marquee:** `store/media/promo-marquee-1400x560.png`.
 
 **Screenshots** (1280×800, sample data), in this order: `store/media/1-your-bookmarks.png`,
