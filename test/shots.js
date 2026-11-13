@@ -63,12 +63,4 @@ await page.waitForFunction(() => /°/.test(document.getElementById("glTemp").tex
 await shot(page, "13-bare");
 await bare.ctx.close();
 
-// The store's small promo tile, 440×280.
-page = await ctx.newPage();
-await page.setViewportSize({ width: 440, height: 280 });
-await page.setContent(`<body style="margin:0;width:440px;height:280px;display:grid;place-content:center;gap:14px;background:linear-gradient(#bcd4f2 0%,#ffe2b8 62%,#0b6e5f 62%);font-family:ui-rounded,-apple-system,'Segoe UI',system-ui,sans-serif;color:#11151b">
-  <svg viewBox="0 0 300 96" width="300" height="96" style="justify-self:center"><path d="M10 92 A140 86 0 0 1 290 92" fill="none" stroke="#11151b" stroke-opacity=".25" stroke-width="3"/><path d="M10 92 A140 86 0 0 1 206 23" fill="none" stroke="#f59e0b" stroke-width="5" stroke-linecap="round"/><circle cx="206" cy="23" r="13" fill="#f59e0b"/></svg>
-  <div style="text-align:center;color:#fff;margin-top:26px"><div style="font-weight:700;font-size:28px;letter-spacing:-.02em">${(await sw.evaluate(() => chrome.runtime.getManifest().name))}</div><div style="font-size:15px;opacity:.9;margin-top:4px">Your bookmarks, as your new tab</div></div></body>`);
-await page.screenshot({ path: path.join(out, "..", "promo-440x280.png") });
-console.log("promo");
 await ctx.close();

@@ -14,7 +14,7 @@ Everything to paste into the Developer Dashboard. Sources checked 2026-11-11:
 2. **Add new item** → upload `newtab-<version>.zip` from the repository's latest release
    (`npm run zip` makes the same file from `extension/`).
 3. **Store listing:** paste the text below; upload the five captioned images from
-   `store/media/` (in their numbered order) and `store/promo-440x280.png`.
+   `store/media/` (in their numbered order) and `store/media/promo-small-440x280.png`.
 4. **Privacy:** paste the single purpose, the permission reasons and the data answers below.
    Privacy policy URL: the address of `PRIVACY.md` in this repository.
 5. **Distribution:** free; Public (or Unlisted to hand out the link, or Private to the Workspace
@@ -66,6 +66,8 @@ No account, no server, no analytics, no ads. Your links stay Chrome bookmarks.
 
 Free and open source.
 ```
+
+**Store icon:** `store/media/store-icon-128.png` (96 px of artwork in 16 px of clear border, as the store asks). **Small promo tile:** `store/media/promo-small-440x280.png`. **Marquee:** `store/media/promo-marquee-1400x560.png`.
 
 **Screenshots** (1280×800, sample data), in this order: `store/media/1-your-bookmarks.png`,
 `2-short-links.png`, `3-today.png`, `4-tools.png`, `5-start.png`. Made by `npm run media`.

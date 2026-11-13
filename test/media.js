@@ -79,6 +79,35 @@ for (const [name, file, bg, head, sub] of SHOTS) {
   console.log(name);
 }
 
+// ---------- the promo tiles and the store icon
+// The mark is drawn, not scaled from the 128 px icon, so it stays sharp at every size. The tiles
+// carry the name, the line under it and a slice of the page; the store icon has the 16 px of clear
+// border the Chrome Web Store asks for around 96 px of artwork.
+const dot = (size) => `<i style="display:block;width:${size * 0.2}px;height:${size * 0.2}px;border-radius:50%;background:#fff"></i>`;
+const mark = (size) => `<span style="display:inline-flex;align-items:center;justify-content:center;gap:${size * 0.06}px;width:${size}px;height:${size}px;border-radius:${size * 0.23}px;background:#0b6e5f;flex:none">${dot(size).repeat(3)}</span>`;
+const spaceImg = `data:image/png;base64,${fs.readFileSync(space).toString("base64")}`;
+const TILES = [
+  ["promo-small-440x280", 440, 280, `
+    <div style="position:absolute;left:32px;top:34px;display:flex;align-items:center;gap:12px"><span style="border-radius:12px;box-shadow:0 0 0 2px rgb(255 255 255 / .35)">${mark(46)}</span><b style="font-size:32px;letter-spacing:-.02em">New Tab</b></div>
+    <p style="position:absolute;left:32px;top:96px;margin:0;font-family:Inter,sans-serif;font-size:17px;line-height:1.35;opacity:.9">Your bookmarks, as your new tab.</p>
+    <img src="${spaceImg}" style="position:absolute;left:150px;top:144px;width:420px;border-radius:10px;box-shadow:0 14px 40px rgb(0 0 0 / .35)">`],
+  ["promo-marquee-1400x560", 1400, 560, `
+    <div style="position:absolute;left:84px;top:150px;display:flex;align-items:center;gap:20px"><span style="border-radius:18px;box-shadow:0 0 0 3px rgb(255 255 255 / .35)">${mark(76)}</span><b style="font-size:58px;letter-spacing:-.025em">New Tab</b></div>
+    <p style="position:absolute;left:84px;top:262px;margin:0;font-family:Inter,sans-serif;font-size:26px;line-height:1.4;opacity:.9;width:520px">Your bookmarks, as your new tab. Tiles you drag, short names you type, the sky where you are.</p>
+    <img src="${spaceImg}" style="position:absolute;left:680px;top:96px;width:820px;border-radius:16px;box-shadow:0 30px 80px rgb(0 0 0 / .38), 0 0 0 1px rgb(255 255 255 / .12)">`],
+];
+for (const [name, w, h, body] of TILES) {
+  await frame.setViewportSize({ width: w, height: h });
+  await frame.setContent(`<!doctype html><meta charset="utf-8"><body style="margin:0;width:${w}px;height:${h}px;overflow:hidden;background:#0b6e5f;font-family:'Inter Display','Inter',sans-serif;color:#fff;position:relative">${body}</body>`);
+  await frame.waitForTimeout(150);
+  await frame.screenshot({ path: path.join(out, `${name}.png`) });
+  console.log(name);
+}
+await frame.setViewportSize({ width: 128, height: 128 });
+await frame.setContent(`<!doctype html><body style="margin:0;width:128px;height:128px;display:grid;place-items:center;background:transparent">${mark(96)}</body>`);
+await frame.screenshot({ path: path.join(out, "store-icon-128.png"), omitBackground: true });
+console.log("store-icon-128");
+
 // ---------- the README's demo: a space, a search across everything kept, then Today's sky pointed along
 const frames = path.join(raw, "frames");
 fs.mkdirSync(frames);
