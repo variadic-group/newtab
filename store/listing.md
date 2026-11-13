@@ -13,8 +13,8 @@ Everything to paste into the Developer Dashboard. Sources checked 2026-11-11:
    paying the one-time registration fee; the account's email can't be changed later.
 2. **Add new item** → upload `newtab-<version>.zip` from the repository's latest release
    (`npm run zip` makes the same file from `extension/`).
-3. **Store listing:** paste the text below; upload the five screenshots from
-   `store/screenshots/` and `store/promo-440x280.png`.
+3. **Store listing:** paste the text below; upload the five captioned images from
+   `store/media/` (in their numbered order) and `store/promo-440x280.png`.
 4. **Privacy:** paste the single purpose, the permission reasons and the data answers below.
    Privacy policy URL: the address of `PRIVACY.md` in this repository.
 5. **Distribution:** free; Public (or Unlisted to hand out the link, or Private to the Workspace
@@ -31,7 +31,7 @@ upload it, submit.
 
 **Summary** (132 characters at most):
 
-> Your bookmarks as your new tab: tabs of icon tiles, short links in the address bar, and a sky clock with the forecast.
+> Your bookmarks as your new tab: drag tiles, type short names like mail/, and see the sky and forecast where you are.
 
 **Category:** Productivity → Workflow & Planning
 
@@ -40,59 +40,35 @@ upload it, submit.
 **Description:**
 
 ```
-Your bookmarks are already organised. This makes them your new tab.
+Your bookmarks, as your new tab. Tiles you can drag, short names you can type, and the sky over where you are. Free, no account, nothing to import.
 
-Every folder on your bookmarks bar becomes a tab; every folder inside it becomes a card of icons. Nothing to import and no account: the page is drawn from Chrome's own bookmarks, so it is the same on every computer you sign in to, and removing it loses nothing.
+YOUR BOOKMARKS ARE THE PAGE
+Every folder on your bookmarks bar becomes a tab of icon tiles. Drag to arrange and Chrome's bookmarks change with you: the same on every computer, and nothing lost if you remove it.
 
-NOTHING BOOKMARKED YET? IT STARTS YOU OFF
-With an empty bookmarks bar, the page offers three ways in, right where your links will go:
-• A starter set, in one press
-• A bookmarks file from another browser
-• A prompt that has your own assistant ask what you use and write that file
-Then say where you are (this computer's location, or type a city), and type a short name in the address bar: stripe/ opens Stripe, mail/invoice searches your mail.
+TYPE A NAME, LAND THERE
+Every bookmark gets a short name: stripe/ opens Stripe, mail/invoice searches your mail, translate/ hola translates, claude/ plan a trip asks. Thirty well-known sites work with nothing saved.
 
-LAUNCH
-• Spaces, collections and groups, straight from the bookmarks bar; make and rename them on the page
-• A search bar (press /): type and everything you keep is filtered down to what matches, in any space, with your open tabs; it takes short links too
-• Links as icon tiles, or as a list with each link's short name beside it
-• Drag to reorder links, cards and tabs; the bookmarks bar changes with you
-• Open a whole collection as one named tab group
+YOUR SKY, YOUR FORECAST
+The sun's real path, sunrise, sunset and the moon, with the hourly forecast, the week and radar (United States). Point along the sky to see any moment of the next day. The page goes dark when night falls where you are.
 
-TYPE, DON'T CLICK
-• Every bookmark gets a short name the moment you save it: stripe/ opens Stripe
-• Add words to search the site itself: translate/buenos días, maps/coffee, yt/, wiki/, gh/, gpt/ and about thirty more work with nothing bookmarked; any other link searches the web for its site
-• Google's apps and Claude are always there and search inside themselves: mail/invoice from the printer, cal/dentist, drive/contract, docs/ sheets/ slides/ keep/, claude/what should I ask
-• Chrome's own pages have names too: history/that recipe, downloads/invoice, settings/cookies
-• Add your own: any name to any address
-
-PICK UP WHERE YOU LEFT OFF
-• Up next: pages to come back to, saved with one click, Alt+Shift+S or a right-click
-• Open tabs: switch, reorder, close, or file one into a collection
-• Notes: a scratch box that follows your Chrome profile
-
-LOOK UP
-• The sun's real path across the day, the three twilights, and the moon in its true phase
-• Sunrise, sunset and the radar for where you are, at the top
-• Point along the sky or the hourly forecast to see any moment of the next day: where the sun will be, the light, and the weather then
-• The page turns dark when night falls where you are; or hold it light or dark, and pick an accent
-• Forecast, hourly chart, seven days and radar from the National Weather Service (United States)
-
-CHECK, WHEN YOU WANT TO
-• A Tools tab that shows how you look from outside: where your traffic comes out and whether your clock agrees, a WebRTC leak check, whose servers answer your DNS lookups, a speed reading, the fingerprint a tracking script would give this browser, and how Chrome's own privacy switches are set
-• Written for people who have never heard those words: each answer says what it is, what was found, what it means and what to do, which is often nothing
-• A plain list of what a VPN, secure DNS, a tracker blocker and a private window each change and don't. Kinds, not products: nothing is sold or recommended for money
-• Opening that tab runs the check; no other part of the page makes those calls
+ALSO IN THE BOX
+• Up next: pages to come back to, in one click
+• Open tabs and notes beside your links
+• Search everything you keep, in every space
+• Unread mail as a badge on your Gmail icon
+• Sites you visit but haven't saved, ready to drag into a collection (optional)
+• Tiles or a list; light, dark or following the sun
+• Tools: does your VPN, DNS or WebRTC leak? In plain words, plus a speed test
+• An empty bookmarks bar? A starter set, your old browser's bookmarks, or a prompt for your own assistant
 
 PRIVATE BY CONSTRUCTION
-• No account, no server, no analytics, no ads, no affiliate links
-• Your links stay Chrome bookmarks
-• An unread count on your Gmail icon, and, if you switch it on, the sites you visit most that you haven't saved, ready to drag into a collection
+No account, no server, no analytics, no ads. Your links stay Chrome bookmarks.
 
 Free and open source.
 ```
 
-**Screenshots** (1280×800, sample data): `2-space.png`, `13-bare.png`, `7-today-night.png`,
-`10-shortcuts.png`, `11-tools.png`.
+**Screenshots** (1280×800, sample data), in this order: `store/media/1-your-bookmarks.png`,
+`2-short-links.png`, `3-today.png`, `4-tools.png`, `5-start.png`. Made by `npm run media`.
 
 ## Privacy tab
 

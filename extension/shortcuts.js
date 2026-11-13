@@ -104,7 +104,11 @@ function knownCard(table, links) {
     const what = el("span", "sc-what");
     what.append(el("span", "t", site.label));
     const keys = el("span", "sc-keys");
-    keys.append(...names.map((n) => el("code", "key known", `${n}/`)));
+    // The shortest name is the one worth learning; the others still work, and say so on hover.
+    const [short, ...also] = [...names].sort((a, b) => a.length - b.length);
+    const key = el("code", "key known", `${short}/`);
+    if (also.length) key.title = `Also ${also.map((n) => `${n}/`).join(", ")}`;
+    keys.append(key);
     card.append(row(keys, what, site.example));
   }
   return card;
